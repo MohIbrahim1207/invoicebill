@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Client Detail - InvoiceHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/portal.css}">
+</head>
+<body class="portal-bg">
+<div th:replace="fragments/layout :: topbar('Client Detail')"></div>
+<div th:replace="fragments/layout :: sidebarMobile('clients')"></div>
+<div class="portal-shell">
+    <div th:replace="fragments/layout :: sidebar('clients')"></div>
+    <main class="portal-main">
+        <div class="d-flex justify-content-between mb-3 gap-2">
+            <h1 class="portal-heading mb-1" th:text="${client.companyName}"></h1>
+            <div class="d-flex gap-2">
+                <a th:href="@{/clients/{id}/edit(id=${client.id})}" class="btn btn-warning"><i class="bi bi-pencil"></i> Edit</a>
+                <a href="/clients" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+            </div>
+        </div>
+        <section class="card portal-card">
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-12">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-muted">Client Name</label>
+                                <p class="h5" th:text="${client.companyName}"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted">GST Number</label>
+                                <p th:text="${client.gstNumber ?: 'N/A'}"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted">Email</label>
+                                <p th:text="${client.email ?: 'N/A'}"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted">Phone</label>
+                                <p th:text="${client.phone ?: 'N/A'}"></p>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-muted">Address</label>
+                                <p th:text="${client.address ?: 'N/A'}"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <hr>
+                        <div class="d-flex gap-2">
+                            <a th:href="@{/clients/{id}/edit(id=${client.id})}" class="btn btn-warning"><i class="bi bi-pencil"></i> Edit</a>
+                            <form th:action="@{/deleteClient/{id}(id=${client.id})}" method="post" style="display: inline;">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this client?');"><i class="bi bi-trash"></i> Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

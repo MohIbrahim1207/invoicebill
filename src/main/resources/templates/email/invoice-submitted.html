@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5; }
+        .header { background-color: #007bff; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { background-color: white; padding: 20px; border: 1px solid #ddd; }
+        .footer { background-color: #f5f5f5; padding: 10px; text-align: center; font-size: 12px; color: #666; }
+        .button { display: inline-block; background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2>Invoice Submitted</h2>
+    </div>
+    <div class="content">
+        <p>Dear [[VENDOR_NAME]],</p>
+        <p>Your invoice has been successfully submitted to the system.</p>
+        <p><strong>Invoice Details:</strong></p>
+        <ul>
+            <li>Invoice ID: [[INVOICE_ID]]</li>
+            <li>Amount: [[AMOUNT]]</li>
+            <li>Submission Date: [[DATE]]</li>
+        </ul>
+        <p>Your invoice is now pending review. You will receive a notification once it has been reviewed.</p>
+        <p>Thank you for using our platform.</p>
+        <p>Best regards,<br>Invoice Hub Team</p>
+    </div>
+    <div class="footer">
+        <p>&copy; 2026 Invoice Hub. All rights reserved.</p>
+    </div>
+</div>
+</body>
+</html>
+

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5; }
+        .header { background-color: #17a2b8; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { background-color: white; padding: 20px; border: 1px solid #ddd; }
+        .footer { background-color: #f5f5f5; padding: 10px; text-align: center; font-size: 12px; color: #666; }
+        .button { display: inline-block; background-color: #17a2b8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2>New Reply on Your Support Ticket</h2>
+    </div>
+    <div class="content">
+        <p>Dear [[VENDOR_NAME]],</p>
+        <p>A new reply has been added to your support ticket.</p>
+        <p><strong>Ticket Details:</strong></p>
+        <ul>
+            <li>Ticket ID: [[TICKET_ID]]</li>
+            <li>Subject: [[SUBJECT]]</li>
+            <li>Latest Reply: [[DATE]]</li>
+        </ul>
+        <p><strong>Latest Response:</strong></p>
+        <p>[[REPLY_CONTENT]]</p>
+        <p>Log in to your dashboard to view the full conversation and reply.</p>
+        <p>Best regards,<br>Invoice Hub Support Team</p>
+    </div>
+    <div class="footer">
+        <p>&copy; 2026 Invoice Hub. All rights reserved.</p>
+    </div>
+</div>
+</body>
+</html>
+
