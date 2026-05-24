@@ -93,12 +93,6 @@
             <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Flyway for reliable schema migrations to repair role/foreign-key issues -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-            <version>9.16.0</version>
-        </dependency>
     </dependencies>
 
     <build>
