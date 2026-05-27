@@ -1,4 +1,4 @@
-HELP.md
+
 target/
 *.jar
 src/main/resources/application.properties
@@ -34,3 +34,4 @@ build/
 
 ### VS Code ###
 .vscode/
+.env

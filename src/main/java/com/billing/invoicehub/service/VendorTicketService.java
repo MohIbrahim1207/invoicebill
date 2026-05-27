@@ -130,7 +130,7 @@ public class VendorTicketService {
 
     @Transactional(readOnly=true)
     public Optional<VendorTicket> getTicketById(Long ticketId) {
-        return this.vendorTicketRepository.findById(ticketId);
+        return this.vendorTicketRepository.findDetailedById(ticketId);
     }
 
     @Transactional(readOnly=true)
@@ -142,9 +142,9 @@ public class VendorTicketService {
         AppUser currentUser = user.get();
         boolean admin = this.isAdmin(currentUser);
         if (admin) {
-            return this.vendorTicketRepository.findById(ticketId);
+            return this.vendorTicketRepository.findDetailedById(ticketId);
         }
-        return this.vendorTicketRepository.findById(ticketId).filter(ticket -> ticket.getOwner() != null && ticket.getOwner().getId().equals(currentUser.getId()));
+        return this.vendorTicketRepository.findDetailedById(ticketId).filter(ticket -> ticket.getOwner() != null && ticket.getOwner().getId().equals(currentUser.getId()));
     }
 
     @Transactional(readOnly=true)
@@ -167,25 +167,30 @@ public class VendorTicketService {
         vendorTicket.setInvoiceDate(state.getInvoiceDate());
         vendorTicket.setAmount(state.getAmount());
         vendorTicket.setCurrency(state.getCurrency());
-        vendorTicket.setInvoiceFileName(state.getInvoiceFileName());
-        vendorTicket.setSupportingDocumentName(state.getSupportingDocumentName());
+        vendorTicket.setInvoiceFileName(state.getInvoiceFileOriginalName());
+        vendorTicket.setInvoiceFileUrl(state.getInvoiceFileUrl());
+        vendorTicket.setDocumentUrl(state.getDocumentUrl());
+        vendorTicket.setDocumentPublicId(state.getDocumentPublicId());
+        vendorTicket.setSupportingDocumentName(state.getSupportingDocumentOriginalName());
+        vendorTicket.setSupportingDocumentUrl(state.getSupportingDocumentUrl());
         vendorTicket.setTicketNo(state.getTicketNo());
         vendorTicket.setSubtotal(state.getSubtotal());
         vendorTicket.setTax(state.getTax());
         vendorTicket.setTotal(state.getTotal());
         vendorTicket.setPoNumber(state.getPoNumber());
-        vendorTicket.setTaxDocumentPath(state.getTaxDocumentName());
-        vendorTicket.setPoCopyPath(state.getPoCopyName());
-        vendorTicket.setDeliveryNotePath(state.getDeliveryNoteName());
-        vendorTicket.setOtherDocumentPath(state.getOtherDocumentName());
+        vendorTicket.setTaxDocumentUrl(state.getTaxDocumentUrl());
+        vendorTicket.setPoCopyUrl(state.getPoCopyUrl());
+        vendorTicket.setDeliveryNoteUrl(state.getDeliveryNoteUrl());
+        vendorTicket.setOtherDocumentUrl(state.getOtherDocumentUrl());
         vendorTicket.setStatusRequest(TicketStatus.OPEN);
         vendorTicket.setCreatedAt(LocalDateTime.now());
         VendorTicket saved = this.vendorTicketRepository.save(vendorTicket);
         this.vendorTicketHistoryRepository.save(new VendorTicketHistory(saved, TicketStatus.OPEN, LocalDateTime.now(), "Ticket submitted"));
         try {
-            if (saved.getInvoiceFileName() != null && !saved.getInvoiceFileName().isBlank()) {
+            if (saved.getInvoiceFileUrl() != null && !saved.getInvoiceFileUrl().isBlank()) {
                 Invoice inv = new Invoice();
                 inv.setFileName(saved.getInvoiceFileName());
+                inv.setFileUrl(saved.getInvoiceFileUrl());
                 inv.setInvoiceNumber(saved.getInvoiceNo() != null ? saved.getInvoiceNo() : null);
                 inv.setInvoiceDate(saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : null);
                 inv.setAmount(saved.getAmount());

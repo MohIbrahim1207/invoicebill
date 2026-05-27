@@ -79,6 +79,13 @@
                     </div>
 
                     <div class="form-section">
+                        <label for="documentFile" class="form-label form-section-title">Document File <span class="text-muted">(optional)</span></label>
+                        <input type="file" id="documentFile" name="documentFile" class="form-control form-control-lg" accept=".pdf,.doc,.docx,.png,.jpg">
+                        <div class="file-preview" id="documentFilePreview" th:text="${wizardState.documentUrl != null ? 'Document uploaded' : 'No file selected'}">No file selected</div>
+                        <div class="form-text">Upload a supporting document (PDF, DOC, DOCX, PNG, JPG)</div>
+                    </div>
+
+                    <div class="form-section">
                         <label for="taxDocument" class="form-label form-section-title">Tax/VAT Document</label>
                         <input type="file" id="taxDocument" name="taxDocument" class="form-control form-control-lg" accept=".pdf,image/*" required>
                         <div class="file-preview" id="taxFilePreview" th:text="${wizardState.taxDocumentOriginalName != null ? wizardState.taxDocumentOriginalName : 'No file selected'}">No file selected</div>
@@ -123,12 +130,14 @@
 </div>
 <script>
     const invoiceFile = document.getElementById('invoiceFile');
+    const documentFile = document.getElementById('documentFile');
     const taxDocument = document.getElementById('taxDocument');
     const poCopy = document.getElementById('poCopy');
     const deliveryNote = document.getElementById('deliveryNote');
     const otherDocument = document.getElementById('otherDocument');
 
     const invoicePreview = document.getElementById('invoiceFilePreview');
+    const documentPreview = document.getElementById('documentFilePreview');
     const taxPreview = document.getElementById('taxFilePreview');
     const poCopyPreview = document.getElementById('poCopyPreview');
     const deliveryNotePreview = document.getElementById('deliveryNotePreview');
@@ -137,6 +146,12 @@
     if (invoiceFile) {
         invoiceFile.addEventListener('change', function () {
             invoicePreview.textContent = this.files && this.files.length > 0 ? this.files[0].name : 'No file selected';
+        });
+    }
+
+    if (documentFile) {
+        documentFile.addEventListener('change', function () {
+            documentPreview.textContent = this.files && this.files.length > 0 ? this.files[0].name : 'No file selected';
         });
     }
 

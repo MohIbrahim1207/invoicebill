@@ -22,8 +22,12 @@ import com.billing.invoicehub.entity.TicketStatus;
 import com.billing.invoicehub.entity.VendorTicket;
 import com.billing.invoicehub.entity.VendorTicketHistory;
 import com.billing.invoicehub.service.VendorTicketService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -37,6 +41,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 @RequestMapping(value={"/admin/tickets"})
 public class AdminTicketController {
+    private static final Logger log = LoggerFactory.getLogger(AdminTicketController.class);
     private final VendorTicketService vendorTicketService;
 
     public AdminTicketController(VendorTicketService vendorTicketService) {
@@ -58,14 +63,24 @@ public class AdminTicketController {
 
     @GetMapping(value={"/{id}/manage"})
     public String manageTicket(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+        log.info("Loading ticket {} for management", id);
         Optional ticket = this.vendorTicketService.getTicketById(id);
         if (ticket.isEmpty()) {
+            log.warn("Ticket {} not found", id);
             redirectAttributes.addFlashAttribute("error", (Object)"Ticket not found.");
             return "redirect:/admin/tickets";
         }
+
+        VendorTicket vendorTicket = (VendorTicket) ticket.get();
         List history = this.vendorTicketService.getTicketHistory(id);
-        model.addAttribute("ticket", ticket.get());
+
+        // Build document information map for template
+        Map<String, Map<String, String>> documents = buildDocumentMap(vendorTicket);
+
+        log.debug("Loaded {} documents for ticket {}", documents.size(), id);
+        model.addAttribute("ticket", vendorTicket);
         model.addAttribute("history", (Object)history);
+        model.addAttribute("documents", documents);
         model.addAttribute("statusOptions", (Object)TicketStatus.values());
         return "admin-ticket-manage";
     }
@@ -89,5 +104,118 @@ public class AdminTicketController {
         redirectAttributes.addFlashAttribute("message", (Object)"Ticket status updated successfully.");
         return "redirect:/admin/tickets/" + id + "/manage";
     }
-}
 
+    /**
+     * Build a map of documents with their metadata for template rendering.
+     * Each document includes: name, url, fileType, exists flag
+     */
+    private Map<String, Map<String, String>> buildDocumentMap(VendorTicket ticket) {
+        Map<String, Map<String, String>> documents = new HashMap<>();
+
+        // Invoice File
+        if (ticket.getInvoiceFileUrl() != null && !ticket.getInvoiceFileUrl().isBlank()) {
+            documents.put("invoice", createDocumentEntry(
+                "Invoice Document",
+                ticket.getInvoiceFileUrl(),
+                ticket.getInvoiceFileName()
+            ));
+        }
+
+        // Supporting Document
+        if (ticket.getDocumentUrl() != null && !ticket.getDocumentUrl().isBlank()) {
+            documents.put("supporting", createDocumentEntry(
+                "Supporting Document",
+                ticket.getDocumentUrl(),
+                ticket.getInvoiceFileName()
+            ));
+        }
+
+        // Tax Document
+        if (ticket.getTaxDocumentUrl() != null && !ticket.getTaxDocumentUrl().isBlank()) {
+            documents.put("tax", createDocumentEntry(
+                "Tax Document",
+                ticket.getTaxDocumentUrl(),
+                null
+            ));
+        }
+
+        // PO Copy
+        if (ticket.getPoCopyUrl() != null && !ticket.getPoCopyUrl().isBlank()) {
+            documents.put("po", createDocumentEntry(
+                "Purchase Order Copy",
+                ticket.getPoCopyUrl(),
+                null
+            ));
+        }
+
+        // Delivery Note
+        if (ticket.getDeliveryNoteUrl() != null && !ticket.getDeliveryNoteUrl().isBlank()) {
+            documents.put("delivery", createDocumentEntry(
+                "Delivery Note",
+                ticket.getDeliveryNoteUrl(),
+                null
+            ));
+        }
+
+        // Other Document
+        if (ticket.getOtherDocumentUrl() != null && !ticket.getOtherDocumentUrl().isBlank()) {
+            documents.put("other", createDocumentEntry(
+                "Other Document",
+                ticket.getOtherDocumentUrl(),
+                null
+            ));
+        }
+
+        return documents;
+    }
+
+    /**
+     * Create a document entry with metadata
+     */
+    private Map<String, String> createDocumentEntry(String name, String url, String originalFilename) {
+        Map<String, String> entry = new HashMap<>();
+        entry.put("name", name);
+        entry.put("url", url);
+        entry.put("fileType", extractFileType(url, originalFilename));
+        entry.put("icon", getIconForFileType(entry.get("fileType")));
+        return entry;
+    }
+
+    /**
+     * Extract file type from URL or filename
+     */
+    private String extractFileType(String url, String filename) {
+        if (filename != null && filename.contains(".")) {
+            String ext = filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
+            return ext;
+        }
+
+        if (url != null && url.contains(".")) {
+            // Extract from URL (e.g., .jpg, .pdf)
+            String[] parts = url.split("\\.");
+            if (parts.length > 0) {
+                String ext = parts[parts.length - 1].split("[?#]")[0].toLowerCase();
+                if (ext.length() <= 5) { // Reasonable extension length
+                    return ext;
+                }
+            }
+        }
+        return "file";
+    }
+
+    /**
+     * Map file type to Bootstrap icon class
+     */
+    private String getIconForFileType(String fileType) {
+        if (fileType == null) return "bi-file";
+
+        return switch (fileType.toLowerCase()) {
+            case "pdf" -> "bi-file-pdf";
+            case "jpg", "jpeg", "png", "webp", "gif" -> "bi-image";
+            case "doc", "docx" -> "bi-file-word";
+            case "xls", "xlsx" -> "bi-file-earmark-excel";
+            case "zip", "rar" -> "bi-file-earmark-zip";
+            default -> "bi-file";
+        };
+    }
+}

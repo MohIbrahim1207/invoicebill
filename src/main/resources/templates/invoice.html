@@ -133,7 +133,8 @@
                                         </div>
                                     </td>
                                 </tr>
-                                <tr th:each="invoice : ${invoices}" th:attr="data-search=${(invoice.invoiceNumber ?: '') + ' ' + (invoice.client != null ? invoice.client.companyName : '')},data-amount=${invoice.amount ?: 0}">
+                                <tr th:each="invoice : ${invoices}"
+                                    th:attr="data-search=${invoice.invoiceNumber},data-amount=${invoice.amount != null ? invoice.amount : 0}">
                                     <td th:text="${invoice.id}"></td>
                                     <td th:text="${invoice.invoiceNumber}"></td>
                                     <td th:text="${invoice.invoiceDate}"></td>

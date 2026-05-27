@@ -21,13 +21,15 @@
                     </div>
 
                     <div th:if="${param.error}" class="alert alert-danger">
-                        <span th:if="${param.error == 'username_exists'}">Username already exists. Please choose another.</span>
-                        <span th:if="${param.error == 'invalid_input'}">Please fill all required fields correctly.</span>
-                        <span th:if="${param.error == 'file_type'}">Only PDF, PNG, JPG, JPEG and WEBP files are allowed.</span>
-                        <span th:if="${param.error == 'password_error'}">Password must be at least 6 characters and match the confirmation.</span>
-                        <span th:if="${param.error == 'registration_failed'}">Registration could not be completed. Please try again.</span>
+    <span th:with="err=${param.error[0]}">
+        <span th:if="${err == 'username_exists'}">Username already exists. Please choose another.</span>
+        <span th:if="${err == 'invalid_input'}">Please fill all required fields correctly.</span>
+        <span th:if="${err == 'file_type'}">Only PDF, PNG, JPG, JPEG and WEBP files are allowed.</span>
+        <span th:if="${err == 'password_error'}">Password must be at least 6 characters and match the confirmation.</span>
+        <span th:if="${err == 'registration_failed'}">Registration could not be completed. Please try again.</span>
+        <span th:if="${err != 'username_exists' and err != 'invalid_input' and err != 'file_type' and err != 'password_error' and err != 'registration_failed'}" th:text="${err}">An error occurred.</span>
+    </span>
                     </div>
-
                     <form th:action="@{/register}" method="post" enctype="multipart/form-data" class="vstack gap-4">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 

@@ -17,6 +17,7 @@ public class AppUser {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String username;
     private String password;
     private String email;
@@ -25,14 +26,20 @@ public class AppUser {
     private String vendorCode;
     private String rejectionReason;
     private LocalDateTime registrationDate;
+
     private String companyName;
     private String address;
     private String fullName;
     private String phone;
+
     private String gstNumber;
-    private String gstDocumentPath;
-    private String companyDocumentPath;
-    private String supportingDocumentPath;
+    // Changed from Path to URL
+    private String gstDocumentUrl;
+    private String companyDocumentUrl;
+    private String supportingDocumentUrl;
+    private String profileImageUrl;
+    private String companyLogoUrl;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "app_user_roles",
@@ -41,6 +48,7 @@ public class AppUser {
     )
     private Set<AppRole> roles = new HashSet<>();
 
+    // Getters and Setters
     public Long getId() { return this.id; }
     public void setId(Long id) { this.id = id; }
 
@@ -83,14 +91,20 @@ public class AppUser {
     public String getGstNumber() { return this.gstNumber; }
     public void setGstNumber(String gstNumber) { this.gstNumber = gstNumber; }
 
-    public String getGstDocumentPath() { return this.gstDocumentPath; }
-    public void setGstDocumentPath(String gstDocumentPath) { this.gstDocumentPath = gstDocumentPath; }
+    public String getGstDocumentUrl() { return this.gstDocumentUrl; }
+    public void setGstDocumentUrl(String gstDocumentUrl) { this.gstDocumentUrl = gstDocumentUrl; }
 
-    public String getCompanyDocumentPath() { return this.companyDocumentPath; }
-    public void setCompanyDocumentPath(String companyDocumentPath) { this.companyDocumentPath = companyDocumentPath; }
+    public String getCompanyDocumentUrl() { return this.companyDocumentUrl; }
+    public void setCompanyDocumentUrl(String companyDocumentUrl) { this.companyDocumentUrl = companyDocumentUrl; }
 
-    public String getSupportingDocumentPath() { return this.supportingDocumentPath; }
-    public void setSupportingDocumentPath(String supportingDocumentPath) { this.supportingDocumentPath = supportingDocumentPath; }
+    public String getSupportingDocumentUrl() { return this.supportingDocumentUrl; }
+    public void setSupportingDocumentUrl(String supportingDocumentUrl) { this.supportingDocumentUrl = supportingDocumentUrl; }
+
+    public String getProfileImageUrl() { return this.profileImageUrl; }
+    public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
+
+    public String getCompanyLogoUrl() { return this.companyLogoUrl; }
+    public void setCompanyLogoUrl(String companyLogoUrl) { this.companyLogoUrl = companyLogoUrl; }
 
     public Set<AppRole> getRoles() { return this.roles; }
     public void setRoles(Set<AppRole> roles) { this.roles = roles; }

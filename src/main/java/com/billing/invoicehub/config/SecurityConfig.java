@@ -64,7 +64,7 @@ public class SecurityConfig {
         http.securityMatcher("/admin/**")
             .authenticationProvider(authenticationProvider)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/admin/login", "/error", "/css/**", "/js/**", "/uploads/**").permitAll()
+                .requestMatchers("/admin/login", "/error", "/css/**", "/js/**").permitAll()
                 .anyRequest().hasRole("ADMIN")
             )
             .formLogin(form -> form
@@ -102,7 +102,6 @@ public class SecurityConfig {
                     "/error",
                     "/css/**",
                     "/js/**",
-                    "/uploads/**",
                     "/images/**",
                     "/webjars/**",
                     "/api/purchase-orders/**"

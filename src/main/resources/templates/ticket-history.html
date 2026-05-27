@@ -39,14 +39,14 @@
                     </div>
                     <div class="col-md-6">
                         <h5 class="text-muted">Current Status</h5>
-                        <p class="fw-bold">
-                            <span th:if="${ticket != null && ticket.statusRequest != null && ticket.statusRequest.name() == 'OPEN'}" class="badge bg-dark">Open</span>
-                            <span th:if="${ticket != null && ticket.statusRequest != null && ticket.statusRequest.name() == 'CONFIRM'}" class="badge bg-warning">Confirm</span>
-                            <span th:if="${ticket != null && ticket.statusRequest != null && ticket.statusRequest.name() == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
-                            <span th:if="${ticket != null && ticket.statusRequest != null && ticket.statusRequest.name() == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success">Waiting Physical Document</span>
-                            <span th:if="${ticket != null && ticket.statusRequest != null && ticket.statusRequest.name() == 'RELEASE'}" class="badge bg-info">Release</span>
-                            <span th:if="${ticket != null && ticket.statusRequest != null && ticket.statusRequest.name() == 'REVISE'}" class="badge bg-danger">Revise</span>
-                            <span th:if="${ticket == null || ticket.statusRequest == null}" class="badge bg-light text-dark">-</span>
+                        <p class="fw-bold" th:with="statusName=${ticket != null && ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
+                            <span th:if="${statusName == 'OPEN'}" class="badge bg-dark">Open</span>
+                            <span th:if="${statusName == 'CONFIRM'}" class="badge bg-warning">Confirm</span>
+                            <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
+                            <span th:if="${statusName == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success">Waiting Physical Document</span>
+                            <span th:if="${statusName == 'RELEASE'}" class="badge bg-info">Release</span>
+                            <span th:if="${statusName == 'REVISE'}" class="badge bg-danger">Revise</span>
+                            <span th:if="${statusName == null}" class="badge bg-light text-dark">-</span>
                         </p>
                     </div>
                     <div class="col-md-6">
@@ -82,7 +82,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                        <tr th:if="${#lists.isEmpty(history)}" class="table-empty-row">
+                        <tr th:if="${history == null or #lists.isEmpty(history)}" class="table-empty-row">
                             <td colspan="3">
                                 <div class="empty-state">
                                     <i class="bi bi-inbox"></i>
@@ -90,14 +90,15 @@
                                 </div>
                             </td>
                         </tr>
-                        <tr th:each="record : ${history}">
+                        <tr th:if="${history != null and !#lists.isEmpty(history)}" th:each="record : ${history}" th:with="recordStatus=${record.status != null ? record.status.name() : null}">
                             <td>
-                                <span th:if="${record.status.name() == 'OPEN'}" class="badge bg-dark">Open</span>
-                                <span th:if="${record.status.name() == 'CONFIRM'}" class="badge bg-warning">Confirm</span>
-                                <span th:if="${record.status.name() == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
-                                <span th:if="${record.status.name() == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success">Waiting Physical Document</span>
-                                <span th:if="${record.status.name() == 'RELEASE'}" class="badge bg-info">Release</span>
-                                <span th:if="${record.status.name() == 'REVISE'}" class="badge bg-danger">Revise</span>
+                                <span th:if="${recordStatus == 'OPEN'}" class="badge bg-dark">Open</span>
+                                <span th:if="${recordStatus == 'CONFIRM'}" class="badge bg-warning">Confirm</span>
+                                <span th:if="${recordStatus == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
+                                <span th:if="${recordStatus == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success">Waiting Physical Document</span>
+                                <span th:if="${recordStatus == 'RELEASE'}" class="badge bg-info">Release</span>
+                                <span th:if="${recordStatus == 'REVISE'}" class="badge bg-danger">Revise</span>
+                                <span th:if="${recordStatus == null}" class="badge bg-light text-dark">-</span>
                             </td>
                             <td th:text="${#temporals.format(record.changedAt, 'MMM dd, yyyy')}">-</td>
                             <td th:text="${record.comment != null ? record.comment : '-'}">-</td>

@@ -89,7 +89,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:if="${#lists.isEmpty(tickets)}" class="table-empty-row">
+                        <tr th:if="${tickets == null or #lists.isEmpty(tickets)}" class="table-empty-row">
                             <td colspan="12">
                                 <div class="empty-state">
                                     <i class="bi bi-ticket-perforated"></i>
@@ -97,7 +97,7 @@
                                 </div>
                             </td>
                         </tr>
-                        <tr th:each="ticket, row : ${tickets}">
+                        <tr th:if="${tickets != null and !#lists.isEmpty(tickets)}" th:each="ticket, row : ${tickets}" th:with="statusName=${ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
                             <td th:text="${row.index + 1}"></td>
                             <td th:text="${ticket.ticketNo}"></td>
                             <td th:text="${ticket.invoiceNo}"></td>
@@ -108,19 +108,20 @@
                             <td th:text="${#numbers.formatDecimal(ticket.total, 1, 'COMMA', 2, 'POINT')}"></td>
                             <td th:text="${ticket.currency}"></td>
                             <td>
-                                <span th:if="${ticket.statusRequest.name() == 'CONFIRM'}"
+                                <span th:if="${statusName == 'CONFIRM'}"
                                       class="fw-semibold text-primary">Confirm</span>
-                                <span th:if="${ticket.statusRequest.name() == 'CANCEL'}"
+                                <span th:if="${statusName == 'CANCEL'}"
                                       class="fw-semibold text-secondary">Cancel</span>
-                                <span th:if="${ticket.statusRequest.name() != 'CONFIRM' and ticket.statusRequest.name() != 'CANCEL'}"
+                                <span th:if="${statusName != null and statusName != 'CONFIRM' and statusName != 'CANCEL'}"
                                       class="fw-semibold text-dark"
-                                      th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(ticket.statusRequest.name(), '_', ' ')))}"></span>
+                                      th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(statusName, '_', ' ')))}"></span>
+                                <span th:if="${statusName == null}" class="text-muted">-</span>
                             </td>
                             <td>
                                 <a th:href="@{/vendor-tickets/{id}/history(id=${ticket.id})}" class="btn btn-sm btn-outline-primary">View</a>
                             </td>
                             <td>
-                                <form th:if="${ticket.statusRequest.name() != 'CANCEL'}"
+                                <form th:if="${statusName != 'CANCEL'}"
                                       th:action="@{/vendor-tickets/{id}/cancel(id=${ticket.id})}"
                                       method="post"
                                       class="d-inline">
@@ -131,7 +132,7 @@
                                         Cancel Ticket
                                     </button>
                                 </form>
-                                <button th:if="${ticket.statusRequest.name() == 'CANCEL'}"
+                                <button th:if="${statusName == 'CANCEL'}"
                                         type="button"
                                         class="btn btn-sm btn-outline-secondary"
                                         disabled>

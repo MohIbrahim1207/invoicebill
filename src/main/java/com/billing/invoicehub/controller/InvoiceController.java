@@ -1,29 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.billing.invoicehub.controller.InvoiceController
- *  com.billing.invoicehub.entity.AppUser
- *  com.billing.invoicehub.entity.Client
- *  com.billing.invoicehub.entity.Invoice
- *  com.billing.invoicehub.repository.AppUserRepository
- *  com.billing.invoicehub.repository.ClientRepository
- *  com.billing.invoicehub.repository.InvoiceRepository
- *  com.billing.invoicehub.service.FileStorageService
- *  org.springframework.beans.factory.annotation.Autowired
- *  org.springframework.security.core.Authentication
- *  org.springframework.security.core.GrantedAuthority
- *  org.springframework.security.core.context.SecurityContextHolder
- *  org.springframework.stereotype.Controller
- *  org.springframework.ui.Model
- *  org.springframework.web.bind.annotation.GetMapping
- *  org.springframework.web.bind.annotation.ModelAttribute
- *  org.springframework.web.bind.annotation.PathVariable
- *  org.springframework.web.bind.annotation.PostMapping
- *  org.springframework.web.bind.annotation.RequestParam
- *  org.springframework.web.multipart.MultipartFile
- *  org.springframework.web.servlet.mvc.support.RedirectAttributes
- */
 package com.billing.invoicehub.controller;
 
 import com.billing.invoicehub.entity.AppUser;
@@ -32,90 +6,133 @@ import com.billing.invoicehub.entity.Invoice;
 import com.billing.invoicehub.repository.AppUserRepository;
 import com.billing.invoicehub.repository.ClientRepository;
 import com.billing.invoicehub.repository.InvoiceRepository;
-import com.billing.invoicehub.service.FileStorageService;
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
+import com.billing.invoicehub.service.CloudinaryService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+
 @Controller
 public class InvoiceController {
+
+    private static final Logger logger = LoggerFactory.getLogger(InvoiceController.class);
+
     @Autowired
     private InvoiceRepository invoiceRepository;
+
     @Autowired
     private ClientRepository clientRepository;
+
     @Autowired
     private AppUserRepository userRepository;
-    @Autowired
-    private FileStorageService fileStorageService;
 
-    @GetMapping(value={"/invoice"})
+    @Autowired(required = false)
+    private CloudinaryService cloudinaryService;
+
+    // ─── GET /invoice ────────────────────────────────────────────────────────────
+
+    @GetMapping("/invoice")
     public String invoicePage(Model model, RedirectAttributes redirectAttributes) {
-        Optional<AppUser> currentUser = this.currentAppUser();
+        Optional<AppUser> currentUser = currentAppUser();
         if (currentUser.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", (Object)"Please log in to continue.");
+            redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
             return "redirect:/login";
         }
-        boolean isAdmin = this.isAdmin();
-        List<Client> clients = isAdmin ? this.clientRepository.findAll() : this.clientRepository.findByOwner_Id(currentUser.get().getId());
-        List<Invoice> invoices = isAdmin ? this.invoiceRepository.findAllByOrderByIdDesc() : this.invoiceRepository.findByClient_Owner_IdOrderByIdDesc(currentUser.get().getId());
-        model.addAttribute("clients", (Object)clients);
-        model.addAttribute("invoices", (Object)invoices);
+
+        boolean isAdmin = isAdmin();
+        List<Client> clients = isAdmin
+                ? clientRepository.findAll()
+                : clientRepository.findByOwner_Id(currentUser.get().getId());
+
+        // ✅ Use JOIN FETCH queries to avoid LazyInitializationException
+        List<Invoice> invoices = isAdmin
+                ? invoiceRepository.findAllWithClientOrderByIdDesc()
+                : invoiceRepository.findByClientOwnerIdWithClientOrderByIdDesc(currentUser.get().getId());
+
+        model.addAttribute("clients", clients);
+        model.addAttribute("invoices", invoices);
         return "invoice";
     }
 
-    @PostMapping(value={"/saveInvoice"})
-    public String saveInvoice(@ModelAttribute Invoice invoice, @RequestParam(value="clientName", required=false) String clientName, @RequestParam(value="invoiceFile") MultipartFile file, RedirectAttributes redirectAttributes) {
-        Optional<AppUser> currentUser = this.currentAppUser();
+    // ─── POST /saveInvoice ───────────────────────────────────────────────────────
+
+    @PostMapping("/saveInvoice")
+    public String saveInvoice(@ModelAttribute Invoice invoice,
+                              @RequestParam(value = "clientName", required = false) String clientName,
+                              @RequestParam("invoiceFile") MultipartFile file,
+                              RedirectAttributes redirectAttributes) {
+
+        Optional<AppUser> currentUser = currentAppUser();
         if (currentUser.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", (Object)"Please log in to continue.");
+            redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
             return "redirect:/login";
         }
-        boolean isAdmin = this.isAdmin();
+
+        boolean isAdmin = isAdmin();
+
         if (file == null || file.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", (Object)"Please choose an invoice file to upload.");
+            redirectAttributes.addFlashAttribute("error", "Please choose an invoice file to upload.");
             return "redirect:/invoice";
         }
+
         if (clientName == null || clientName.trim().isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", (Object)"Please enter a client name for this invoice.");
+            redirectAttributes.addFlashAttribute("error", "Please enter a client name for this invoice.");
             return "redirect:/invoice";
         }
+
         String normalizedClientName = clientName.trim();
-        Optional<Client> client = this.resolveInvoiceClient(normalizedClientName, currentUser.get(), isAdmin);
+        Optional<Client> client = resolveInvoiceClient(normalizedClientName, currentUser.get(), isAdmin);
+
         if (client.isEmpty()) {
             Client newClient = new Client();
             newClient.setCompanyName(normalizedClientName);
             newClient.setOwner(currentUser.get());
-            client = Optional.of(this.clientRepository.save(newClient));
+            client = Optional.of(clientRepository.save(newClient));
         }
+
         try {
-            invoice.setFileName(this.fileStorageService.storeInvoiceFile(file));
+            if (cloudinaryService == null) {
+                redirectAttributes.addFlashAttribute("error", "File upload service is not configured. Please configure Cloudinary credentials.");
+                return "redirect:/invoice";
+            }
+
+            String fileUrl = cloudinaryService.uploadInvoiceFile(file);
+            invoice.setFileName(file.getOriginalFilename());
+            invoice.setFileUrl(fileUrl);
             invoice.setClient(client.get());
-            this.invoiceRepository.save(invoice);
-            redirectAttributes.addFlashAttribute("message", (Object)("Invoice uploaded for " + client.get().getCompanyName() + "."));
-        }
-        catch (IOException e) {
-            redirectAttributes.addFlashAttribute("error", (Object)"Could not save the invoice file.");
+
+            invoiceRepository.save(invoice);
+            redirectAttributes.addFlashAttribute("message", "Invoice uploaded for " + client.get().getCompanyName() + ".");
+
+        } catch (IllegalArgumentException e) {
+            logger.error("File validation failed: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "File validation failed: " + e.getMessage());
+            return "redirect:/invoice";
+        } catch (IOException e) {
+            logger.error("Failed to upload invoice: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Failed to upload invoice file: " + e.getMessage());
             return "redirect:/invoice";
         }
+
         return "redirect:/invoice";
     }
 
-    @GetMapping(value={"/invoice/{id}"})
+    // ─── GET /invoice/{id} ───────────────────────────────────────────────────────
+
+    @GetMapping("/invoice/{id}")
     public String viewInvoice(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
-        Optional<Invoice> invoice = this.loadAccessibleInvoice(id, redirectAttributes);
+        Optional<Invoice> invoice = loadAccessibleInvoice(id, redirectAttributes);
         if (invoice.isEmpty()) {
             return "redirect:/invoice";
         }
@@ -123,97 +140,136 @@ public class InvoiceController {
         return "invoice-detail";
     }
 
-    @GetMapping(value={"/invoice/{id}/edit"})
+    // ─── GET /invoice/{id}/edit ──────────────────────────────────────────────────
+
+    @GetMapping("/invoice/{id}/edit")
     public String editInvoice(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
-        Optional<Invoice> invoice = this.loadAccessibleInvoice(id, redirectAttributes);
+        Optional<Invoice> invoice = loadAccessibleInvoice(id, redirectAttributes);
         if (invoice.isEmpty()) {
             return "redirect:/invoice";
         }
-        List clients = this.visibleClients();
         model.addAttribute("invoice", invoice.get());
-        model.addAttribute("clients", (Object)clients);
+        model.addAttribute("clients", visibleClients());
         return "invoice-edit";
     }
 
-    @PostMapping(value={"/updateInvoice"})
-    public String updateInvoice(@ModelAttribute Invoice invoice, @RequestParam(value="invoiceFile", required=false) MultipartFile file, RedirectAttributes redirectAttributes) {
-        Optional<Client> selectedClient;
-        Optional<Invoice> existingInvoice = this.loadAccessibleInvoice(invoice.getId(), redirectAttributes);
+    // ─── POST /updateInvoice ─────────────────────────────────────────────────────
+
+    @PostMapping("/updateInvoice")
+    public String updateInvoice(@ModelAttribute Invoice invoice,
+                                @RequestParam(value = "invoiceFile", required = false) MultipartFile file,
+                                RedirectAttributes redirectAttributes) {
+
+        Optional<Invoice> existingInvoice = loadAccessibleInvoice(invoice.getId(), redirectAttributes);
         if (existingInvoice.isEmpty()) {
             return "redirect:/invoice";
         }
-        Optional<AppUser> currentUser = this.currentAppUser();
+
+        Optional<AppUser> currentUser = currentAppUser();
         if (currentUser.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", (Object)"Please log in to continue.");
+            redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
             return "redirect:/login";
         }
-        boolean isAdmin = this.isAdmin();
+
+        boolean isAdmin = isAdmin();
         Invoice inv = existingInvoice.get();
         inv.setInvoiceNumber(invoice.getInvoiceNumber());
         inv.setInvoiceDate(invoice.getInvoiceDate());
         inv.setAmount(invoice.getAmount());
+
         if (invoice.getClient() == null || invoice.getClient().getId() == null) {
-            redirectAttributes.addFlashAttribute("error", (Object)"Please select a client.");
+            redirectAttributes.addFlashAttribute("error", "Please select a client.");
             return "redirect:/invoice/" + invoice.getId() + "/edit";
         }
-        selectedClient = isAdmin ? this.clientRepository.findById(invoice.getClient().getId()) : this.clientRepository.findById(invoice.getClient().getId()).filter(client -> client.getOwner() != null && client.getOwner().getId().equals(currentUser.get().getId()));
+
+        Optional<Client> selectedClient = isAdmin
+                ? clientRepository.findById(invoice.getClient().getId())
+                : clientRepository.findById(invoice.getClient().getId())
+                  .filter(c -> c.getOwner() != null && c.getOwner().getId().equals(currentUser.get().getId()));
+
         if (selectedClient.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", (Object)"You can only use your own clients.");
+            redirectAttributes.addFlashAttribute("error", "You can only use your own clients.");
             return "redirect:/invoice/" + invoice.getId() + "/edit";
         }
+
         inv.setClient(selectedClient.get());
+
         if (file != null && !file.isEmpty()) {
             try {
-                inv.setFileName(this.fileStorageService.storeInvoiceFile(file));
-            }
-            catch (IOException e) {
-                redirectAttributes.addFlashAttribute("error", (Object)"Could not save the invoice file.");
+                if (cloudinaryService == null) {
+                    redirectAttributes.addFlashAttribute("error", "File upload service is not configured. Please configure Cloudinary credentials.");
+                    return "redirect:/invoice/" + invoice.getId() + "/edit";
+                }
+
+                String fileUrl = cloudinaryService.uploadInvoiceFile(file);
+                inv.setFileName(file.getOriginalFilename());
+                inv.setFileUrl(fileUrl);
+
+            } catch (IllegalArgumentException e) {
+                redirectAttributes.addFlashAttribute("error", "File validation failed: " + e.getMessage());
+                return "redirect:/invoice/" + invoice.getId() + "/edit";
+            } catch (IOException e) {
+                redirectAttributes.addFlashAttribute("error", "Could not save the invoice file: " + e.getMessage());
                 return "redirect:/invoice/" + invoice.getId() + "/edit";
             }
         }
-        this.invoiceRepository.save(inv);
-        redirectAttributes.addFlashAttribute("message", (Object)"Invoice updated successfully.");
+
+        invoiceRepository.save(inv);
+        redirectAttributes.addFlashAttribute("message", "Invoice updated successfully.");
         return "redirect:/invoice";
     }
 
-    @PostMapping(value={"/deleteInvoice/{id}"})
+    // ─── POST /deleteInvoice/{id} ────────────────────────────────────────────────
+
+    @PostMapping("/deleteInvoice/{id}")
     public String deleteInvoice(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        Optional<Invoice> invoice = this.loadAccessibleInvoice(id, redirectAttributes);
+        Optional<Invoice> invoice = loadAccessibleInvoice(id, redirectAttributes);
         if (invoice.isEmpty()) {
             return "redirect:/invoice";
         }
-        this.invoiceRepository.deleteById(id);
-        redirectAttributes.addFlashAttribute("message", (Object)"Invoice deleted successfully.");
+        invoiceRepository.deleteById(id);
+        redirectAttributes.addFlashAttribute("message", "Invoice deleted successfully.");
         return "redirect:/invoice";
     }
 
+    // ─── Private helpers ─────────────────────────────────────────────────────────
+
     private List<Client> visibleClients() {
-        Optional<AppUser> currentUser = this.currentAppUser();
-        if (currentUser.isEmpty() || this.isAdmin()) {
-            return this.clientRepository.findAll();
+        Optional<AppUser> currentUser = currentAppUser();
+        if (currentUser.isEmpty() || isAdmin()) {
+            return clientRepository.findAll();
         }
-        return this.clientRepository.findByOwner_Id(currentUser.get().getId());
+        return clientRepository.findByOwner_Id(currentUser.get().getId());
     }
 
     private Optional<Invoice> loadAccessibleInvoice(Long id, RedirectAttributes redirectAttributes) {
-        Optional<AppUser> currentUser = this.currentAppUser();
+        Optional<AppUser> currentUser = currentAppUser();
         if (currentUser.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", (Object)"Please log in to continue.");
+            redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
             return Optional.empty();
         }
-        boolean admin = this.isAdmin();
-        Optional<Invoice> invoice = this.invoiceRepository.findById(id);
+
+        boolean admin = isAdmin();
+
+        // ✅ Use JOIN FETCH to load client and owner eagerly
+        Optional<Invoice> invoice = invoiceRepository.findByIdWithClient(id);
+
         if (invoice.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", (Object)"Invoice not found.");
+            redirectAttributes.addFlashAttribute("error", "Invoice not found.");
             return Optional.empty();
         }
+
         if (admin) {
             return invoice;
         }
-        if (invoice.get().getClient() == null || invoice.get().getClient().getOwner() == null || !invoice.get().getClient().getOwner().getId().equals(currentUser.get().getId())) {
-            redirectAttributes.addFlashAttribute("error", (Object)"You can only access your own invoices.");
+
+        if (invoice.get().getClient() == null
+                || invoice.get().getClient().getOwner() == null
+                || !invoice.get().getClient().getOwner().getId().equals(currentUser.get().getId())) {
+            redirectAttributes.addFlashAttribute("error", "You can only access your own invoices.");
             return Optional.empty();
         }
+
         return invoice;
     }
 
@@ -222,14 +278,14 @@ public class InvoiceController {
         if (authentication == null || authentication.getName() == null) {
             return Optional.empty();
         }
-        return this.userRepository.findByUsername(authentication.getName());
+        return userRepository.findByUsername(authentication.getName());
     }
 
     private Optional<Client> resolveInvoiceClient(String clientName, AppUser currentUser, boolean admin) {
         if (admin) {
-            return this.clientRepository.findAllByCompanyNameIgnoreCase(clientName).stream().findFirst();
+            return clientRepository.findAllByCompanyNameIgnoreCase(clientName).stream().findFirst();
         }
-        return this.clientRepository.findByCompanyNameIgnoreCaseAndOwner_Id(clientName, currentUser.getId());
+        return clientRepository.findByCompanyNameIgnoreCaseAndOwner_Id(clientName, currentUser.getId());
     }
 
     private boolean isAdmin() {
@@ -237,7 +293,8 @@ public class InvoiceController {
         if (authentication == null) {
             return false;
         }
-        return authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch("ROLE_ADMIN"::equals);
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("ROLE_ADMIN"::equals);
     }
 }
-

@@ -82,7 +82,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:if="${#lists.isEmpty(tickets)}" class="table-empty-row">
+                        <tr th:if="${tickets == null or #lists.isEmpty(tickets)}" class="table-empty-row">
                             <td colspan="8">
                                 <div class="empty-state">
                                     <i class="bi bi-ticket-perforated"></i>
@@ -90,30 +90,33 @@
                                 </div>
                             </td>
                         </tr>
-                        <tr th:each="ticket, row : ${tickets}">
-                            <td th:text="${row.index + 1}"></td>
-                            <td th:text="${ticket.ticketNo}"></td>
-                            <td th:text="${ticket.invoiceNo}"></td>
-                            <td th:text="${ticket.vendor != null ? ticket.vendor.username : '-'}"></td>
-                            <td th:text="${(ticket.amount != null ? #numbers.formatDecimal(ticket.amount, 1, 'COMMA', 2, 'POINT') : '-') + ' ' + (ticket.currency != null ? ticket.currency : '-')}"></td>
-                            <td th:text="${ticket.invoiceDate}"></td>
-                            <td>
-                                <span th:if="${ticket.statusRequest.name() == 'OPEN'}" class="badge bg-dark">Open</span>
-                                <span th:if="${ticket.statusRequest.name() == 'CONFIRM'}" class="badge bg-warning">Confirm</span>
-                                <span th:if="${ticket.statusRequest.name() == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
-                                <span th:if="${ticket.statusRequest.name() == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success">Waiting Physical Document</span>
-                                <span th:if="${ticket.statusRequest.name() == 'RELEASE'}" class="badge bg-info">Release</span>
-                                <span th:if="${ticket.statusRequest.name() == 'REVISE'}" class="badge bg-danger">Revise</span>
-                            </td>
-                            <td>
-                                <a th:href="@{/admin/tickets/{id}/manage(id=${ticket.id})}" class="btn btn-sm btn-outline-secondary me-1">
-                                    <i class="bi bi-clock-history"></i> History
-                                </a>
-                                <a th:href="@{/admin/tickets/{id}/manage(id=${ticket.id})}" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-pencil"></i> Update Status
-                                </a>
-                            </td>
-                        </tr>
+                        <th:block th:if="${tickets != null and !#lists.isEmpty(tickets)}" th:each="ticket, row : ${tickets}">
+                            <tr>
+                                <td th:text="${row.index + 1}"></td>
+                                <td th:text="${ticket.ticketNo}"></td>
+                                <td th:text="${ticket.invoiceNo}"></td>
+                                <td th:text="${ticket.vendor != null ? ticket.vendor.username : '-'}"></td>
+                                <td th:with="amountText=${ticket.amount != null ? #numbers.formatDecimal(ticket.amount, 1, 'COMMA', 2, 'POINT') : '-'}, currencyText=${ticket.currency != null ? ticket.currency : '-'}" th:text="${amountText + ' ' + currencyText}"></td>
+                                <td th:text="${ticket.invoiceDate}"></td>
+                                <td th:with="statusName=${ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
+                                    <span th:if="${statusName == 'OPEN'}" class="badge bg-dark">Open</span>
+                                    <span th:if="${statusName == 'CONFIRM'}" class="badge bg-warning">Confirm</span>
+                                    <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
+                                    <span th:if="${statusName == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success">Waiting Physical Document</span>
+                                    <span th:if="${statusName == 'RELEASE'}" class="badge bg-info">Release</span>
+                                    <span th:if="${statusName == 'REVISE'}" class="badge bg-danger">Revise</span>
+                                    <span th:if="${statusName == null}" class="text-muted">-</span>
+                                </td>
+                                <td>
+                                    <a th:href="@{/admin/tickets/{id}/manage(id=${ticket.id})}" class="btn btn-sm btn-outline-secondary me-1">
+                                        <i class="bi bi-clock-history"></i> History
+                                    </a>
+                                    <a th:href="@{/admin/tickets/{id}/manage(id=${ticket.id})}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i> Update Status
+                                    </a>
+                                </td>
+                            </tr>
+                        </th:block>
                         </tbody>
                     </table>
                 </div>

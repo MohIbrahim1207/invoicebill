@@ -83,6 +83,7 @@ public class VendorRegistrationService {
 
     @Transactional
     public AppUser registerVendor(VendorRegistrationForm form, MultipartFile gstDocument, MultipartFile companyDocument, MultipartFile supportingDocument) throws IOException {
+        log.info("=== Starting vendor registration for username: {} ===", form.getUsername());
         this.validateRegistration(form, gstDocument, companyDocument);
         if (this.userRepository.findByUsername(form.getUsername()).isPresent()) {
             throw new IllegalArgumentException("Username already exists");
@@ -102,15 +103,45 @@ public class VendorRegistrationService {
         user.setVendorCode(null);
         user.setRejectionReason(null);
         user.setRegistrationDate(LocalDateTime.now());
-        user.setGstDocumentPath(this.fileStorageService.storeVendorDocument(gstDocument));
-        user.setCompanyDocumentPath(this.fileStorageService.storeVendorDocument(companyDocument));
-        if (supportingDocument != null && !supportingDocument.isEmpty()) {
-            user.setSupportingDocumentPath(this.fileStorageService.storeVendorDocument(supportingDocument));
+
+        log.debug("Uploading GST document for user: {}", form.getUsername());
+        try {
+            String gstUrl = this.fileStorageService.storeVendorDocument(gstDocument);
+            log.debug("GST document uploaded successfully. URL: {}", gstUrl);
+            user.setGstDocumentUrl(gstUrl);
+        } catch (Exception ex) {
+            log.error("Failed to upload GST document for user {}: {}", form.getUsername(), ex.getMessage(), ex);
+            throw new IOException("Failed to upload GST document: " + ex.getMessage(), ex);
         }
+
+        log.debug("Uploading company document for user: {}", form.getUsername());
+        try {
+            String companyUrl = this.fileStorageService.storeVendorDocument(companyDocument);
+            log.debug("Company document uploaded successfully. URL: {}", companyUrl);
+            user.setCompanyDocumentUrl(companyUrl);
+        } catch (Exception ex) {
+            log.error("Failed to upload company document for user {}: {}", form.getUsername(), ex.getMessage(), ex);
+            throw new IOException("Failed to upload company document: " + ex.getMessage(), ex);
+        }
+
+        if (supportingDocument != null && !supportingDocument.isEmpty()) {
+            log.debug("Uploading supporting document for user: {}", form.getUsername());
+            try {
+                String supportingUrl = this.fileStorageService.storeVendorDocument(supportingDocument);
+                log.debug("Supporting document uploaded successfully. URL: {}", supportingUrl);
+                user.setSupportingDocumentUrl(supportingUrl);
+            } catch (Exception ex) {
+                log.error("Failed to upload supporting document for user {}: {}", form.getUsername(), ex.getMessage(), ex);
+                throw new IOException("Failed to upload supporting document: " + ex.getMessage(), ex);
+            }
+        }
+
         user.setRoles(Set.of(userRole));
+        log.debug("Saving user to database: {}", form.getUsername());
         AppUser saved = this.userRepository.save(user);
         this.sendRegistrationEmail(saved);
         log.info("Vendor registration received for {}", (Object)saved.getUsername());
+        log.info("=== Vendor registration completed successfully for: {} ===", saved.getUsername());
         return saved;
     }
 
@@ -239,11 +270,10 @@ public class VendorRegistrationService {
     }
 
     private boolean looksLikeVendorRegistration(AppUser user) {
-        return user != null && (user.getRegistrationDate() != null || !this.isBlank(user.getCompanyName()) || !this.isBlank(user.getGstNumber()) || !this.isBlank(user.getVendorCode()) || !this.isBlank(user.getGstDocumentPath()) || !this.isBlank(user.getCompanyDocumentPath()) || !this.isBlank(user.getSupportingDocumentPath()) || !this.isBlank(user.getRejectionReason()));
+        return user != null && (user.getRegistrationDate() != null || !this.isBlank(user.getCompanyName()) || !this.isBlank(user.getGstNumber()) || !this.isBlank(user.getVendorCode()) || !this.isBlank(user.getGstDocumentUrl()) || !this.isBlank(user.getCompanyDocumentUrl()) || !this.isBlank(user.getSupportingDocumentUrl()) || !this.isBlank(user.getRejectionReason()));
     }
 
     private String nullSafe(String value) {
         return value == null ? "-" : value;
     }
 }
-

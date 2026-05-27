@@ -29,12 +29,25 @@
 
         <div class="row g-3">
             <div class="col-lg-8">
-                <div class="card portal-card">
-                    <div class="card-body">
-                        <div class="alert alert-success" th:if="${message}" th:text="${message}"></div>
-                        <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
+                <!-- Alert Messages -->
+                <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <span th:text="${message}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <span th:text="${error}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
 
-                        <h2 class="section-title mb-3">Ticket Details</h2>
+                <!-- Ticket Details Card -->
+                <div class="card portal-card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-4">
+                            <i class="bi bi-ticket-detailed text-primary" style="font-size: 1.5rem;"></i>
+                            <h2 class="section-title mb-0 ms-2">Ticket Details</h2>
+                        </div>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
                                 <div>
@@ -51,13 +64,13 @@
                             <div class="col-md-6">
                                 <div>
                                     <label class="text-muted small">Vendor</label>
-                                    <p class="fw-bold" th:text="${ticket.vendor.username}">-</p>
+                                    <p class="fw-bold" th:text="${ticket.vendor != null ? ticket.vendor.username : '-'}">-</p>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div>
                                     <label class="text-muted small">Amount</label>
-                                    <p class="fw-bold" th:text="${#numbers.formatDecimal(ticket.amount, 1, 'COMMA', 2, 'POINT')} + ' ' + ${ticket.currency}">-</p>
+                                    <p class="fw-bold" th:with="amountText=${ticket.amount != null ? #numbers.formatDecimal(ticket.amount, 1, 'COMMA', 2, 'POINT') : '-'}, currencyText=${ticket.currency != null ? ticket.currency : '-'}" th:text="${amountText + ' ' + currencyText}">-</p>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -69,74 +82,166 @@
                             <div class="col-md-6">
                                 <div>
                                     <label class="text-muted small">Current Status</label>
-                                    <p>
-                                        <span th:if="${ticket.statusRequest.name() == 'OPEN'}" class="badge bg-dark">Open</span>
-                                        <span th:if="${ticket.statusRequest.name() == 'CONFIRM'}" class="badge bg-warning">Confirm</span>
-                                        <span th:if="${ticket.statusRequest.name() == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
-                                        <span th:if="${ticket.statusRequest.name() == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success">Waiting Physical Document</span>
-                                        <span th:if="${ticket.statusRequest.name() == 'RELEASE'}" class="badge bg-info">Release</span>
-                                        <span th:if="${ticket.statusRequest.name() == 'REVISE'}" class="badge bg-danger">Revise</span>
+                                    <p th:with="statusName=${ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
+                                        <span th:if="${statusName == 'OPEN'}" class="badge bg-dark">Open</span>
+                                        <span th:if="${statusName == 'CONFIRM'}" class="badge bg-warning">Confirm</span>
+                                        <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
+                                        <span th:if="${statusName == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success">Waiting Physical Document</span>
+                                        <span th:if="${statusName == 'RELEASE'}" class="badge bg-info">Release</span>
+                                        <span th:if="${statusName == 'REVISE'}" class="badge bg-danger">Revise</span>
+                                        <span th:if="${statusName == null}" class="badge bg-light text-dark">-</span>
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        <h2 class="section-title mb-3">Update Status</h2>
-                        <form th:action="@{/admin/tickets/{id}/update-status(id=${ticket.id})}" method="post" class="vstack gap-3">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-
-                            <div>
-                                <label class="form-label">New Status</label>
-                                <select name="newStatus" class="form-select form-select-lg" required>
-                                    <option value="">Select new status</option>
-                                    <option th:each="status : ${statusOptions}"
-                                            th:value="${status}"
-                                            th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(status.name(), '_', ' ')))}"
-                                            th:selected="${ticket.statusRequest == status}"></option>
-                                </select>
+                        <!-- Documents Section -->
+                        <div th:if="${documents != null and !documents.isEmpty()}" class="mt-5 pt-4 border-top">
+                            <div class="d-flex align-items-center mb-4">
+                                <i class="bi bi-file-earmark-text text-success" style="font-size: 1.5rem;"></i>
+                                <h2 class="section-title mb-0 ms-2">Document Attachments</h2>
                             </div>
 
-                            <div>
-                                <label class="form-label">Comment</label>
-                                <textarea name="comment" class="form-control" rows="4"
-                                          placeholder="Add a comment (required for Revise and Cancel)"></textarea>
-                                <small class="text-muted">Required for Revise and Cancel status.</small>
+                            <div class="row g-3">
+                                <!-- Invoice Document -->
+                                <th:block th:each="entry, stat : ${documents.entrySet()}" th:if="${stat.count <= 6}">
+                                    <div class="col-md-6">
+                                        <div class="card h-100 shadow-sm border-0">
+                                            <div class="card-body d-flex flex-column">
+                                                <div class="d-flex align-items-start justify-content-between mb-3">
+                                                    <div>
+                                                        <i th:class="${'bi ' + entry.value.icon}" class="text-primary me-2" style="font-size: 1.25rem;"></i>
+                                                        <h5 class="card-title d-inline" th:text="${entry.value.name}">Document</h5>
+                                                    </div>
+                                                    <span th:if="${entry.value.fileType}" class="badge bg-info text-dark" th:text="${entry.value.fileType.toUpperCase()}">PDF</span>
+                                                </div>
+
+                                                <p class="text-muted small mb-3 flex-grow-1">
+                                                    <i class="bi bi-cloud-check-fill me-1"></i>
+                                                    Stored in Cloudinary
+                                                </p>
+
+                                                <div class="d-flex gap-2">
+                                                    <a th:href="${entry.value.url}" target="_blank" class="btn btn-sm btn-primary flex-grow-1">
+                                                        <i class="bi bi-eye-fill me-1"></i><span th:if="${entry.value.fileType == 'pdf'}">View PDF</span><span th:unless="${entry.value.fileType == 'pdf'}">Open</span>
+                                                    </a>
+                                                    <a th:href="${entry.value.url}" download class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-download"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </th:block>
                             </div>
 
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="bi bi-check-lg"></i> Update Status
-                                </button>
-                                <a href="/admin/tickets" class="btn btn-outline-secondary">
-                                    <i class="bi bi-arrow-left"></i> Back
-                                </a>
+                            <div th:if="${documents.size() > 6}" class="alert alert-info mt-3">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <span th:text="${'Additional ' + (documents.size() - 6) + ' document(s) available'}">Additional documents</span>
                             </div>
-                        </form>
+                        </div>
+
+                        <div th:if="${documents == null or documents.isEmpty()}" class="mt-5 pt-4 border-top">
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                <span>No documents attached to this ticket.</span>
+                            </div>
+                        </div>
+
+                        <!-- Status Update Section -->
+                        <div class="mt-5 pt-4 border-top">
+                            <div class="d-flex align-items-center mb-4">
+                                <i class="bi bi-arrow-repeat text-warning" style="font-size: 1.5rem;"></i>
+                                <h2 class="section-title mb-0 ms-2">Update Ticket Status</h2>
+                            </div>
+                            <form th:action="@{/admin/tickets/{id}/update-status(id=${ticket.id})}" method="post" class="vstack gap-3">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                                <div>
+                                    <label class="form-label fw-semibold">
+                                        <i class="bi bi-list-check me-1"></i> New Status
+                                    </label>
+                                    <select name="newStatus" class="form-select form-select-lg" required>
+                                        <option value="">Select new status...</option>
+                                        <option th:each="status : ${statusOptions}"
+                                                th:value="${status}"
+                                                th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(status.name(), '_', ' ')))}"
+                                                th:selected="${ticket.statusRequest == status}"></option>
+                                    </select>
+                                    <small class="text-muted d-block mt-2">Required for all status changes</small>
+                                </div>
+
+                                <div>
+                                    <label class="form-label fw-semibold">
+                                        <i class="bi bi-chat-left-text me-1"></i> Comment
+                                    </label>
+                                    <textarea name="comment" class="form-control" rows="4"
+                                              placeholder="Add a comment (required for Revise and Cancel status)"></textarea>
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="bi bi-exclamation-circle me-1"></i>
+                                        Required for Revise and Cancel status.
+                                    </small>
+                                </div>
+
+                                <div class="d-flex gap-2 pt-2">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="bi bi-check-lg me-2"></i> Update Status
+                                    </button>
+                                    <a href="/admin/tickets" class="btn btn-outline-secondary btn-lg">
+                                        <i class="bi bi-arrow-left me-2"></i> Back
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="col-lg-4">
-                <div class="card portal-card">
+                <div class="card portal-card h-100">
                     <div class="card-body">
-                        <h2 class="section-title mb-3">Status History</h2>
+                        <div class="d-flex align-items-center mb-4">
+                            <i class="bi bi-clock-history text-info" style="font-size: 1.5rem;"></i>
+                            <h2 class="section-title mb-0 ms-2">Status History</h2>
+                        </div>
                         <div class="vstack gap-3">
-                            <div th:if="${#lists.isEmpty(history)}" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox"></i>
-                                <p class="mb-0 mt-2">No status history yet</p>
+                            <div th:if="${history == null or #lists.isEmpty(history)}" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                                <p class="mb-0 mt-2">No status changes yet</p>
                             </div>
-                            <div th:each="record : ${history}" class="border-bottom pb-3">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span th:if="${record.status.name() == 'OPEN'}" class="badge bg-dark">Open</span>
-                                    <span th:if="${record.status.name() == 'CONFIRM'}" class="badge bg-warning">Confirm</span>
-                                    <span th:if="${record.status.name() == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
-                                    <span th:if="${record.status.name() == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success">Waiting Physical Document</span>
-                                    <span th:if="${record.status.name() == 'RELEASE'}" class="badge bg-info">Release</span>
-                                    <span th:if="${record.status.name() == 'REVISE'}" class="badge bg-danger">Revise</span>
-                                    <small class="text-muted" th:text="${#temporals.format(record.changedAt, 'MMM dd, yyyy hh:mm a')}">-</small>
+                            <th:block th:if="${history != null and !#lists.isEmpty(history)}" th:each="record : ${history}">
+                                <div class="border-bottom pb-3" th:with="recordStatus=${record.status != null ? record.status.name() : null}">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <span th:if="${recordStatus == 'OPEN'}" class="badge bg-dark">
+                                                <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Open
+                                            </span>
+                                            <span th:if="${recordStatus == 'CONFIRM'}" class="badge bg-warning">
+                                                <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Confirm
+                                            </span>
+                                            <span th:if="${recordStatus == 'CANCEL'}" class="badge bg-secondary">
+                                                <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Cancel
+                                            </span>
+                                            <span th:if="${recordStatus == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success">
+                                                <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Physical Doc
+                                            </span>
+                                            <span th:if="${recordStatus == 'RELEASE'}" class="badge bg-info">
+                                                <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Release
+                                            </span>
+                                            <span th:if="${recordStatus == 'REVISE'}" class="badge bg-danger">
+                                                <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Revise
+                                            </span>
+                                            <span th:if="${recordStatus == null}" class="badge bg-light text-dark">-</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted d-block mb-2">
+                                        <i class="bi bi-calendar3 me-1"></i>
+                                        <span th:text="${#temporals.format(record.changedAt, 'MMM dd, yyyy hh:mm a')}">Date</span>
+                                    </small>
+                                    <p class="text-muted small mb-0" th:if="${record.comment}" th:text="${record.comment}">-</p>
+                                    <p class="text-muted small mb-0 fst-italic" th:unless="${record.comment}">No comment provided</p>
                                 </div>
-                                <p class="text-muted small mb-0" th:if="${record.comment}" th:text="${record.comment}">-</p>
-                            </div>
+                            </th:block>
                         </div>
                     </div>
                 </div>

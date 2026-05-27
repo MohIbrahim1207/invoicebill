@@ -21,6 +21,8 @@ package com.billing.invoicehub.controller;
 import com.billing.invoicehub.config.RoleBasedAuthenticationValidator;
 import com.billing.invoicehub.dto.VendorRegistrationForm;
 import com.billing.invoicehub.service.VendorRegistrationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -33,6 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Controller
 public class AuthController {
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
     private final VendorRegistrationService vendorRegistrationService;
     private final RoleBasedAuthenticationValidator roleValidator;
 
@@ -68,15 +71,21 @@ public class AuthController {
     @PostMapping(value={"/register"})
     public String registerUser(@ModelAttribute VendorRegistrationForm form, @RequestParam(value="gstDocument", required=false) MultipartFile gstDocument, @RequestParam(value="companyDocument", required=false) MultipartFile companyDocument, @RequestParam(value="supportingDocument", required=false) MultipartFile supportingDocument) {
         try {
+            log.info("Starting vendor registration for username: {}", form.getUsername());
             this.vendorRegistrationService.registerVendor(form, gstDocument, companyDocument, supportingDocument);
+            log.info("Vendor registration successful for: {}", form.getUsername());
             return "redirect:/login?pendingVerification=true";
         }
         catch (IllegalArgumentException ex) {
+            log.warn("Registration validation error for username {}: {}", form.getUsername(), ex.getMessage());
             return "redirect:/signup?error=" + this.mapRegistrationError(ex.getMessage());
         }
         catch (Exception ex) {
+            log.error("Unexpected error during vendor registration for username {}: {}", form.getUsername(), ex.getMessage(), ex);
+            ex.printStackTrace();
             return "redirect:/signup?error=registration_failed";
         }
+
     }
 
     @PostMapping(value={"/signup"})
@@ -111,7 +120,10 @@ public class AuthController {
         if (normalized.contains("password")) {
             return "password_error";
         }
+
         return "invalid_input";
+
     }
+
 }
 
