@@ -8,14 +8,11 @@
  *  com.billing.invoicehub.entity.NotificationType
  *  com.billing.invoicehub.repository.AppRoleRepository
  *  com.billing.invoicehub.repository.AppUserRepository
- *  com.billing.invoicehub.service.FileStorageService
- *  com.billing.invoicehub.service.NotificationService
- *  com.billing.invoicehub.service.VendorRegistrationService
+ *  com.resend.Resend
+ *  com.resend.services.emails.model.CreateEmailOptions
  *  org.slf4j.Logger
  *  org.slf4j.LoggerFactory
  *  org.springframework.beans.factory.annotation.Value
- *  org.springframework.mail.SimpleMailMessage
- *  org.springframework.mail.javamail.JavaMailSender
  *  org.springframework.security.crypto.password.PasswordEncoder
  *  org.springframework.stereotype.Service
  *  org.springframework.transaction.annotation.Transactional
@@ -29,8 +26,8 @@ import com.billing.invoicehub.entity.AppUser;
 import com.billing.invoicehub.entity.NotificationType;
 import com.billing.invoicehub.repository.AppRoleRepository;
 import com.billing.invoicehub.repository.AppUserRepository;
-import com.billing.invoicehub.service.FileStorageService;
-import com.billing.invoicehub.service.NotificationService;
+import com.resend.Resend;
+import com.resend.services.emails.model.CreateEmailOptions;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.Year;
@@ -41,8 +38,6 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,22 +46,21 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class VendorRegistrationService {
     private static final Logger log = LoggerFactory.getLogger(VendorRegistrationService.class);
+    private static final String RESEND_FROM = "onboarding@resend.dev";
     private final AppUserRepository userRepository;
     private final AppRoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final FileStorageService fileStorageService;
-    private final JavaMailSender mailSender;
-    private final String mailFrom;
+    private final String resendApiKey;
     private final String adminEmail;
     private final NotificationService notificationService;
 
-    public VendorRegistrationService(AppUserRepository userRepository, AppRoleRepository roleRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService, JavaMailSender mailSender, NotificationService notificationService, @Value(value="${spring.mail.username:}") String mailFrom, @Value(value="${app.admin.email:}") String adminEmail) {
+    public VendorRegistrationService(AppUserRepository userRepository, AppRoleRepository roleRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService, NotificationService notificationService, @Value(value="${RESEND_API_KEY:}") String resendApiKey, @Value(value="${app.admin.email:}") String adminEmail) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileStorageService = fileStorageService;
-        this.mailSender = mailSender;
-        this.mailFrom = mailFrom;
+        this.resendApiKey = resendApiKey;
         this.adminEmail = adminEmail;
         this.notificationService = notificationService;
     }
@@ -250,15 +244,19 @@ public class VendorRegistrationService {
             log.warn("Skipping email '{}' because recipient address is missing", (Object)subject);
             return;
         }
+        if (this.resendApiKey == null || this.resendApiKey.isBlank()) {
+            log.warn("Skipping email '{}' to {} because RESEND_API_KEY is not configured", subject, to);
+            return;
+        }
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(body);
-            if (this.mailFrom != null && !this.mailFrom.isBlank()) {
-                message.setFrom(this.mailFrom);
-            }
-            this.mailSender.send(message);
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                .from(RESEND_FROM)
+                .to(to)
+                .subject(subject)
+                .text(body)
+                .build();
+
+            new Resend(this.resendApiKey).emails().send(params);
         }
         catch (Exception ex) {
             log.error("Failed to send email '{}' to {}: {}", new Object[]{subject, to, ex.getMessage(), ex});

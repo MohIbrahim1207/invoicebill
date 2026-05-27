@@ -70,13 +70,13 @@ public class AdminTicketController {
             redirectAttributes.addFlashAttribute("error", (Object)"Ticket not found.");
             return "redirect:/admin/tickets";
         }
-
+        
         VendorTicket vendorTicket = (VendorTicket) ticket.get();
         List history = this.vendorTicketService.getTicketHistory(id);
-
+        
         // Build document information map for template
         Map<String, Map<String, String>> documents = buildDocumentMap(vendorTicket);
-
+        
         log.debug("Loaded {} documents for ticket {}", documents.size(), id);
         model.addAttribute("ticket", vendorTicket);
         model.addAttribute("history", (Object)history);
@@ -104,14 +104,14 @@ public class AdminTicketController {
         redirectAttributes.addFlashAttribute("message", (Object)"Ticket status updated successfully.");
         return "redirect:/admin/tickets/" + id + "/manage";
     }
-
+    
     /**
      * Build a map of documents with their metadata for template rendering.
      * Each document includes: name, url, fileType, exists flag
      */
     private Map<String, Map<String, String>> buildDocumentMap(VendorTicket ticket) {
         Map<String, Map<String, String>> documents = new HashMap<>();
-
+        
         // Invoice File
         if (ticket.getInvoiceFileUrl() != null && !ticket.getInvoiceFileUrl().isBlank()) {
             documents.put("invoice", createDocumentEntry(
@@ -120,7 +120,7 @@ public class AdminTicketController {
                 ticket.getInvoiceFileName()
             ));
         }
-
+        
         // Supporting Document
         if (ticket.getDocumentUrl() != null && !ticket.getDocumentUrl().isBlank()) {
             documents.put("supporting", createDocumentEntry(
@@ -129,7 +129,7 @@ public class AdminTicketController {
                 ticket.getInvoiceFileName()
             ));
         }
-
+        
         // Tax Document
         if (ticket.getTaxDocumentUrl() != null && !ticket.getTaxDocumentUrl().isBlank()) {
             documents.put("tax", createDocumentEntry(
@@ -138,7 +138,7 @@ public class AdminTicketController {
                 null
             ));
         }
-
+        
         // PO Copy
         if (ticket.getPoCopyUrl() != null && !ticket.getPoCopyUrl().isBlank()) {
             documents.put("po", createDocumentEntry(
@@ -147,7 +147,7 @@ public class AdminTicketController {
                 null
             ));
         }
-
+        
         // Delivery Note
         if (ticket.getDeliveryNoteUrl() != null && !ticket.getDeliveryNoteUrl().isBlank()) {
             documents.put("delivery", createDocumentEntry(
@@ -156,7 +156,7 @@ public class AdminTicketController {
                 null
             ));
         }
-
+        
         // Other Document
         if (ticket.getOtherDocumentUrl() != null && !ticket.getOtherDocumentUrl().isBlank()) {
             documents.put("other", createDocumentEntry(
@@ -165,10 +165,10 @@ public class AdminTicketController {
                 null
             ));
         }
-
+        
         return documents;
     }
-
+    
     /**
      * Create a document entry with metadata
      */
@@ -180,7 +180,7 @@ public class AdminTicketController {
         entry.put("icon", getIconForFileType(entry.get("fileType")));
         return entry;
     }
-
+    
     /**
      * Extract file type from URL or filename
      */
@@ -189,7 +189,7 @@ public class AdminTicketController {
             String ext = filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
             return ext;
         }
-
+        
         if (url != null && url.contains(".")) {
             // Extract from URL (e.g., .jpg, .pdf)
             String[] parts = url.split("\\.");
@@ -202,13 +202,13 @@ public class AdminTicketController {
         }
         return "file";
     }
-
+    
     /**
      * Map file type to Bootstrap icon class
      */
     private String getIconForFileType(String fileType) {
         if (fileType == null) return "bi-file";
-
+        
         return switch (fileType.toLowerCase()) {
             case "pdf" -> "bi-file-pdf";
             case "jpg", "jpeg", "png", "webp", "gif" -> "bi-image";

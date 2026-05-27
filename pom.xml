@@ -55,10 +55,16 @@
             <artifactId>thymeleaf-extras-springsecurity6</artifactId>
         </dependency>
 
-        <!-- Mail starter required for jakarta.mail and Spring's JavaMail support -->
+        <!-- Keep JavaMail starter because other services/controllers still use JavaMailSender -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+        <!-- Resend Java SDK for VendorRegistrationService email delivery -->
+        <dependency>
+            <groupId>com.resend</groupId>
+            <artifactId>resend-java</artifactId>
+            <version>3.1.0</version>
         </dependency>
         <dependency>
             <groupId>me.paulschwarz</groupId>
