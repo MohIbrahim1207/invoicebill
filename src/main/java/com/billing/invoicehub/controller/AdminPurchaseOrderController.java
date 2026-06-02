@@ -25,6 +25,8 @@ import com.billing.invoicehub.repository.AppUserRepository;
 import com.billing.invoicehub.repository.ClientRepository;
 import com.billing.invoicehub.service.PurchaseOrderService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +43,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 @RequestMapping(value={"/admin/purchase-orders"})
 public class AdminPurchaseOrderController {
+    private static final Logger log = LoggerFactory.getLogger(AdminPurchaseOrderController.class);
     private final PurchaseOrderService poService;
     private final AppUserRepository userRepository;
     private final ClientRepository clientRepository;
@@ -67,6 +70,7 @@ public class AdminPurchaseOrderController {
     @PostMapping
     public String create(@Valid @ModelAttribute(value="purchaseOrderRequest") PurchaseOrderRequest request, BindingResult bindingResult, Model model, RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
+            log.warn("Purchase order validation failed for PO number '{}' with {} error(s)", request.getPoNumber(), bindingResult.getErrorCount());
             this.populateCreateForm(model, request);
             return "admin-purchase-orders-create";
         }

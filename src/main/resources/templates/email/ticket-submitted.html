@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Submitted</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f7fb;font-family:Arial,sans-serif;color:#1f2937;">
+<div style="max-width:640px;margin:0 auto;padding:24px;">
+    <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(15,23,42,.08);">
+        <div style="background:linear-gradient(135deg,#0f172a,#2563eb);padding:28px 32px;color:#fff;">
+            <h1 style="margin:0;font-size:24px;">InvoiceHub</h1>
+            <p style="margin:8px 0 0;font-size:15px;opacity:.9;">Your ticket was submitted successfully</p>
+        </div>
+        <div style="padding:32px;line-height:1.7;">
+            <p style="margin-top:0;">Hello <strong th:text="${vendorName}">Vendor</strong>,</p>
+            <p>We received your vendor ticket submission.</p>
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px 18px;margin:20px 0;">
+                <p style="margin:0 0 6px;"><strong>Ticket No:</strong> <span th:text="${ticketNo}">-</span></p>
+                <p style="margin:0 0 6px;"><strong>Invoice No:</strong> <span th:text="${invoiceNo}">-</span></p>
+                <p style="margin:0 0 6px;"><strong>Invoice Date:</strong> <span th:text="${invoiceDate}">-</span></p>
+                <p style="margin:0 0 6px;"><strong>Client:</strong> <span th:text="${clientName}">-</span></p>
+                <p style="margin:0 0 6px;"><strong>PO Number:</strong> <span th:text="${poNumber}">-</span></p>
+                <p style="margin:0 0 6px;"><strong>Subtotal:</strong> <span th:text="${subtotal}">-</span></p>
+                <p style="margin:0 0 6px;"><strong>Tax:</strong> <span th:text="${tax}">-</span></p>
+                <p style="margin:0;"><strong>Total:</strong> <span th:text="${total}">-</span></p>
+            </div>
+            <p style="margin:20px 0;">
+                <a th:href="${viewUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:11px 18px;border-radius:8px;font-weight:600;">
+                    View Ticket
+                </a>
+            </p>
+            <p style="margin-bottom:0;">Regards,<br><strong>InvoiceHub Support</strong></p>
+        </div>
+    </div>
+</div>
+</body>
+</html>

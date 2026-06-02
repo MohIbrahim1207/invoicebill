@@ -54,7 +54,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label text-muted">Amount</label>
-                            <p class="h5">₹ <span th:text="${#numbers.formatDecimal(invoice.amount, 1, 'COMMA', 2, 'POINT')}"></span></p>
+                            <p class="h5">Rp <span th:text="${invoice.amount != null ? #numbers.formatDecimal(invoice.amount, 1, 'POINT', 0, 'COMMA') : '-'}"></span></p>
                         </div>
                     </div>
 

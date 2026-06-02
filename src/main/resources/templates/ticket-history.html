@@ -51,23 +51,19 @@
                     </div>
                     <div class="col-md-6">
                         <h5 class="text-muted">Amount</h5>
-                        <p class="fw-bold"
-                           th:text="${(ticket != null && ticket.amount != null ? #numbers.formatDecimal(ticket.amount, 1, 'COMMA', 2, 'POINT') : '-') + ' ' + (ticket != null && ticket.currency != null ? ticket.currency : '-')}">-</p>
+                        <p class="fw-bold" th:text="${ticket != null && ticket.amount != null ? 'Rp ' + #numbers.formatDecimal(ticket.amount, 1, 'POINT', 0, 'COMMA') : '-'}">-</p>
                     </div>
                     <div class="col-md-6">
                         <h5 class="text-muted">Subtotal</h5>
-                        <p class="fw-bold"
-                           th:text="${(ticket != null && ticket.subtotal != null ? #numbers.formatDecimal(ticket.subtotal, 1, 'COMMA', 2, 'POINT') : '-') + ' ' + (ticket != null && ticket.currency != null ? ticket.currency : '-')}">-</p>
+                        <p class="fw-bold" th:text="${ticket != null && ticket.subtotal != null ? 'Rp ' + #numbers.formatDecimal(ticket.subtotal, 1, 'POINT', 0, 'COMMA') : '-'}">-</p>
                     </div>
                     <div class="col-md-6">
                         <h5 class="text-muted">Tax</h5>
-                        <p class="fw-bold"
-                           th:text="${(ticket != null && ticket.tax != null ? #numbers.formatDecimal(ticket.tax, 1, 'COMMA', 2, 'POINT') : '-') + ' ' + (ticket != null && ticket.currency != null ? ticket.currency : '-')}">-</p>
+                        <p class="fw-bold" th:text="${ticket != null && ticket.tax != null ? 'Rp ' + #numbers.formatDecimal(ticket.tax, 1, 'POINT', 0, 'COMMA') : '-'}">-</p>
                     </div>
                     <div class="col-md-6">
                         <h5 class="text-muted">Total</h5>
-                        <p class="fw-bold"
-                           th:text="${(ticket != null && ticket.total != null ? #numbers.formatDecimal(ticket.total, 1, 'COMMA', 2, 'POINT') : '-') + ' ' + (ticket != null && ticket.currency != null ? ticket.currency : '-')}">-</p>
+                        <p class="fw-bold" th:text="${ticket != null && ticket.total != null ? 'Rp ' + #numbers.formatDecimal(ticket.total, 1, 'POINT', 0, 'COMMA') : '-'}">-</p>
                     </div>
                 </div>
 

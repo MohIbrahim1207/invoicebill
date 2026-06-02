@@ -44,7 +44,7 @@ public class PurchaseOrderService {
 
     @Transactional(readOnly=true)
     public List<PurchaseOrder> listAll() {
-        return this.poRepository.findByActiveOrderByCreatedAtDesc(true);
+        return this.poRepository.findWithVendorByActiveOrderByCreatedAtDesc(true);
     }
 
     @Transactional(readOnly=true)
@@ -54,7 +54,7 @@ public class PurchaseOrderService {
 
     @Transactional(readOnly=true)
     public Optional<PurchaseOrder> getPOById(Long id) {
-        return this.poRepository.findById(id);
+        return this.poRepository.findWithVendorById(id);
     }
 
     @Transactional(readOnly=true)

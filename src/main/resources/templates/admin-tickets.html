@@ -67,9 +67,8 @@
                     </div>
                 </form>
 
-                <div class="table-responsive">
-                    <table class="table portal-table align-middle">
-                        <thead>
+                <table class="table table-hover align-middle">
+                    <thead>
                         <tr>
                             <th>No</th>
                             <th>Ticket No</th>
@@ -80,8 +79,8 @@
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
-                        </thead>
-                        <tbody>
+                    </thead>
+                    <tbody>
                         <tr th:if="${tickets == null or #lists.isEmpty(tickets)}" class="table-empty-row">
                             <td colspan="8">
                                 <div class="empty-state">
@@ -96,7 +95,7 @@
                                 <td th:text="${ticket.ticketNo}"></td>
                                 <td th:text="${ticket.invoiceNo}"></td>
                                 <td th:text="${ticket.vendor != null ? ticket.vendor.username : '-'}"></td>
-                                <td th:with="amountText=${ticket.amount != null ? #numbers.formatDecimal(ticket.amount, 1, 'COMMA', 2, 'POINT') : '-'}, currencyText=${ticket.currency != null ? ticket.currency : '-'}" th:text="${amountText + ' ' + currencyText}"></td>
+                                <td th:text="${ticket.amount != null ? 'Rp ' + #numbers.formatDecimal(ticket.amount, 1, 'POINT', 0, 'COMMA') : '-'}"></td>
                                 <td th:text="${ticket.invoiceDate}"></td>
                                 <td th:with="statusName=${ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
                                     <span th:if="${statusName == 'OPEN'}" class="badge bg-dark">Open</span>
@@ -108,22 +107,105 @@
                                     <span th:if="${statusName == null}" class="text-muted">-</span>
                                 </td>
                                 <td>
-                                    <a th:href="@{/admin/tickets/{id}/manage(id=${ticket.id})}" class="btn btn-sm btn-outline-secondary me-1">
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-secondary me-1 js-ticket-history-btn"
+                                            th:attr="data-history-url=@{/admin/tickets/{id}/manage(id=${ticket.id})},data-ticket-no=${ticket.ticketNo},data-invoice-no=${ticket.invoiceNo},data-vendor=${ticket.vendor != null ? ticket.vendor.username : '-'}">
                                         <i class="bi bi-clock-history"></i> History
-                                    </a>
+                                    </button>
                                     <a th:href="@{/admin/tickets/{id}/manage(id=${ticket.id})}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-pencil"></i> Update Status
                                     </a>
                                 </td>
                             </tr>
                         </th:block>
-                        </tbody>
-                    </table>
-                </div>
+                    </tbody>
+                </table>
             </div>
         </div>
     </main>
 </div>
+
+<div class="modal fade" id="ticketHistoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-1">Ticket History</h5>
+                    <small class="text-muted" id="ticketHistoryModalMeta">Loading...</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="ticketHistoryModalBody">
+                <div class="text-center py-5 text-muted">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <p class="mb-0">Open a ticket history entry to view it here.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!window.bootstrap) return;
+
+        const modalEl = document.getElementById('ticketHistoryModal');
+        const modalBody = document.getElementById('ticketHistoryModalBody');
+        const modalMeta = document.getElementById('ticketHistoryModalMeta');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+        document.querySelectorAll('.js-ticket-history-btn').forEach(function (btn) {
+            btn.addEventListener('click', async function () {
+                const historyUrl = btn.getAttribute('data-history-url');
+                const ticketNo = btn.getAttribute('data-ticket-no') || '-';
+                const invoiceNo = btn.getAttribute('data-invoice-no') || '-';
+                const vendor = btn.getAttribute('data-vendor') || '-';
+
+                if (modalMeta) {
+                    modalMeta.textContent = `Ticket ${ticketNo} | Invoice ${invoiceNo} | Vendor: ${vendor}`;
+                }
+                if (modalBody) {
+                    modalBody.innerHTML = `
+                        <div class="text-center py-5 text-muted">
+                            <div class="spinner-border text-primary mb-3" role="status"></div>
+                            <p class="mb-0">Loading ticket history...</p>
+                        </div>`;
+                }
+
+                modal.show();
+
+                try {
+                    const response = await fetch(historyUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    if (!response.ok) {
+                        throw new Error('Unable to load ticket details.');
+                    }
+
+                    const html = await response.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const historyCard = Array.from(doc.querySelectorAll('.card.portal-card')).find(function (card) {
+                        return Array.from(card.querySelectorAll('h2.section-title')).some(function (title) {
+                            return title.textContent.trim() === 'Status History';
+                        });
+                    });
+
+                    if (!historyCard) {
+                        throw new Error('History section not found.');
+                    }
+
+                    const cardBody = historyCard.querySelector('.card-body');
+                    modalBody.innerHTML = cardBody ? cardBody.innerHTML : historyCard.innerHTML;
+                } catch (error) {
+                    modalBody.innerHTML = `
+                        <div class="alert alert-danger mb-0">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Failed to load ticket history.
+                        </div>`;
+                }
+            });
+        });
+    });
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+

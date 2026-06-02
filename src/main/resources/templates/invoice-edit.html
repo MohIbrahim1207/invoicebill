@@ -32,8 +32,8 @@
                         <input type="date" name="invoiceDate" th:value="${invoice.invoiceDate}" class="form-control" required>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Amount (₹)</label>
-                        <input type="number" name="amount" th:value="${invoice.amount}" class="form-control" step="0.01" required>
+                        <label class="form-label">Amount (Rp)</label>
+                        <input type="number" name="amount" th:value="${invoice.amount}" class="form-control" step="1" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Client</label>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Status Update</title>
+    <style>
+        body { margin: 0; padding: 0; background: #f4f7fb; font-family: Arial, sans-serif; color: #1f2937; }
+        .container { max-width: 680px; margin: 0 auto; padding: 24px; }
+        .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); }
+        .header { padding: 28px 32px; background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #fff; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 8px 0 0; opacity: .9; }
+        .body { padding: 32px; line-height: 1.7; }
+        .meta { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .meta td { padding: 10px 0; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+        .label { color: #6b7280; width: 180px; }
+        .status { display: inline-block; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; text-transform: uppercase; }
+        .approved { background: #dcfce7; color: #166534; }
+        .rejected { background: #fee2e2; color: #991b1b; }
+        .revised { background: #ffedd5; color: #9a3412; }
+        .paid { background: #dbeafe; color: #1d4ed8; }
+        .remarks { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px 18px; white-space: pre-line; }
+        .btn { display: inline-block; background: #2563eb; color: #fff !important; text-decoration: none; padding: 12px 18px; border-radius: 10px; font-weight: 700; margin-top: 20px; }
+        .footer { padding: 18px 32px 28px; color: #6b7280; font-size: 12px; }
+        @media (max-width: 640px) {
+            .container { padding: 12px; }
+            .body, .header, .footer { padding-left: 20px; padding-right: 20px; }
+            .label { display: block; width: auto; margin-bottom: 4px; }
+            .meta td { display: block; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <div class="header">
+            <h1>InvoiceHub</h1>
+            <p>Invoice status updated by an administrator</p>
+        </div>
+        <div class="body">
+            <p>Hello <strong th:text="${vendorName}">Vendor</strong>,</p>
+            <p>Your invoice status has been updated.</p>
+            <table class="meta">
+                <tr>
+                    <td class="label">Invoice Number</td>
+                    <td th:text="${invoiceNumber}">INV-001</td>
+                </tr>
+                <tr>
+                    <td class="label">Vendor Name</td>
+                    <td th:text="${vendorName}">Vendor Name</td>
+                </tr>
+                <tr>
+                    <td class="label">Status</td>
+                    <td>
+                        <span th:switch="${newStatus}">
+                            <span th:case="'Approved'" class="status approved">Approved</span>
+                            <span th:case="'Rejected'" class="status rejected">Rejected</span>
+                            <span th:case="'Revised'" class="status revised">Revised</span>
+                            <span th:case="'Paid'" class="status paid">Paid</span>
+                            <span th:case="*" class="status" style="background:#e5e7eb;color:#374151;" th:text="${newStatus}">Updated</span>
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">Amount</td>
+                    <td th:text="${amount}">Rp 0</td>
+                </tr>
+                <tr>
+                    <td class="label">Update Date</td>
+                    <td th:text="${statusDate}">Jan 01, 2026</td>
+                </tr>
+            </table>
+            <div th:if="${adminRemarks != null}">
+                <p><strong>Admin Remarks</strong></p>
+                <div class="remarks" th:text="${adminRemarks}">Remarks</div>
+            </div>
+            <div th:if="${adminRemarks == null}">
+                <p><strong>Admin Remarks</strong></p>
+                <div class="remarks">No remarks provided.</div>
+            </div>
+            <a th:href="${viewUrl}" class="btn" rel="noopener noreferrer">View Invoice</a>
+        </div>
+        <div class="footer">
+            This is an automated notification from InvoiceHub. Please do not reply to this email.
+        </div>
+    </div>
+</div>
+</body>
+</html>

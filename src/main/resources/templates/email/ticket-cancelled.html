@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Cancelled</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f7fb;font-family:Arial,sans-serif;color:#1f2937;">
+<div style="max-width:640px;margin:0 auto;padding:24px;">
+    <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(15,23,42,.08);">
+        <div style="background:linear-gradient(135deg,#7f1d1d,#ef4444);padding:28px 32px;color:#fff;">
+            <h1 style="margin:0;font-size:24px;">InvoiceHub</h1>
+            <p style="margin:8px 0 0;font-size:15px;opacity:.9;">Your ticket has been cancelled</p>
+        </div>
+        <div style="padding:32px;line-height:1.7;">
+            <p style="margin-top:0;">Hello <strong th:text="${vendorName}">Vendor</strong>,</p>
+            <p>Your vendor ticket was cancelled.</p>
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px 18px;margin:20px 0;">
+                <p style="margin:0 0 6px;"><strong>Ticket No:</strong> <span th:text="${ticketNo}">-</span></p>
+                <p style="margin:0 0 6px;"><strong>Invoice No:</strong> <span th:text="${invoiceNo}">-</span></p>
+                <p style="margin:0;"><strong>Reason:</strong> <span th:text="${reason}">-</span></p>
+            </div>
+            <p style="margin-bottom:0;">Regards,<br><strong>InvoiceHub Support</strong></p>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -19,6 +19,7 @@ public class Invoice {
     private String invoiceNumber;
     private String invoiceDate;
     private java.math.BigDecimal amount;
+    private String status = "Pending";
 
     @ManyToOne(fetch = FetchType.LAZY)
     private Client client;
@@ -54,6 +55,9 @@ public class Invoice {
 
     public java.math.BigDecimal getAmount() { return this.amount; }
     public void setAmount(java.math.BigDecimal amount) { this.amount = amount; }
+
+    public String getStatus() { return this.status; }
+    public void setStatus(String status) { this.status = status; }
 
     public Client getClient() { return this.client; }
     public void setClient(Client client) { this.client = client; }

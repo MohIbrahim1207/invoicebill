@@ -70,7 +70,7 @@
                             <div class="col-md-6">
                                 <div>
                                     <label class="text-muted small">Amount</label>
-                                    <p class="fw-bold" th:with="amountText=${ticket.amount != null ? #numbers.formatDecimal(ticket.amount, 1, 'COMMA', 2, 'POINT') : '-'}, currencyText=${ticket.currency != null ? ticket.currency : '-'}" th:text="${amountText + ' ' + currencyText}">-</p>
+                                    <p class="fw-bold" th:text="${ticket.amount != null ? 'Rp ' + #numbers.formatDecimal(ticket.amount, 1, 'POINT', 0, 'COMMA') : '-'}">-</p>
                                 </div>
                             </div>
                             <div class="col-md-6">

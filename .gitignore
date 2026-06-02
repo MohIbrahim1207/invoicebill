@@ -1,7 +1,10 @@
 
 target/
 *.jar
-src/main/resources/application.properties
+### Spring Boot Profiles ###
+application-dev.properties
+application-prod.properties
+
 uploads/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/

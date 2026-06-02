@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Rejected</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5; }
-        .header { background-color: #dc3545; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-        .content { background-color: white; padding: 20px; border: 1px solid #ddd; }
-        .footer { background-color: #f5f5f5; padding: 10px; text-align: center; font-size: 12px; color: #666; }
-        .button { display: inline-block; background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 15px; }
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f4f7fb; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #dc3545; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background-color: white; padding: 20px; border: 1px solid #ddd; border-top: 0; }
+        .footer { background-color: #f5f5f5; padding: 10px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 8px 8px; }
     </style>
 </head>
 <body>
@@ -18,24 +18,18 @@
         <h2>Invoice Rejected</h2>
     </div>
     <div class="content">
-        <p>Dear [[VENDOR_NAME]],</p>
+        <p>Dear <strong th:text="${vendorName}">Vendor</strong>,</p>
         <p>Unfortunately, your invoice has been rejected.</p>
-        <p><strong>Invoice Details:</strong></p>
-        <ul>
-            <li>Invoice ID: [[INVOICE_ID]]</li>
-            <li>Amount: [[AMOUNT]]</li>
-            <li>Rejection Date: [[DATE]]</li>
-        </ul>
+        <p><strong>Invoice Number:</strong> <span th:text="${invoiceNumber}">INV-001</span></p>
+        <p><strong>Amount:</strong> <span th:text="${amount}">Rp 0</span></p>
+        <p><strong>Rejection Date:</strong> <span th:text="${date}">Jan 01, 2026</span></p>
         <p><strong>Reason for Rejection:</strong></p>
-        <p>[[REASON]]</p>
-        <p>Please review the rejection reason and resubmit your invoice with the necessary corrections.</p>
-        <p>If you have any questions, please contact our support team.</p>
-        <p>Best regards,<br>Invoice Hub Team</p>
+        <p th:text="${reason}">Reason</p>
+        <p>Best regards,<br>InvoiceHub Team</p>
     </div>
     <div class="footer">
-        <p>&copy; 2026 Invoice Hub. All rights reserved.</p>
+        <p>&copy; 2026 InvoiceHub. All rights reserved.</p>
     </div>
 </div>
 </body>
 </html>
-

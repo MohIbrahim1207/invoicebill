@@ -4,15 +4,18 @@ import com.billing.invoicehub.dto.VendorTicketWizardState;
 import com.billing.invoicehub.entity.AppUser;
 import com.billing.invoicehub.entity.TicketStatus;
 import com.billing.invoicehub.entity.VendorTicket;
+import com.billing.invoicehub.entity.VendorTicketHistory;
 import com.billing.invoicehub.service.FileStorageService;
 import com.billing.invoicehub.service.VendorTicketService;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,13 +44,16 @@ public class VendorTicketController {
         this.vendorTicketService = vendorTicketService;
     }
 
-    @GetMapping(value = {"/vendor-tickets"})
-    public String vendorTickets(@RequestParam(value="ticketNo", required=false) String ticketNo, @RequestParam(value="invoiceNo", required=false) String invoiceNo, @RequestParam(value="year", required=false) Integer year, @RequestParam(value="status", required=false, defaultValue="ALL") String status, Authentication authentication, Model model, RedirectAttributes redirectAttributes) {
+    @GetMapping(value = {"/vendor/tickets", "/vendor-tickets"})
+    public String vendorTickets(@RequestParam(value="ticketNo", required=false) String ticketNo, @RequestParam(value="invoiceNo", required=false) String invoiceNo, @RequestParam(value="year", required=false) Integer year, @RequestParam(value="status", required=false, defaultValue="ALL") String status, @RequestParam(value="historyTicketId", required=false) Long historyTicketId, Authentication authentication, Model model, RedirectAttributes redirectAttributes) {
         Optional<AppUser> currentUser = this.currentUser(authentication);
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
             return "redirect:/login";
         }
+
+        logger.debug("Vendor ticket list requested by '{}' with ticketNo='{}', invoiceNo='{}', year={}, status='{}', historyTicketId={}",
+                authentication != null ? authentication.getName() : null, ticketNo, invoiceNo, year, status, historyTicketId);
 
         boolean admin = this.isAdmin(currentUser.get());
         List<VendorTicket> tickets = admin
@@ -62,10 +69,25 @@ public class VendorTicketController {
         model.addAttribute("invoiceNo", invoiceNo);
         model.addAttribute("year", year);
         model.addAttribute("status", status == null ? "ALL" : status);
+        if (historyTicketId != null) {
+            logger.debug("History requested for ticketId={} by user='{}'", historyTicketId, authentication.getName());
+            Optional<VendorTicket> ticket = this.vendorTicketService.getAccessibleTicket(historyTicketId, authentication.getName());
+            if (ticket.isEmpty()) {
+                logger.debug("Ticket {} not found or not accessible for user '{}'", historyTicketId, authentication.getName());
+                redirectAttributes.addFlashAttribute("error", "Ticket not found or access denied.");
+                return "redirect:/vendor/tickets";
+            }
+
+            List<VendorTicketHistory> history = this.vendorTicketService.getTicketHistory(historyTicketId);
+            logger.debug("Loaded {} history rows for ticketId={}", history.size(), historyTicketId);
+            model.addAttribute("selectedTicket", ticket.get());
+            model.addAttribute("history", history.isEmpty() ? Collections.emptyList() : history);
+            model.addAttribute("historyTicketId", historyTicketId);
+        }
         return "vendor-tickets";
     }
 
-    @PostMapping(value = {"/vendor-tickets/{id}/cancel"})
+    @PostMapping(value = {"/vendor/tickets/{id}/cancel", "/vendor-tickets/{id}/cancel"})
     public String cancelTicket(@PathVariable Long id, Authentication authentication, RedirectAttributes redirectAttributes) {
         Optional<AppUser> currentUser = this.currentUser(authentication);
         if (currentUser.isEmpty()) {
@@ -79,27 +101,12 @@ public class VendorTicketController {
         } else {
             redirectAttributes.addFlashAttribute("error", "Ticket not found or access denied.");
         }
-        return "redirect:/vendor-tickets";
+        return "redirect:/vendor/tickets";
     }
 
-    @GetMapping(value = {"/vendor-tickets/{id}/history"})
-    public String ticketHistory(@PathVariable Long id, Authentication authentication, Model model, RedirectAttributes redirectAttributes) {
-        Optional<AppUser> currentUser = this.currentUser(authentication);
-        if (currentUser.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
-            return "redirect:/login";
-        }
-
-        Optional<VendorTicket> ticket = this.vendorTicketService.getAccessibleTicket(id, authentication.getName());
-        if (ticket.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", "Ticket not found or access denied.");
-            return "redirect:/vendor-tickets";
-        }
-
-        List<?> history = this.vendorTicketService.getTicketHistory(id);
-        model.addAttribute("ticket", ticket.get());
-        model.addAttribute("history", history);
-        return "ticket-history";
+    @GetMapping(value = {"/vendor/tickets/{id}/history", "/vendor-tickets/{id}/history"})
+    public String ticketHistory(@PathVariable Long id) {
+        return "redirect:/vendor/tickets?historyTicketId=" + id + "#ticket-history";
     }
 
     @GetMapping(value = {"/vendor-tickets/new"})
@@ -123,11 +130,18 @@ public class VendorTicketController {
     }
 
     @PostMapping(value = {"/vendor-tickets/new/step3"})
-    public String saveStep2(@ModelAttribute VendorTicketWizardState wizardState, Authentication authentication, HttpSession session, RedirectAttributes redirectAttributes) {
+    public String saveStep2(@Valid @ModelAttribute VendorTicketWizardState wizardState, BindingResult bindingResult, Authentication authentication, HttpSession session, Model model, RedirectAttributes redirectAttributes) {
         Optional<AppUser> currentUser = this.currentUser(authentication);
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
             return "redirect:/login";
+        }
+
+        if (bindingResult.hasErrors()) {
+            logger.warn("Vendor ticket step 2 validation failed for user '{}' with {} error(s)", authentication.getName(), bindingResult.getErrorCount());
+            model.addAttribute("vendor", currentUser.get());
+            model.addAttribute("wizardState", wizardState);
+            return "vendor-ticket-new-step2";
         }
 
         wizardState.setClientName(currentUser.get().getUsername());
@@ -156,7 +170,6 @@ public class VendorTicketController {
 
     @PostMapping(value = {"/vendor-tickets/new/step4"})
     public String saveStep3(@RequestParam(value="invoiceFile") MultipartFile invoiceFile,
-                           @RequestParam(value="documentFile", required=false) MultipartFile documentFile,
                            @RequestParam(value="taxDocument", required=false) MultipartFile taxDocument,
                            @RequestParam(value="poCopy", required=false) MultipartFile poCopy,
                            @RequestParam(value="deliveryNote", required=false) MultipartFile deliveryNote,
@@ -180,8 +193,24 @@ public class VendorTicketController {
             return "redirect:/vendor-tickets/new/step3";
         }
 
+        if (taxDocument == null || taxDocument.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Please upload the tax/VAT document.");
+            return "redirect:/vendor-tickets/new/step3";
+        }
+
+        if (poCopy == null || poCopy.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Please upload the PO copy.");
+            return "redirect:/vendor-tickets/new/step3";
+        }
+
         if (fileStorageService == null) {
             redirectAttributes.addFlashAttribute("error", "File upload service is not configured. Please configure Firebase credentials.");
+            return "redirect:/vendor-tickets/new/step3";
+        }
+
+        // Enforce delivery note as required by maker
+        if (deliveryNote == null || deliveryNote.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Please upload the delivery note.");
             return "redirect:/vendor-tickets/new/step3";
         }
 
@@ -190,60 +219,30 @@ public class VendorTicketController {
             wizardState.setInvoiceFileOriginalName(this.cleanFilename(invoiceFile.getOriginalFilename()));
             wizardState.setInvoiceFileUrl(invoiceFileUrl);
 
-            if (documentFile != null && !documentFile.isEmpty()) {
-                String documentUrl = fileStorageService.storeDocument(documentFile);
-                wizardState.setDocumentUrl(documentUrl);
-                wizardState.setDocumentPublicId(fileStorageService.extractObjectPathFromUrl(documentUrl));
-            } else {
-                wizardState.setDocumentUrl(null);
-                wizardState.setDocumentPublicId(null);
-            }
 
             if (wizardState.getTicketNo() == null) {
                 wizardState.setTicketNo(this.vendorTicketService.generateTicketNo());
             }
 
-            // Upload optional tax document
-            if (taxDocument != null && !taxDocument.isEmpty()) {
-                try {
-                    String taxDocumentUrl = fileStorageService.storeVendorDocument(taxDocument);
-                    wizardState.setTaxDocumentOriginalName(this.cleanFilename(taxDocument.getOriginalFilename()));
-                    wizardState.setTaxDocumentUrl(taxDocumentUrl);
-                } catch (IOException e) {
-                    logger.warn("Failed to upload tax document: {}", e.getMessage());
-                    redirectAttributes.addFlashAttribute("warning", "Tax document upload failed, but you can continue.");
-                }
-            } else {
-                wizardState.setTaxDocumentOriginalName(null);
-                wizardState.setTaxDocumentUrl(null);
-            }
+            // Upload required tax document
+            String taxDocumentUrl = fileStorageService.storeVendorDocument(taxDocument);
+            wizardState.setTaxDocumentOriginalName(this.cleanFilename(taxDocument.getOriginalFilename()));
+            wizardState.setTaxDocumentUrl(taxDocumentUrl);
 
-            // Upload optional PO copy
-            if (poCopy != null && !poCopy.isEmpty()) {
-                try {
-                    String poCopyUrl = fileStorageService.storeVendorDocument(poCopy);
-                    wizardState.setPoCopyOriginalName(this.cleanFilename(poCopy.getOriginalFilename()));
-                    wizardState.setPoCopyUrl(poCopyUrl);
-                } catch (IOException e) {
-                    logger.warn("Failed to upload PO copy: {}", e.getMessage());
-                }
-            } else {
-                wizardState.setPoCopyOriginalName(null);
-                wizardState.setPoCopyUrl(null);
-            }
+            // Upload required PO copy
+            String poCopyUrl = fileStorageService.storeVendorDocument(poCopy);
+            wizardState.setPoCopyOriginalName(this.cleanFilename(poCopy.getOriginalFilename()));
+            wizardState.setPoCopyUrl(poCopyUrl);
 
-            // Upload optional delivery note
-            if (deliveryNote != null && !deliveryNote.isEmpty()) {
-                try {
-                    String deliveryNoteUrl = fileStorageService.storeVendorDocument(deliveryNote);
-                    wizardState.setDeliveryNoteOriginalName(this.cleanFilename(deliveryNote.getOriginalFilename()));
-                    wizardState.setDeliveryNoteUrl(deliveryNoteUrl);
-                } catch (IOException e) {
-                    logger.warn("Failed to upload delivery note: {}", e.getMessage());
-                }
-            } else {
-                wizardState.setDeliveryNoteOriginalName(null);
-                wizardState.setDeliveryNoteUrl(null);
+            // Upload delivery note (required)
+            try {
+                String deliveryNoteUrl = fileStorageService.storeVendorDocument(deliveryNote);
+                wizardState.setDeliveryNoteOriginalName(this.cleanFilename(deliveryNote.getOriginalFilename()));
+                wizardState.setDeliveryNoteUrl(deliveryNoteUrl);
+            } catch (IOException e) {
+                logger.warn("Failed to upload delivery note: {}", e.getMessage());
+                redirectAttributes.addFlashAttribute("error", "Failed to upload delivery note: " + e.getMessage());
+                return "redirect:/vendor-tickets/new/step3";
             }
 
             // Upload optional other document

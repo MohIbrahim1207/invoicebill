@@ -1,5 +1,10 @@
 package com.billing.invoicehub.dto;
 
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -7,9 +12,19 @@ import java.time.LocalDate;
 public class VendorTicketWizardState implements Serializable {
     private Long clientId;
     private String clientName;
+
+    @NotBlank(message = "Invoice number is required")
+    @Size(max = 50, message = "Invoice number must not exceed 50 characters")
     private String invoiceNo;
+
+    @NotNull(message = "Amount is required")
+    @DecimalMin(value = "0.01", inclusive = true, message = "Amount must be greater than zero")
     private BigDecimal amount;
+
+    @Size(max = 20, message = "Currency must not exceed 20 characters")
     private String currency;
+
+    @NotNull(message = "Invoice date is required")
     private LocalDate invoiceDate;
 
     // File names (original)
@@ -22,18 +37,19 @@ public class VendorTicketWizardState implements Serializable {
 
     // File URLs from Cloudinary (replacing old "Name" fields)
     private String invoiceFileUrl;
-    private String documentUrl;
-    private String documentPublicId;
     private String taxDocumentUrl;
     private String poCopyUrl;
     private String deliveryNoteUrl;
     private String otherDocumentUrl;
     private String supportingDocumentUrl;
 
+    @Size(max = 50, message = "Ticket number must not exceed 50 characters")
     private String ticketNo;
     private BigDecimal subtotal;
     private BigDecimal tax;
     private BigDecimal total;
+
+    @Size(max = 50, message = "PO number must not exceed 50 characters")
     private String poNumber;
 
     // Getters and Setters
@@ -88,11 +104,6 @@ public class VendorTicketWizardState implements Serializable {
     public String getInvoiceFileUrl() { return this.invoiceFileUrl; }
     public void setInvoiceFileUrl(String invoiceFileUrl) { this.invoiceFileUrl = invoiceFileUrl; }
 
-    public String getDocumentUrl() { return this.documentUrl; }
-    public void setDocumentUrl(String documentUrl) { this.documentUrl = documentUrl; }
-
-    public String getDocumentPublicId() { return this.documentPublicId; }
-    public void setDocumentPublicId(String documentPublicId) { this.documentPublicId = documentPublicId; }
 
     public String getTaxDocumentUrl() { return this.taxDocumentUrl; }
     public void setTaxDocumentUrl(String taxDocumentUrl) { this.taxDocumentUrl = taxDocumentUrl; }

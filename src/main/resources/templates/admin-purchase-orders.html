@@ -55,7 +55,7 @@
                     <tbody>
                         <tr th:each="po : ${purchaseOrders}">
                             <td><strong th:text="${po.poNumber}"></strong></td>
-                            <td th:text="${po.vendor.username}"></td>
+                            <td th:text="${po.vendor != null ? po.vendor.username : 'N/A'}"></td>
                             <td th:text="${#numbers.formatDecimal(po.poAmount, 1, 2)}"></td>
                             <td th:text="${#temporals.format(po.createdAt, 'dd MMM yyyy HH:mm')}"></td>
                             <td>

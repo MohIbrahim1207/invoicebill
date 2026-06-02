@@ -111,6 +111,9 @@ public class InvoiceController {
             invoice.setFileName(file.getOriginalFilename());
             invoice.setFileUrl(fileUrl);
             invoice.setClient(client.get());
+            if (invoice.getStatus() == null || invoice.getStatus().isBlank()) {
+                invoice.setStatus("Pending");
+            }
 
             invoiceRepository.save(invoice);
             redirectAttributes.addFlashAttribute("message", "Invoice uploaded for " + client.get().getCompanyName() + ".");
@@ -225,6 +228,11 @@ public class InvoiceController {
     public String deleteInvoice(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         Optional<Invoice> invoice = loadAccessibleInvoice(id, redirectAttributes);
         if (invoice.isEmpty()) {
+            return "redirect:/invoice";
+        }
+        String status = invoice.get().getStatus();
+        if (status != null && !status.equalsIgnoreCase("Pending")) {
+            redirectAttributes.addFlashAttribute("error", "Only pending invoices can be deleted.");
             return "redirect:/invoice";
         }
         invoiceRepository.deleteById(id);

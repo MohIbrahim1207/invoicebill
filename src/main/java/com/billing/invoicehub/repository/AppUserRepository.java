@@ -1,13 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.billing.invoicehub.entity.AppUser
- *  com.billing.invoicehub.repository.AppUserRepository
- *  org.springframework.data.jpa.repository.JpaRepository
- *  org.springframework.data.jpa.repository.Query
- *  org.springframework.data.repository.query.Param
- */
 package com.billing.invoicehub.repository;
 
 import com.billing.invoicehub.entity.AppUser;
@@ -18,14 +8,17 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface AppUserRepository
-extends JpaRepository<AppUser, Long> {
-    public Optional<AppUser> findByUsername(String var1);
+        extends JpaRepository<AppUser, Long> {
 
-    public Optional<AppUser> findByVendorCode(String var1);
+    Optional<AppUser> findByUsername(String username);
 
-    public long countByVendorCodeStartingWith(String var1);
+    Optional<AppUser> findByVendorCode(String vendorCode);
+
+    long countByVendorCodeStartingWith(String prefix);
 
     @Query(value="select distinct u from AppUser u join u.roles r where r.name = :roleName order by u.id desc")
-    public List<AppUser> findByRoles_NameOrderByIdDesc(@Param(value="roleName") String var1);
-}
+    List<AppUser> findByRoles_NameOrderByIdDesc(@Param(value="roleName") String roleName);
 
+    // Added for password reset — replaces findAll() scan
+    Optional<AppUser> findByEmailIgnoreCase(String email);
+}

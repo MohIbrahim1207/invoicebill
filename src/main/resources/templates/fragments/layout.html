@@ -93,10 +93,13 @@
     <a href="/notifications" class="sidebar-link" th:classappend="${active == 'notifications'} ? ' active' : ''">
         <i class="bi bi-bell"></i> Notifications
     </a>
+    <a href="/help" class="sidebar-link" th:classappend="${active == 'help'} ? ' active' : ''" sec:authorize="hasRole('USER')">
+        <i class="bi bi-question-circle"></i> Help
+    </a>
     <a href="/clients" class="sidebar-link" th:classappend="${active == 'clients'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')">
         <i class="bi bi-building"></i> Client Management
     </a>
-    <a href="/vendor-tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''" sec:authorize="hasRole('USER')">
+    <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''" sec:authorize="hasRole('USER')">
         <i class="bi bi-list-task"></i> Vendor Tickets
     </a>
     <a href="/admin/vendor-tickets" class="sidebar-link" th:classappend="${active == 'admin-tickets'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')">
@@ -107,12 +110,6 @@
     </a>
     <a href="/admin/purchase-orders" class="sidebar-link" th:classappend="${active == 'purchase-orders'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')">
         <i class="bi bi-file-earmark-text"></i> Purchase Orders
-    </a>
-    <a href="/admin/vendor-tickets" class="sidebar-link" th:classappend="${active == 'history'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')">
-        <i class="bi bi-clock-history"></i> Ticket History
-    </a>
-    <a href="/admin/dashboard" class="sidebar-link" th:classappend="${active == 'reports'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')">
-        <i class="bi bi-bar-chart"></i> Reports
     </a>
 </aside>
 
@@ -125,13 +122,12 @@
         <div class="d-flex flex-column">
             <a href="/invoice" class="sidebar-link" th:classappend="${active == 'billing'} ? ' active' : ''"><i class="bi bi-receipt-cutoff"></i> Billing Intake</a>
             <a href="/notifications" class="sidebar-link" th:classappend="${active == 'notifications'} ? ' active' : ''"><i class="bi bi-bell"></i> Notifications</a>
-             <a href="/clients" class="sidebar-link" th:classappend="${active == 'clients'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i class="bi bi-building"></i> Client Management</a>
-              <a href="/vendor-tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''" sec:authorize="hasRole('USER')"><i class="bi bi-list-task"></i> Vendor Tickets</a>
+             <a href="/help" class="sidebar-link" th:classappend="${active == 'help'} ? ' active' : ''" sec:authorize="hasRole('USER')"><i class="bi bi-question-circle"></i> Help</a>
+              <a href="/clients" class="sidebar-link" th:classappend="${active == 'clients'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i class="bi bi-building"></i> Client Management</a>
+                <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''" sec:authorize="hasRole('USER')"><i class="bi bi-list-task"></i> Vendor Tickets</a>
             <a href="/admin/vendor-tickets" class="sidebar-link" th:classappend="${active == 'admin-tickets'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i class="bi bi-list-task"></i> Vendor Tickets</a>
              <a href="/admin/vendors" class="sidebar-link" th:classappend="${active == 'vendors'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i class="bi bi-person-badge"></i> Vendor Verification</a>
              <a href="/admin/purchase-orders" class="sidebar-link" th:classappend="${active == 'purchase-orders'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i class="bi bi-file-earmark-text"></i> Purchase Orders</a>
-             <a href="/admin/vendor-tickets" class="sidebar-link" th:classappend="${active == 'history'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i class="bi bi-clock-history"></i> Ticket History</a>
-            <a href="/admin/dashboard" class="sidebar-link" sec:authorize="hasRole('ADMIN')"><i class="bi bi-bar-chart"></i> Reports</a>
         </div>
     </div>
 </div>

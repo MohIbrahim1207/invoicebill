@@ -1,29 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.billing.invoicehub.dto.VendorTicketWizardState
- *  com.billing.invoicehub.entity.AppUser
- *  com.billing.invoicehub.entity.Client
- *  com.billing.invoicehub.entity.Invoice
- *  com.billing.invoicehub.entity.TicketStatus
- *  com.billing.invoicehub.entity.VendorTicket
- *  com.billing.invoicehub.entity.VendorTicketHistory
- *  com.billing.invoicehub.repository.AppUserRepository
- *  com.billing.invoicehub.repository.ClientRepository
- *  com.billing.invoicehub.repository.InvoiceRepository
- *  com.billing.invoicehub.repository.VendorTicketHistoryRepository
- *  com.billing.invoicehub.repository.VendorTicketRepository
- *  com.billing.invoicehub.service.PurchaseOrderService
- *  com.billing.invoicehub.service.VendorTicketService
- *  org.slf4j.Logger
- *  org.slf4j.LoggerFactory
- *  org.springframework.beans.factory.annotation.Value
- *  org.springframework.mail.SimpleMailMessage
- *  org.springframework.mail.javamail.JavaMailSender
- *  org.springframework.stereotype.Service
- *  org.springframework.transaction.annotation.Transactional
- */
 package com.billing.invoicehub.service;
 
 import com.billing.invoicehub.dto.VendorTicketWizardState;
@@ -38,127 +12,143 @@ import com.billing.invoicehub.repository.ClientRepository;
 import com.billing.invoicehub.repository.InvoiceRepository;
 import com.billing.invoicehub.repository.VendorTicketHistoryRepository;
 import com.billing.invoicehub.repository.VendorTicketRepository;
-import com.billing.invoicehub.service.PurchaseOrderService;
+import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class VendorTicketService {
+
     private static final Logger log = LoggerFactory.getLogger(VendorTicketService.class);
+
     private final InvoiceRepository invoiceRepository;
     private final VendorTicketRepository vendorTicketRepository;
     private final VendorTicketHistoryRepository vendorTicketHistoryRepository;
     private final AppUserRepository appUserRepository;
     private final ClientRepository clientRepository;
-    private final JavaMailSender mailSender;
-    private final String mailFrom;
+    private final EmailService emailService;
     private final String configuredAdminEmail;
+    private final String appBaseUrl;
     private final PurchaseOrderService purchaseOrderService;
 
-    public VendorTicketService(VendorTicketRepository vendorTicketRepository, VendorTicketHistoryRepository vendorTicketHistoryRepository, AppUserRepository appUserRepository, ClientRepository clientRepository, InvoiceRepository invoiceRepository, JavaMailSender mailSender, PurchaseOrderService purchaseOrderService, @Value(value="${spring.mail.username:}") String mailFrom, @Value(value="${app.admin.email:}") String configuredAdminEmail) {
+    public VendorTicketService(VendorTicketRepository vendorTicketRepository,
+                               VendorTicketHistoryRepository vendorTicketHistoryRepository,
+                               AppUserRepository appUserRepository,
+                               ClientRepository clientRepository,
+                               InvoiceRepository invoiceRepository,
+                               EmailService emailService,
+                               PurchaseOrderService purchaseOrderService,
+                               @Value("${app.admin.email:}") String configuredAdminEmail,
+                               @Value("${app.base-url:https://your-invoicehub.example.com}") String appBaseUrl) {
         this.vendorTicketRepository = vendorTicketRepository;
         this.vendorTicketHistoryRepository = vendorTicketHistoryRepository;
         this.appUserRepository = appUserRepository;
         this.clientRepository = clientRepository;
         this.invoiceRepository = invoiceRepository;
-        this.mailSender = mailSender;
-        this.mailFrom = mailFrom;
+        this.emailService = emailService;
         this.configuredAdminEmail = configuredAdminEmail;
+        this.appBaseUrl = appBaseUrl;
         this.purchaseOrderService = purchaseOrderService;
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     public List<VendorTicket> searchTickets(String ticketNo, String invoiceNo, Integer year, String status) {
-        return this.vendorTicketRepository.searchTickets(this.normalize(ticketNo), this.normalize(invoiceNo), year, this.parseStatus(status));
+        return vendorTicketRepository.searchTickets(normalize(ticketNo), normalize(invoiceNo), year, parseStatus(status));
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     public List<VendorTicket> searchTicketsForOwner(Long ownerId, String ticketNo, String invoiceNo, Integer year, String status) {
-        return this.vendorTicketRepository.searchTicketsByOwner(ownerId, this.normalize(ticketNo), this.normalize(invoiceNo), year, this.parseStatus(status));
+        return vendorTicketRepository.searchTicketsByOwner(ownerId, normalize(ticketNo), normalize(invoiceNo), year, parseStatus(status));
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     public List<Integer> availableYears() {
-        return this.vendorTicketRepository.findAvailableYears();
+        return vendorTicketRepository.findAvailableYears();
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     public List<Integer> availableYearsForOwner(Long ownerId) {
-        return this.vendorTicketRepository.findAvailableYearsByOwnerId(ownerId);
+        return vendorTicketRepository.findAvailableYearsByOwnerId(ownerId);
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     public List<Client> getClientsForVendor(String vendorUsername) {
-        Optional<AppUser> vendor = this.appUserRepository.findByUsername(vendorUsername);
+        Optional<AppUser> vendor = appUserRepository.findByUsername(vendorUsername);
         if (vendor.isEmpty()) {
             return List.of();
         }
-        if (this.isAdmin(vendor.get())) {
-            return this.clientRepository.findAll();
+        if (isAdmin(vendor.get())) {
+            return clientRepository.findAll();
         }
-        return this.clientRepository.findByOwner_Id(vendor.get().getId());
+        return clientRepository.findByOwner_Id(vendor.get().getId());
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     public AppUser getVendorByUsername(String username) {
-        return this.appUserRepository.findByUsername(username).orElse(null);
+        return appUserRepository.findByUsername(username).orElse(null);
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     public Optional<Client> resolveAccessibleClient(Long clientId, String username) {
-        Optional<AppUser> user = this.appUserRepository.findByUsername(username);
+        Optional<AppUser> user = appUserRepository.findByUsername(username);
         if (user.isEmpty()) {
             return Optional.empty();
         }
         AppUser currentUser = user.get();
-        boolean admin = this.isAdmin(currentUser);
-        if (admin) {
-            return this.clientRepository.findById(clientId);
+        if (isAdmin(currentUser)) {
+            return clientRepository.findById(clientId);
         }
-        return this.clientRepository.findById(clientId).filter(client -> client.getOwner() != null && client.getOwner().getId().equals(currentUser.getId()));
+        return clientRepository.findById(clientId)
+                .filter(client -> client.getOwner() != null && client.getOwner().getId().equals(currentUser.getId()));
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     public Optional<VendorTicket> getTicketById(Long ticketId) {
-        return this.vendorTicketRepository.findDetailedById(ticketId);
+        return vendorTicketRepository.findDetailedById(ticketId);
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     public Optional<VendorTicket> getAccessibleTicket(Long ticketId, String username) {
-        Optional<AppUser> user = this.appUserRepository.findByUsername(username);
+        log.debug("Loading accessible vendor ticket {} for username='{}'", ticketId, username);
+        Optional<AppUser> user = appUserRepository.findByUsername(username);
         if (user.isEmpty()) {
+            log.debug("No app user found for username='{}'", username);
             return Optional.empty();
         }
         AppUser currentUser = user.get();
-        boolean admin = this.isAdmin(currentUser);
-        if (admin) {
-            return this.vendorTicketRepository.findDetailedById(ticketId);
+        if (isAdmin(currentUser)) {
+            return vendorTicketRepository.findDetailedById(ticketId);
         }
-        return this.vendorTicketRepository.findDetailedById(ticketId).filter(ticket -> ticket.getOwner() != null && ticket.getOwner().getId().equals(currentUser.getId()));
+        return vendorTicketRepository.findDetailedById(ticketId)
+                .filter(ticket -> ticket.getOwner() != null && ticket.getOwner().getId().equals(currentUser.getId()));
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     public List<VendorTicketHistory> getTicketHistory(Long ticketId) {
-        return this.vendorTicketHistoryRepository.findByTicketIdOrderByChangedAtDesc(ticketId);
+        log.debug("Loading ticket history for ticketId={}", ticketId);
+        List<VendorTicketHistory> history = vendorTicketHistoryRepository.findByTicketIdOrderByChangedAtDesc(ticketId);
+        log.debug("Ticket history lookup returned {} row(s) for ticketId={}", history.size(), ticketId);
+        return history;
     }
 
     @Transactional
     public VendorTicket saveWizardTicket(VendorTicketWizardState state, String vendorUsername) {
-        AppUser vendor = this.appUserRepository.findByUsername(vendorUsername).orElseThrow(() -> new IllegalArgumentException("Vendor not found"));
-        if (state.getPoNumber() != null && !state.getPoNumber().trim().isEmpty() && !this.validatePONumber(state.getPoNumber())) {
-            log.warn("PO number {} was not found or inactive for vendor {}. Continuing ticket submission.", (Object)state.getPoNumber(), (Object)vendorUsername);
+        AppUser vendor = appUserRepository.findByUsername(vendorUsername)
+                .orElseThrow(() -> new IllegalArgumentException("Vendor not found"));
+        if (state.getPoNumber() != null && !state.getPoNumber().trim().isEmpty() && !validatePONumber(state.getPoNumber())) {
+            log.warn("PO number {} was not found or inactive for vendor {}. Continuing ticket submission.",
+                    state.getPoNumber(), vendorUsername);
         }
-        Client client = this.resolveSelfClient(vendor);
+        Client client = resolveSelfClient(vendor);
         VendorTicket vendorTicket = new VendorTicket();
         vendorTicket.setVendor(vendor);
         vendorTicket.setOwner(vendor);
@@ -169,8 +159,6 @@ public class VendorTicketService {
         vendorTicket.setCurrency(state.getCurrency());
         vendorTicket.setInvoiceFileName(state.getInvoiceFileOriginalName());
         vendorTicket.setInvoiceFileUrl(state.getInvoiceFileUrl());
-        vendorTicket.setDocumentUrl(state.getDocumentUrl());
-        vendorTicket.setDocumentPublicId(state.getDocumentPublicId());
         vendorTicket.setSupportingDocumentName(state.getSupportingDocumentOriginalName());
         vendorTicket.setSupportingDocumentUrl(state.getSupportingDocumentUrl());
         vendorTicket.setTicketNo(state.getTicketNo());
@@ -184,100 +172,54 @@ public class VendorTicketService {
         vendorTicket.setOtherDocumentUrl(state.getOtherDocumentUrl());
         vendorTicket.setStatusRequest(TicketStatus.OPEN);
         vendorTicket.setCreatedAt(LocalDateTime.now());
-        VendorTicket saved = this.vendorTicketRepository.save(vendorTicket);
-        this.vendorTicketHistoryRepository.save(new VendorTicketHistory(saved, TicketStatus.OPEN, LocalDateTime.now(), "Ticket submitted"));
+        VendorTicket saved = vendorTicketRepository.save(vendorTicket);
+        vendorTicketHistoryRepository.save(new VendorTicketHistory(saved, TicketStatus.OPEN, LocalDateTime.now(), "Ticket submitted"));
         try {
             if (saved.getInvoiceFileUrl() != null && !saved.getInvoiceFileUrl().isBlank()) {
                 Invoice inv = new Invoice();
                 inv.setFileName(saved.getInvoiceFileName());
                 inv.setFileUrl(saved.getInvoiceFileUrl());
-                inv.setInvoiceNumber(saved.getInvoiceNo() != null ? saved.getInvoiceNo() : null);
+                inv.setInvoiceNumber(saved.getInvoiceNo());
                 inv.setInvoiceDate(saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : null);
                 inv.setAmount(saved.getAmount());
                 inv.setClient(saved.getClient());
-                this.invoiceRepository.save(inv);
+                invoiceRepository.save(inv);
                 log.info("Created Invoice record {} for ticket {}", inv.getId(), saved.getTicketNo());
             }
-        }
-        catch (Exception ex) {
-            log.warn("Failed to create Invoice record for ticket {}: {}", new Object[]{saved.getTicketNo(), ex.getMessage(), ex});
+        } catch (Exception ex) {
+            log.warn("Failed to create Invoice record for ticket {}: {}", saved.getTicketNo(), ex.getMessage(), ex);
         }
         state.setTicketNo(saved.getTicketNo());
-        try {
-            String vendorEmail;
-            String string = vendorEmail = saved.getVendor() != null ? saved.getVendor().getEmail() : null;
-            if (vendorEmail != null && !vendorEmail.isBlank()) {
-                try {
-                    SimpleMailMessage msg = new SimpleMailMessage();
-                    msg.setTo(vendorEmail);
-                    msg.setSubject("Invoice Submission Received - Ticket #" + saved.getTicketNo());
-                    String body = String.format("Your invoice submission has been received.\n\n==== TICKET DETAILS ====\nTicket No: %s\nInvoice No: %s\nInvoice Date: %s\nBill To: %s\nPO Number: %s\n\n==== AMOUNT BREAKDOWN ====\nSubtotal: %s\nTax: %s\nTotal: %s %s\n\n==== SUBMISSION INFO ====\nSubmitted At: %s\nStatus: OPEN\n\nYou can view and track this ticket in the InvoiceHub portal.\n\nHelp & Support:\nHelpline: +1-800-123-4567\nFAQ: %s/contact or %s/faq\nContact Form: %s/contact", saved.getTicketNo(), saved.getInvoiceNo() != null ? saved.getInvoiceNo() : "-", saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : "-", saved.getClient() != null ? saved.getClient().getCompanyName() : "-", saved.getPoNumber() != null ? saved.getPoNumber() : "-", saved.getSubtotal() != null ? saved.getSubtotal().toString() : "0.00", saved.getTax() != null ? saved.getTax().toString() : "0.00", saved.getTotal() != null ? saved.getTotal().toString() : "-", saved.getCurrency() != null ? saved.getCurrency() : "IDR", LocalDateTime.now().toString(), "https://your-invoicehub.example.com", "https://your-invoicehub.example.com", "https://your-invoicehub.example.com");
-                    msg.setText(body);
-                    if (this.mailFrom != null && !this.mailFrom.isBlank()) {
-                        msg.setFrom(this.mailFrom);
-                    }
-                    this.mailSender.send(msg);
-                    log.info("Vendor notification email sent to {} for ticket {}", (Object)vendorEmail, (Object)saved.getTicketNo());
-                }
-                catch (Exception mailEx) {
-                    log.error("Failed to send vendor notification email to {}: {}", new Object[]{vendorEmail, mailEx.getMessage(), mailEx});
-                }
-            } else {
-                String targetAdmin;
-                String string2 = targetAdmin = this.configuredAdminEmail != null && !this.configuredAdminEmail.isBlank() ? this.configuredAdminEmail : null;
-                if (targetAdmin != null) {
-                    try {
-                        SimpleMailMessage msg = new SimpleMailMessage();
-                        msg.setTo(targetAdmin);
-                        msg.setSubject("New Invoice Submitted - Ticket #" + saved.getTicketNo());
-                        String body = String.format("A new invoice has been submitted for review.\n\n==== TICKET DETAILS ====\nTicket No: %s\nVendor: %s\nInvoice No: %s\nInvoice Date: %s\nBill To: %s\nPO Number: %s\n\n==== AMOUNT BREAKDOWN ====\nSubtotal: %s\nTax: %s\nTotal: %s %s\n\n==== SUBMISSION INFO ====\nSubmitted At: %s\nStatus: OPEN\n\nPlease login to InvoiceHub admin portal to review and process this submission.\n\nHelp & Support:\nHelpline: +1-800-123-4567\nFAQ: %s/faq\nContact Form: %s/contact", saved.getTicketNo(), saved.getVendor() != null ? saved.getVendor().getUsername() : "-", saved.getInvoiceNo() != null ? saved.getInvoiceNo() : "-", saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : "-", saved.getClient() != null ? saved.getClient().getCompanyName() : "-", saved.getPoNumber() != null ? saved.getPoNumber() : "-", saved.getSubtotal() != null ? saved.getSubtotal().toString() : "0.00", saved.getTax() != null ? saved.getTax().toString() : "0.00", saved.getTotal() != null ? saved.getTotal().toString() : "-", saved.getCurrency() != null ? saved.getCurrency() : "IDR", LocalDateTime.now().toString(), "https://your-invoicehub.example.com", "https://your-invoicehub.example.com");
-                        msg.setText(body);
-                        if (this.mailFrom != null && !this.mailFrom.isBlank()) {
-                            msg.setFrom(this.mailFrom);
-                        }
-                        this.mailSender.send(msg);
-                        log.info("Admin notification email sent to configured admin {} for ticket {}", (Object)targetAdmin, (Object)saved.getTicketNo());
-                    }
-                    catch (Exception mailEx) {
-                        log.error("Failed to send admin notification email to configured admin {}: {}", new Object[]{targetAdmin, mailEx.getMessage(), mailEx});
-                    }
-                } else {
-                    this.appUserRepository.findAll().stream().filter(u -> u.getRoles() != null && u.getRoles().stream().anyMatch(r -> r.getName() != null && r.getName().equalsIgnoreCase("ROLE_ADMIN"))).findFirst().ifPresent(admin -> {
-                        String adminEmail = admin.getEmail();
-                        if (adminEmail != null && !adminEmail.isBlank()) {
-                            try {
-                                SimpleMailMessage msg = new SimpleMailMessage();
-                                msg.setTo(adminEmail);
-                                msg.setSubject("New Invoice Submitted - Ticket #" + saved.getTicketNo());
-                                String body = String.format("A new invoice has been submitted for review.\n\n==== TICKET DETAILS ====\nTicket No: %s\nVendor: %s\nInvoice No: %s\nInvoice Date: %s\nBill To: %s\nPO Number: %s\n\n==== AMOUNT BREAKDOWN ====\nSubtotal: %s\nTax: %s\nTotal: %s %s\n\n==== SUBMISSION INFO ====\nSubmitted At: %s\nStatus: OPEN\n\nPlease login to InvoiceHub admin portal to review and process this submission.\n\nHelp & Support:\nHelpline: +1-800-123-4567\nFAQ: %s/faq\nContact Form: %s/contact", saved.getTicketNo(), saved.getVendor() != null ? saved.getVendor().getUsername() : "-", saved.getInvoiceNo() != null ? saved.getInvoiceNo() : "-", saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : "-", saved.getClient() != null ? saved.getClient().getCompanyName() : "-", saved.getPoNumber() != null ? saved.getPoNumber() : "-", saved.getSubtotal() != null ? saved.getSubtotal().toString() : "0.00", saved.getTax() != null ? saved.getTax().toString() : "0.00", saved.getTotal() != null ? saved.getTotal().toString() : "-", saved.getCurrency() != null ? saved.getCurrency() : "IDR", LocalDateTime.now().toString(), "https://your-invoicehub.example.com", "https://your-invoicehub.example.com");
-                                msg.setText(body);
-                                if (this.mailFrom != null && !this.mailFrom.isBlank()) {
-                                    msg.setFrom(this.mailFrom);
-                                }
-                                this.mailSender.send(msg);
-                                log.info("Admin notification email sent to {} for ticket {}", (Object)adminEmail, (Object)saved.getTicketNo());
-                            }
-                            catch (Exception mailEx) {
-                                log.error("Failed to send admin notification email to {}: {}", new Object[]{admin.getEmail(), mailEx.getMessage(), mailEx});
-                            }
-                        }
-                    });
-                }
-            }
+        String recipientEmail = saved.getVendor() != null ? saved.getVendor().getEmail() : null;
+        String recipientName = saved.getVendor() != null ? saved.getVendor().getUsername() : "-";
+        if (recipientEmail == null || recipientEmail.isBlank()) {
+            recipientEmail = resolveAdminEmail();
         }
-        catch (Exception ex) {
-            log.error("Failed to prepare or send notification email: {}", (Object)ex.getMessage(), (Object)ex);
+        if (recipientEmail != null && !recipientEmail.isBlank()) {
+            emailService.sendTicketSubmittedEmail(
+                    recipientEmail,
+                    recipientName,
+                    saved.getTicketNo(),
+                    saved.getInvoiceNo(),
+                    saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : "-",
+                    saved.getClient() != null ? saved.getClient().getCompanyName() : "-",
+                    saved.getPoNumber(),
+                    saved.getSubtotal() != null ? formatIdr(saved.getSubtotal()) : "Rp 0",
+                    saved.getTax() != null ? formatIdr(saved.getTax()) : "Rp 0",
+                    saved.getTotal() != null ? formatIdr(saved.getTotal()) : "Rp 0",
+                    appBaseUrl + "/vendor/tickets?historyTicketId=" + saved.getId() + "#ticket-history"
+            );
         }
         return saved;
     }
 
     private Client resolveSelfClient(AppUser vendor) {
         String billToName = vendor.getUsername();
-        return this.clientRepository.findByCompanyNameIgnoreCaseAndOwner_Id(billToName, vendor.getId()).orElseGet(() -> {
+        return clientRepository.findByCompanyNameIgnoreCaseAndOwner_Id(billToName, vendor.getId()).orElseGet(() -> {
             Client selfClient = new Client();
             selfClient.setCompanyName(billToName);
             selfClient.setOwner(vendor);
-            return this.clientRepository.save(selfClient);
+            return clientRepository.save(selfClient);
         });
     }
 
@@ -289,27 +231,27 @@ public class VendorTicketService {
         state.setInvoiceDate(vendorTicket.getInvoiceDate());
         state.setAmount(vendorTicket.getAmount());
         state.setCurrency(vendorTicket.getCurrency());
-        this.saveWizardTicket(state, vendorUsername);
+        saveWizardTicket(state, vendorUsername);
     }
 
     @Transactional
     public boolean cancelTicket(Long id) {
-        Optional<VendorTicket> ticket = this.vendorTicketRepository.findById(id);
+        Optional<VendorTicket> ticket = vendorTicketRepository.findById(id);
         if (ticket.isEmpty()) {
             return false;
         }
         ticket.get().setStatusRequest(TicketStatus.CANCEL);
-        this.vendorTicketRepository.save(ticket.get());
-        this.vendorTicketHistoryRepository.save(new VendorTicketHistory(ticket.get(), TicketStatus.CANCEL, LocalDateTime.now(), "Ticket cancelled"));
+        vendorTicketRepository.save(ticket.get());
+        vendorTicketHistoryRepository.save(new VendorTicketHistory(ticket.get(), TicketStatus.CANCEL, LocalDateTime.now(), "Ticket cancelled"));
         return true;
     }
 
     @Transactional
     public boolean cancelTicket(Long id, String username) {
-        log.info("Attempting to cancel ticket {} by user {}", (Object)id, (Object)username);
-        Optional<VendorTicket> ticket = this.getAccessibleTicket(id, username);
+        log.info("Attempting to cancel ticket {} by user {}", id, username);
+        Optional<VendorTicket> ticket = getAccessibleTicket(id, username);
         if (ticket.isEmpty()) {
-            Optional<VendorTicket> maybe = this.vendorTicketRepository.findById(id);
+            Optional<VendorTicket> maybe = vendorTicketRepository.findById(id);
             if (maybe.isPresent()) {
                 VendorTicket t = maybe.get();
                 String ownerName = t.getOwner() != null ? t.getOwner().getUsername() : "<no-owner>";
@@ -321,32 +263,107 @@ public class VendorTicketService {
         }
         VendorTicket t = ticket.get();
         t.setStatusRequest(TicketStatus.CANCEL);
-        this.vendorTicketRepository.save(t);
-        this.vendorTicketHistoryRepository.save(new VendorTicketHistory(t, TicketStatus.CANCEL, LocalDateTime.now(), "Ticket cancelled"));
+        vendorTicketRepository.save(t);
+        vendorTicketHistoryRepository.save(new VendorTicketHistory(t, TicketStatus.CANCEL, LocalDateTime.now(), "Ticket cancelled"));
+        String recipientEmail = t.getVendor() != null ? t.getVendor().getEmail() : null;
+        if (recipientEmail != null && !recipientEmail.isBlank()) {
+            emailService.sendTicketCancelledEmail(
+                    recipientEmail,
+                    t.getVendor() != null ? t.getVendor().getUsername() : "-",
+                    t.getTicketNo(),
+                    t.getInvoiceNo(),
+                    "Cancelled by user " + username
+            );
+        }
         log.info("Ticket {} cancelled by user {}", id, username);
         return true;
     }
 
     @Transactional
     public void updateTicket(VendorTicket ticket) {
-        this.vendorTicketRepository.save(ticket);
+        vendorTicketRepository.save(ticket);
+    }
+
+    @Transactional
+    public void updateTicketStatusAndNotify(VendorTicket ticket, TicketStatus newStatus, String comment) {
+        ticket.setStatusRequest(newStatus);
+        vendorTicketRepository.save(ticket);
+        vendorTicketHistoryRepository.save(new VendorTicketHistory(ticket, newStatus, LocalDateTime.now(),
+                comment != null ? comment.trim() : ""));
+
+        String mappedInvoiceStatus = mapTicketStatusToInvoiceStatus(newStatus);
+        if (mappedInvoiceStatus == null) {
+            return;
+        }
+
+        if (ticket.getInvoiceNo() != null && !ticket.getInvoiceNo().isBlank()
+                && ticket.getOwner() != null && ticket.getOwner().getId() != null) {
+            try {
+                invoiceRepository
+                        .findTopByInvoiceNumberAndClient_Owner_IdOrderByIdDesc(ticket.getInvoiceNo(), ticket.getOwner().getId())
+                        .ifPresent(invoice -> {
+                            invoice.setStatus(mappedInvoiceStatus);
+                            invoiceRepository.save(invoice);
+                        });
+            } catch (Exception ex) {
+                log.warn("Failed to sync invoice status for ticket {}: {}", ticket.getTicketNo(), ex.getMessage(), ex);
+            }
+        }
+
+        String vendorEmail = ticket.getVendor() != null ? ticket.getVendor().getEmail() : null;
+        if (vendorEmail == null || vendorEmail.isBlank()) {
+            log.warn("Skipping status email for ticket {} because vendor email is missing", ticket.getTicketNo());
+            return;
+        }
+
+        try {
+            String invoiceNumber = ticket.getInvoiceNo() != null ? ticket.getInvoiceNo() : "-";
+            String vendorName = ticket.getVendor() != null ? ticket.getVendor().getUsername() : "-";
+            String amount = ticket.getAmount() != null ? formatIdr(ticket.getAmount()) : "Rp 0";
+            String statusDate = LocalDateTime.now().toString();
+            String adminRemarks = comment != null ? comment.trim() : null;
+            String viewUrl = appBaseUrl + "/invoice";
+            emailService.sendInvoiceStatusEmail(vendorEmail, invoiceNumber, vendorName, mappedInvoiceStatus, amount, statusDate, adminRemarks, viewUrl);
+            log.info("Invoice status email sent to {} for ticket {}", vendorEmail, ticket.getTicketNo());
+        } catch (Exception ex) {
+            log.error("Failed to send invoice status email for ticket {}: {}", ticket.getTicketNo(), ex.getMessage(), ex);
+        }
     }
 
     @Transactional
     public void addTicketHistory(VendorTicketHistory history) {
-        this.vendorTicketHistoryRepository.save(history);
+        vendorTicketHistoryRepository.save(history);
     }
 
     public String generateTicketNo() {
         int year = Year.now().getValue();
         LocalDateTime start = LocalDate.of(year, 1, 1).atStartOfDay();
         LocalDateTime end = LocalDate.of(year + 1, 1, 1).atStartOfDay().minusNanos(1L);
-        long sequence = this.vendorTicketRepository.countByCreatedAtBetween(start, end) + 1L;
+        long sequence = vendorTicketRepository.countByCreatedAtBetween(start, end) + 1L;
         return year + "-" + String.format("%05d", sequence);
     }
 
+    @Transactional(readOnly = true)
+    public boolean validatePONumber(String poNumber) {
+        if (poNumber == null || poNumber.trim().isEmpty()) {
+            return false;
+        }
+        return purchaseOrderService.validatePO(poNumber);
+    }
+
+    private String formatIdr(Number n) {
+        if (n == null) {
+            return "-";
+        }
+        NumberFormat nf = NumberFormat.getInstance(Locale.forLanguageTag("id-ID"));
+        nf.setMaximumFractionDigits(0);
+        nf.setMinimumFractionDigits(0);
+        return "Rp " + nf.format(n);
+    }
+
     private boolean isAdmin(AppUser user) {
-        return user.getRoles().stream().anyMatch(role -> role.getName() != null && role.getName().equalsIgnoreCase("ROLE_ADMIN"));
+        return user.getRoles().stream()
+                .anyMatch(role -> role.getName() != null && role.getName().equalsIgnoreCase("ROLE_ADMIN"));
     }
 
     private String normalize(String value) {
@@ -356,25 +373,42 @@ public class VendorTicketService {
         return value.trim();
     }
 
+    private String mapTicketStatusToInvoiceStatus(TicketStatus status) {
+        if (status == null) {
+            return null;
+        }
+        return switch (status) {
+            case OPEN -> "Pending";
+            case IN_PROGRESS -> "In Progress";
+            case REVISE -> "Revised";
+            case RESOLVED -> "Approved";
+            case CANCEL -> "Rejected";
+            default -> "Pending";
+        };
+    }
+
+    private String resolveAdminEmail() {
+        if (configuredAdminEmail != null && !configuredAdminEmail.isBlank()) {
+            return configuredAdminEmail;
+        }
+        return appUserRepository.findAll().stream()
+                .filter(u -> u.getRoles() != null && u.getRoles().stream()
+                        .anyMatch(r -> r.getName() != null && r.getName().equalsIgnoreCase("ROLE_ADMIN")))
+                .map(AppUser::getEmail)
+                .filter(email -> email != null && !email.isBlank())
+                .findFirst()
+                .orElse(null);
+    }
+
     private TicketStatus parseStatus(String rawStatus) {
-        String normalized = this.normalize(rawStatus);
+        String normalized = normalize(rawStatus);
         if (normalized == null || "ALL".equalsIgnoreCase(normalized)) {
             return null;
         }
         try {
-            return TicketStatus.valueOf((String)normalized.toUpperCase());
-        }
-        catch (IllegalArgumentException ex) {
+            return TicketStatus.valueOf(normalized.toUpperCase());
+        } catch (IllegalArgumentException ex) {
             return null;
         }
     }
-
-    @Transactional(readOnly=true)
-    public boolean validatePONumber(String poNumber) {
-        if (poNumber == null || poNumber.trim().isEmpty()) {
-            return false;
-        }
-        return this.purchaseOrderService.validatePO(poNumber);
-    }
 }
-

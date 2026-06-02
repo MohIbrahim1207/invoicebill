@@ -8,11 +8,8 @@
  *  com.billing.invoicehub.entity.NotificationType
  *  com.billing.invoicehub.repository.AppRoleRepository
  *  com.billing.invoicehub.repository.AppUserRepository
- *  com.resend.Resend
- *  com.resend.services.emails.model.CreateEmailOptions
  *  org.slf4j.Logger
  *  org.slf4j.LoggerFactory
- *  org.springframework.beans.factory.annotation.Value
  *  org.springframework.security.crypto.password.PasswordEncoder
  *  org.springframework.stereotype.Service
  *  org.springframework.transaction.annotation.Transactional
@@ -26,8 +23,6 @@ import com.billing.invoicehub.entity.AppUser;
 import com.billing.invoicehub.entity.NotificationType;
 import com.billing.invoicehub.repository.AppRoleRepository;
 import com.billing.invoicehub.repository.AppUserRepository;
-import com.resend.Resend;
-import com.resend.services.emails.model.CreateEmailOptions;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.Year;
@@ -37,7 +32,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,18 +45,16 @@ public class VendorRegistrationService {
     private final AppRoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final FileStorageService fileStorageService;
-    private final String resendApiKey;
-    private final String adminEmail;
     private final NotificationService notificationService;
+    private final EmailService emailService;
 
-    public VendorRegistrationService(AppUserRepository userRepository, AppRoleRepository roleRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService, NotificationService notificationService, @Value(value="${RESEND_API_KEY:}") String resendApiKey, @Value(value="${app.admin.email:}") String adminEmail) {
+    public VendorRegistrationService(AppUserRepository userRepository, AppRoleRepository roleRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService, NotificationService notificationService, EmailService emailService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileStorageService = fileStorageService;
-        this.resendApiKey = resendApiKey;
-        this.adminEmail = adminEmail;
         this.notificationService = notificationService;
+        this.emailService = emailService;
     }
 
     @Transactional(readOnly=true)
@@ -228,39 +220,15 @@ public class VendorRegistrationService {
     }
 
     private void sendRegistrationEmail(AppUser vendor) {
-        this.sendMail(vendor.getEmail(), "InvoiceHub - Registration Received", String.format("Your registration is under review.%n%nCompany: %s%n%nYou will be notified once verified.", this.nullSafe(vendor.getCompanyName())));
+        this.emailService.sendRegistrationReceivedEmail(vendor.getEmail(), this.nullSafe(vendor.getFullName()), this.nullSafe(vendor.getCompanyName()));
     }
 
     private void sendVerificationEmail(AppUser vendor) {
-        this.sendMail(vendor.getEmail(), "InvoiceHub - Account Verified", String.format("Welcome! Your account has been verified.%n%nYour Vendor Code: %s%n%nYou can now login and submit invoices.", this.nullSafe(vendor.getVendorCode())));
+        this.emailService.sendVendorApprovalEmail(vendor.getEmail(), this.nullSafe(vendor.getFullName()), this.nullSafe(vendor.getVendorCode()));
     }
 
     private void sendRejectionEmail(AppUser vendor, String reason) {
-        this.sendMail(vendor.getEmail(), "InvoiceHub - Registration Rejected", String.format("Your registration was rejected:%n%n%s", reason));
-    }
-
-    private void sendMail(String to, String subject, String body) {
-        if (to == null || to.isBlank()) {
-            log.warn("Skipping email '{}' because recipient address is missing", (Object)subject);
-            return;
-        }
-        if (this.resendApiKey == null || this.resendApiKey.isBlank()) {
-            log.warn("Skipping email '{}' to {} because RESEND_API_KEY is not configured", subject, to);
-            return;
-        }
-        try {
-            CreateEmailOptions params = CreateEmailOptions.builder()
-                .from(RESEND_FROM)
-                .to(to)
-                .subject(subject)
-                .text(body)
-                .build();
-
-            new Resend(this.resendApiKey).emails().send(params);
-        }
-        catch (Exception ex) {
-            log.error("Failed to send email '{}' to {}: {}", new Object[]{subject, to, ex.getMessage(), ex});
-        }
+        this.emailService.sendVendorRejectionEmail(vendor.getEmail(), this.nullSafe(vendor.getFullName()), reason);
     }
 
     private boolean isBlank(String value) {

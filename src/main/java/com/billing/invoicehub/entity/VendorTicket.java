@@ -36,8 +36,6 @@ public class VendorTicket {
     private String invoiceFileName;
     private String invoiceFileUrl;
 
-    private String documentUrl;
-    private String documentPublicId;
 
     private String supportingDocumentName;
     private String supportingDocumentUrl;
@@ -90,11 +88,6 @@ public class VendorTicket {
     public String getInvoiceFileUrl() { return invoiceFileUrl; }
     public void setInvoiceFileUrl(String invoiceFileUrl) { this.invoiceFileUrl = invoiceFileUrl; }
 
-    public String getDocumentUrl() { return documentUrl; }
-    public void setDocumentUrl(String documentUrl) { this.documentUrl = documentUrl; }
-
-    public String getDocumentPublicId() { return documentPublicId; }
-    public void setDocumentPublicId(String documentPublicId) { this.documentPublicId = documentPublicId; }
 
     public String getSupportingDocumentName() { return supportingDocumentName; }
     public void setSupportingDocumentName(String supportingDocumentName) {

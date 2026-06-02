@@ -21,12 +21,15 @@ package com.billing.invoicehub.controller;
 import com.billing.invoicehub.config.RoleBasedAuthenticationValidator;
 import com.billing.invoicehub.dto.VendorRegistrationForm;
 import com.billing.invoicehub.service.VendorRegistrationService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -61,15 +64,21 @@ public class AuthController {
     }
 
     @GetMapping(value={"/signup", "/register"})
-    public String signup(Authentication authentication) {
+    public String signup(Authentication authentication, Model model) {
         if (this.isAuthenticated(authentication)) {
             return "redirect:/invoice";
         }
+        model.addAttribute("vendorRegistrationForm", new VendorRegistrationForm());
         return "signup";
     }
 
     @PostMapping(value={"/register"})
-    public String registerUser(@ModelAttribute VendorRegistrationForm form, @RequestParam(value="gstDocument", required=false) MultipartFile gstDocument, @RequestParam(value="companyDocument", required=false) MultipartFile companyDocument, @RequestParam(value="supportingDocument", required=false) MultipartFile supportingDocument) {
+    public String registerUser(@Valid @ModelAttribute("vendorRegistrationForm") VendorRegistrationForm form, BindingResult bindingResult, Model model, @RequestParam(value="gstDocument", required=false) MultipartFile gstDocument, @RequestParam(value="companyDocument", required=false) MultipartFile companyDocument, @RequestParam(value="supportingDocument", required=false) MultipartFile supportingDocument) {
+        if (bindingResult.hasErrors()) {
+            log.warn("Registration validation failed for username {} with {} error(s)", form.getUsername(), bindingResult.getErrorCount());
+            model.addAttribute("vendorRegistrationForm", form);
+            return "signup";
+        }
         try {
             log.info("Starting vendor registration for username: {}", form.getUsername());
             this.vendorRegistrationService.registerVendor(form, gstDocument, companyDocument, supportingDocument);

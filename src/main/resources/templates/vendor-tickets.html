@@ -31,7 +31,7 @@
                 <div class="alert alert-success" th:if="${message}" th:text="${message}"></div>
                 <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
 
-                <form method="get" action="/vendor-tickets" class="row g-3 mb-3">
+                <form method="get" action="/vendor/tickets" class="row g-3 mb-3">
                     <div class="col-md-3">
                         <label class="form-label">Ticket No</label>
                         <input type="text" name="ticketNo" class="form-control" th:value="${ticketNo}" placeholder="Enter ticket number">
@@ -102,10 +102,10 @@
                             <td th:text="${ticket.ticketNo}"></td>
                             <td th:text="${ticket.invoiceNo}"></td>
                             <td th:text="${ticket.invoiceDate}"></td>
-                            <td th:text="${#numbers.formatDecimal(ticket.amount, 1, 'COMMA', 2, 'POINT')}"></td>
-                            <td th:text="${#numbers.formatDecimal(ticket.subtotal, 1, 'COMMA', 2, 'POINT')}"></td>
-                            <td th:text="${#numbers.formatDecimal(ticket.tax, 1, 'COMMA', 2, 'POINT')}"></td>
-                            <td th:text="${#numbers.formatDecimal(ticket.total, 1, 'COMMA', 2, 'POINT')}"></td>
+                            <td th:text="${ticket.amount != null ? 'Rp ' + #numbers.formatDecimal(ticket.amount, 1, 'POINT', 0, 'COMMA') : '-'}"></td>
+                            <td th:text="${ticket.subtotal != null ? 'Rp ' + #numbers.formatDecimal(ticket.subtotal, 1, 'POINT', 0, 'COMMA') : '-'}"></td>
+                            <td th:text="${ticket.tax != null ? 'Rp ' + #numbers.formatDecimal(ticket.tax, 1, 'POINT', 0, 'COMMA') : '-'}"></td>
+                            <td th:text="${ticket.total != null ? 'Rp ' + #numbers.formatDecimal(ticket.total, 1, 'POINT', 0, 'COMMA') : '-'}"></td>
                             <td th:text="${ticket.currency}"></td>
                             <td>
                                 <span th:if="${statusName == 'CONFIRM'}"
@@ -118,11 +118,11 @@
                                 <span th:if="${statusName == null}" class="text-muted">-</span>
                             </td>
                             <td>
-                                <a th:href="@{/vendor-tickets/{id}/history(id=${ticket.id})}" class="btn btn-sm btn-outline-primary">View</a>
+                                <a th:href="@{/vendor/tickets/{id}/history(id=${ticket.id})}" class="btn btn-sm btn-outline-primary">View</a>
                             </td>
                             <td>
                                 <form th:if="${statusName != 'CANCEL'}"
-                                      th:action="@{/vendor-tickets/{id}/cancel(id=${ticket.id})}"
+                                      th:action="@{/vendor/tickets/{id}/cancel(id=${ticket.id})}"
                                       method="post"
                                       class="d-inline">
                                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
@@ -142,6 +142,85 @@
                         </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <div id="ticket-history" class="mt-5" th:if="${selectedTicket != null}">
+                    <div class="card portal-card">
+                        <div class="card-body">
+                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+                                <div>
+                                    <h2 class="section-title mb-1">Ticket History</h2>
+                                    <p class="text-muted mb-0"
+                                       th:text="${'Ticket ' + selectedTicket.ticketNo + (selectedTicket.invoiceNo != null ? ' • Invoice ' + selectedTicket.invoiceNo : '')}">
+                                        Ticket history details
+                                    </p>
+                                </div>
+                                <div th:with="selectedStatusName=${selectedTicket.statusRequest != null ? selectedTicket.statusRequest.name() : null}">
+                                    <span th:if="${selectedStatusName == 'CONFIRM'}" class="fw-semibold text-primary">Confirm</span>
+                                    <span th:if="${selectedStatusName == 'CANCEL'}" class="fw-semibold text-secondary">Cancel</span>
+                                    <span th:if="${selectedStatusName != null and selectedStatusName != 'CONFIRM' and selectedStatusName != 'CANCEL'}"
+                                          class="fw-semibold text-dark"
+                                          th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(selectedStatusName, '_', ' ')))}"></span>
+                                    <span th:if="${selectedStatusName == null}" class="text-muted">-</span>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <div class="p-3 rounded bg-light h-100">
+                                        <div class="text-muted small">Ticket No</div>
+                                        <div class="fw-semibold" th:text="${selectedTicket.ticketNo}">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-3 rounded bg-light h-100">
+                                        <div class="text-muted small">Invoice No</div>
+                                        <div class="fw-semibold" th:text="${selectedTicket.invoiceNo != null ? selectedTicket.invoiceNo : '-'}">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-3 rounded bg-light h-100">
+                                        <div class="text-muted small">Amount</div>
+                                        <div class="fw-semibold" th:text="${selectedTicket.total != null ? 'Rp ' + #numbers.formatDecimal(selectedTicket.total, 1, 'POINT', 0, 'COMMA') : '-'}">-</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table align-middle portal-table">
+                                    <thead>
+                                    <tr>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                        <th>Comment</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:if="${history == null or #lists.isEmpty(history)}" class="table-empty-row">
+                                        <td colspan="3">
+                                            <div class="empty-state">
+                                                <i class="bi bi-inbox"></i>
+                                                <p>No history available for this ticket.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${history != null and !#lists.isEmpty(history)}" th:each="record : ${history}" th:with="recordStatus=${record.status != null ? record.status.name() : null}">
+                                        <td>
+                                            <span th:if="${recordStatus == 'CONFIRM'}" class="fw-semibold text-primary">Confirm</span>
+                                            <span th:if="${recordStatus == 'CANCEL'}" class="fw-semibold text-secondary">Cancel</span>
+                                            <span th:if="${recordStatus != null and recordStatus != 'CONFIRM' and recordStatus != 'CANCEL'}"
+                                                  class="fw-semibold text-dark"
+                                                  th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(recordStatus, '_', ' ')))}"></span>
+                                            <span th:if="${recordStatus == null}" class="text-muted">-</span>
+                                        </td>
+                                        <td th:text="${record.changedAt != null ? #temporals.format(record.changedAt, 'MMM dd, yyyy hh:mm a') : '-'}">-</td>
+                                        <td th:text="${record.comment != null ? record.comment : '-'}">-</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

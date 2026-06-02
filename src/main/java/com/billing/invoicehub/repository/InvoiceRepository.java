@@ -14,6 +14,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     List<Invoice> findByClientIdOrderByIdDesc(Long id);
     List<Invoice> findByClient_Owner_IdOrderByIdDesc(Long ownerId);
     List<Invoice> findByClient_IdAndClient_Owner_IdOrderByIdDesc(Long clientId, Long ownerId);
+    Optional<Invoice> findTopByInvoiceNumberAndClient_Owner_IdOrderByIdDesc(String invoiceNumber, Long ownerId);
 
     @Query("SELECT i FROM Invoice i LEFT JOIN FETCH i.client c LEFT JOIN FETCH c.owner ORDER BY i.id DESC")
     List<Invoice> findAllWithClientOrderByIdDesc();

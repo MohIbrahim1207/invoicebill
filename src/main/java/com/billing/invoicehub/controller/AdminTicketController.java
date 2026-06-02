@@ -20,11 +20,9 @@ package com.billing.invoicehub.controller;
 
 import com.billing.invoicehub.entity.TicketStatus;
 import com.billing.invoicehub.entity.VendorTicket;
-import com.billing.invoicehub.entity.VendorTicketHistory;
 import com.billing.invoicehub.service.VendorTicketService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,10 +95,7 @@ public class AdminTicketController {
             return "redirect:/admin/tickets/" + id + "/manage";
         }
         VendorTicket vendorTicket = (VendorTicket)ticket.get();
-        vendorTicket.setStatusRequest(newStatus);
-        this.vendorTicketService.updateTicket(vendorTicket);
-        VendorTicketHistory history = new VendorTicketHistory(vendorTicket, newStatus, LocalDateTime.now(), comment != null ? comment.trim() : "");
-        this.vendorTicketService.addTicketHistory(history);
+        this.vendorTicketService.updateTicketStatusAndNotify(vendorTicket, newStatus, comment);
         redirectAttributes.addFlashAttribute("message", (Object)"Ticket status updated successfully.");
         return "redirect:/admin/tickets/" + id + "/manage";
     }
@@ -117,15 +112,6 @@ public class AdminTicketController {
             documents.put("invoice", createDocumentEntry(
                 "Invoice Document",
                 ticket.getInvoiceFileUrl(),
-                ticket.getInvoiceFileName()
-            ));
-        }
-        
-        // Supporting Document
-        if (ticket.getDocumentUrl() != null && !ticket.getDocumentUrl().isBlank()) {
-            documents.put("supporting", createDocumentEntry(
-                "Supporting Document",
-                ticket.getDocumentUrl(),
                 ticket.getInvoiceFileName()
             ));
         }

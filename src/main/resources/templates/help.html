@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Help & Manual - InvoiceHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/portal.css}">
+    <style>
+        .help-section {
+            margin-bottom: 2rem;
+        }
+
+        .help-section h3 {
+            color: #0f172a;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 1rem;
+        }
+
+        .help-content {
+            line-height: 1.8;
+            color: #374151;
+        }
+
+        .help-step {
+            display: flex;
+            margin-bottom: 1.5rem;
+        }
+
+        .step-number {
+            min-width: 40px;
+            width: 40px;
+            height: 40px;
+            background: #2563eb;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+
+        .step-content p {
+            margin: 0;
+        }
+
+        .faq-item {
+            border-left: 3px solid #2563eb;
+            padding-left: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .faq-question {
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 0.5rem;
+        }
+
+        .faq-answer {
+            color: #4b5563;
+            margin-bottom: 0;
+        }
+
+        .help-header {
+            background: linear-gradient(135deg, #0f172a, #2563eb);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .help-header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .help-header p {
+            margin: 0.5rem 0 0;
+            opacity: 0.9;
+        }
+
+        .toc {
+            background: #f3f4f6;
+            border-left: 4px solid #2563eb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .toc h5 {
+            margin-top: 0;
+            color: #0f172a;
+        }
+
+        .toc a {
+            display: block;
+            padding: 0.5rem 0;
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        .contact-info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .contact-info strong {
+            color: #1e40af;
+        }
+    </style>
+</head>
+
+<body class="portal-bg">
+
+<div th:replace="fragments/layout :: topbar('Help')"></div>
+<div th:replace="fragments/layout :: sidebarMobile('help')"></div>
+
+<div class="portal-shell">
+    <div th:replace="fragments/layout :: sidebar('help')"></div>
+
+    <main class="portal-main">
+        <div class="help-header">
+            <h1><i class="bi bi-question-circle"></i> Help & Manual</h1>
+            <p>Learn how to use InvoiceHub to manage your invoices and tickets efficiently.</p>
+        </div>
+
+        <!-- Table of Contents -->
+        <div class="toc">
+            <h5>Quick Navigation</h5>
+            <a href="#how-to-register">How to Register</a>
+            <a href="#how-to-upload">How to Upload an Invoice</a>
+            <a href="#invoice-approval">How Invoice Approval Works</a>
+            <a href="#read-status">How to Read Your Invoice Status</a>
+            <a href="#contact-admin">How to Contact Admin</a>
+            <a href="#faq">Frequently Asked Questions</a>
+        </div>
+
+        <!-- Section 1: How to Register -->
+        <section id="how-to-register" class="help-section">
+            <h3><i class="bi bi-person-plus"></i> How to Register</h3>
+            <div class="help-content">
+                <p>
+                    If you are a new vendor, you can register on the InvoiceHub platform to start submitting invoices and managing tickets.
+                </p>
+                <div class="help-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <p><strong>Click the Sign Up button</strong> - Visit the InvoiceHub login page and click the "Sign up here" link.</p>
+                    </div>
+                </div>
+                <div class="help-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <p><strong>Fill in your information</strong> - Provide your full name, email, phone number, company name, and create a secure password.</p>
+                    </div>
+                </div>
+                <div class="help-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <p><strong>Upload required documents</strong> - Submit your company logo, GST document, and other supporting documents as required.</p>
+                    </div>
+                </div>
+                <div class="help-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <p><strong>Wait for approval</strong> - Our admin team will review your registration and verify your documents. You will receive an email confirmation once approved.</p>
+                    </div>
+                </div>
+                <div class="help-step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <p><strong>Start using the portal</strong> - Once approved, you can log in and start submitting invoices and managing your tickets.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: How to Upload an Invoice -->
+        <section id="how-to-upload" class="help-section">
+            <h3><i class="bi bi-upload"></i> How to Upload an Invoice</h3>
+            <div class="help-content">
+                <p>
+                    After your registration is approved, you can upload invoices to InvoiceHub. Each invoice submission creates a new ticket for tracking.
+                </p>
+                <div class="help-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <p><strong>Navigate to Billing Intake</strong> - From the sidebar, click "Billing Intake" to access the invoice management page.</p>
+                    </div>
+                </div>
+                <div class="help-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <p><strong>Click New Upload</strong> - Look for the "New Upload" button on the page to start the invoice submission wizard.</p>
+                    </div>
+                </div>
+                <div class="help-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <p><strong>Select a client</strong> - Choose the client (bill-to company) for this invoice from the available list.</p>
+                    </div>
+                </div>
+                <div class="help-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <p><strong>Enter invoice details</strong> - Fill in the invoice number, date, amount, and other relevant information required by the form.</p>
+                    </div>
+                </div>
+                <div class="help-step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <p><strong>Upload documents</strong> - Attach your invoice file, tax documents, proof of delivery, and any other supporting files as required.</p>
+                    </div>
+                </div>
+                <div class="help-step">
+                    <div class="step-number">6</div>
+                    <div class="step-content">
+                        <p><strong>Review and submit</strong> - Review all details and click "Submit" to send your invoice for processing.</p>
+                    </div>
+                </div>
+                <p class="text-muted" style="margin-top: 1rem;">
+                    <strong>Note:</strong> Once submitted, your invoice will be assigned a ticket number and status "Open" and will be reviewed by our admin team.
+                </p>
+            </div>
+        </section>
+
+        <!-- Section 3: How Invoice Approval Works -->
+        <section id="invoice-approval" class="help-section">
+            <h3><i class="bi bi-check-circle"></i> How Invoice Approval Works</h3>
+            <div class="help-content">
+                <p>
+                    Every invoice you submit goes through a review and approval process. Here's how it works:
+                </p>
+                <div class="help-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <p><strong>Submitted/Open</strong> - Your invoice is submitted and waiting for the admin team to review it.</p>
+                    </div>
+                </div>
+                <div class="help-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <p><strong>In Review</strong> - The admin team is actively reviewing your invoice documents and details.</p>
+                    </div>
+                </div>
+                <div class="help-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <p><strong>Decision Made</strong> - The admin may approve, reject, or request revisions to your invoice:</p>
+                    </div>
+                </div>
+                <div style="margin-left: 3rem; margin-top: 1rem;">
+                    <p><strong style="color: #28a745;">✓ Approved:</strong> Your invoice is accepted and processed. You'll receive payment accordingly.</p>
+                    <p><strong style="color: #dc3545;">✗ Rejected:</strong> Your invoice was not approved. Check the rejection reason and resubmit a corrected version.</p>
+                    <p><strong style="color: #ffc107;">⟳ Revised:</strong> Your invoice needs changes. The admin will provide feedback on what needs to be corrected.</p>
+                </div>
+                <p class="text-muted" style="margin-top: 1rem;">
+                    <strong>Tip:</strong> You'll receive an email notification every time your invoice status changes. You can also check the status from the "Billing Intake" page.
+                </p>
+            </div>
+        </section>
+
+        <!-- Section 4: How to Read Your Invoice Status -->
+        <section id="read-status" class="help-section">
+            <h3><i class="bi bi-eye"></i> How to Read Your Invoice Status</h3>
+            <div class="help-content">
+                <p>
+                    Your invoice status is displayed on the "Billing Intake" page. Each invoice shows its current status with a color-coded badge:
+                </p>
+                <div style="margin-top: 1.5rem;">
+                    <p>
+                        <span class="badge bg-warning">Pending</span> - Your invoice has been submitted and is waiting for review.
+                    </p>
+                    <p>
+                        <span class="badge bg-success">Approved</span> - Your invoice has been approved and is in the processing queue.
+                    </p>
+                    <p>
+                        <span class="badge bg-danger">Revised</span> - Your invoice needs corrections. Contact admin or check the feedback.
+                    </p>
+                    <p>
+                        <span class="badge bg-primary">Released</span> - Your invoice has been processed and released for payment.
+                    </p>
+                </div>
+                <p class="text-muted" style="margin-top: 1.5rem;">
+                    <strong>How to get more details:</strong> Click on an invoice entry to view the full invoice detail page, which includes the complete ticket history, status changes, and any comments from the admin.
+                </p>
+            </div>
+        </section>
+
+        <!-- Section 5: How to Contact Admin -->
+        <section id="contact-admin" class="help-section">
+            <h3><i class="bi bi-chat-dots"></i> How to Contact Admin</h3>
+            <div class="help-content">
+                <p>
+                    If you have questions or need support, you can reach our admin team using any of the following methods:
+                </p>
+                <div class="contact-info">
+                    <p>
+                        <strong><i class="bi bi-telephone"></i> Call us:</strong> +1-800-123-4567
+                    </p>
+                    <p style="margin-bottom: 0;">
+                        <strong><i class="bi bi-envelope"></i> Send a message:</strong> Use the <a href="/contact" style="color: #2563eb;">Contact Form</a> on the portal to submit your inquiry.
+                    </p>
+                </div>
+                <p style="margin-top: 1rem; color: #4b5563;">
+                    <strong>Response time:</strong> Our team typically responds to contact form submissions within 24-48 business hours. For urgent matters, please call the helpline.
+                </p>
+            </div>
+        </section>
+
+        <!-- Section 6: FAQ -->
+        <section id="faq" class="help-section">
+            <h3><i class="bi bi-question-circle"></i> Frequently Asked Questions</h3>
+            <div class="help-content">
+
+                <div class="faq-item">
+                    <p class="faq-question">How long does it take to get my registration approved?</p>
+                    <p class="faq-answer">
+                        Typically, vendor registration approval takes 2-5 business days. We review your documents and verify your business information during this time. You'll receive an email notification once your account is approved or if additional information is needed.
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <p class="faq-question">What file formats are supported for document uploads?</p>
+                    <p class="faq-answer">
+                        We support most common file formats including PDF, JPG, PNG, WEBP, DOC, DOCX, and XLS. The maximum file size is typically 25 MB per file. Ensure your documents are clear and legible for quick review.
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <p class="faq-question">Can I edit or delete an invoice after I submit it?</p>
+                    <p class="faq-answer">
+                        You can only delete invoices with "Pending" status. Once an invoice is under review (status changed by admin), it cannot be deleted. If you need to make changes, please contact the admin team or resubmit with corrections.
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <p class="faq-question">What should I do if my invoice is rejected?</p>
+                    <p class="faq-answer">
+                        When an invoice is rejected, check the notification email or the invoice detail page to see the rejection reason. Correct the issues mentioned and resubmit your invoice. If you're unsure about the rejection reason, contact our helpline.
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <p class="faq-question">How do I track the status of my invoices?</p>
+                    <p class="faq-answer">
+                        All your invoices are listed on the "Billing Intake" page with their current status. You can click on any invoice to view detailed information, status history, and admin comments. You'll also receive email notifications whenever an invoice status changes.
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <p class="faq-question">What if I don't receive a notification email for status changes?</p>
+                    <p class="faq-answer">
+                        Check your email spam/junk folder as emails may sometimes get filtered. Make sure the email address in your profile is correct. If you still don't receive emails, you can check the notifications section in the portal from the bell icon in the top navigation.
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <p class="faq-question">Can I view my invoice payment history?</p>
+                    <p class="faq-answer">
+                        Invoice payment information is typically provided through separate communication or reports. For detailed payment history, please contact our admin team or call the helpline.
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <p class="faq-question">What should I include when submitting an invoice?</p>
+                    <p class="faq-answer">
+                        You should include: (1) Your company details, (2) Invoice number and date, (3) Amount in Indonesian Rupiah (IDR), (4) Bill-to client information, (5) Invoice PDF or scanned copy, and (6) Any supporting documents like tax receipts or delivery proof as required.
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <p class="faq-question">How do I change my password or update my profile?</p>
+                    <p class="faq-answer">
+                        Password changes and profile updates are currently managed through the admin team. Please contact the helpline with your request, and our team will assist you.
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <p class="faq-question">What if I have technical issues with the portal?</p>
+                    <p class="faq-answer">
+                        Try clearing your browser cache and cookies, then attempt to access the portal again. If the issue persists, try using a different browser or device. For unresolved technical issues, please contact our support helpline or use the Contact Form.
+                    </p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Back to Billing -->
+        <div style="margin-top: 3rem; text-align: center;">
+            <a href="/invoice" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Back to Billing Intake</a>
+            <a href="/contact" class="btn btn-outline-primary ms-2"><i class="bi bi-chat-dots"></i> Get More Help</a>
+        </div>
+
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
+

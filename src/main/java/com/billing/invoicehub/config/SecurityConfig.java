@@ -41,6 +41,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
 @Configuration
 @EnableWebSecurity
@@ -79,7 +80,16 @@ public class SecurityConfig {
             )
             .exceptionHandling(ex -> ex.accessDeniedPage("/admin/login?denied=true"))
             .csrf(Customizer.withDefaults())
-            .headers(Customizer.withDefaults())
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.sameOrigin())
+                .contentTypeOptions(Customizer.withDefaults())
+                .referrerPolicy(referrer -> referrer
+                    .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN)
+                )
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives("default-src 'self'; img-src 'self' https: data:; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; frame-ancestors 'self';")
+                )
+            )
             .httpBasic(AbstractHttpConfigurer::disable);
         return http.build();
     }
@@ -103,13 +113,13 @@ public class SecurityConfig {
                     "/css/**",
                     "/js/**",
                     "/images/**",
-                    "/webjars/**",
-                    "/api/purchase-orders/**"
+                    "/webjars/**"
                 ).permitAll()
+                .requestMatchers("/api/purchase-orders/**").authenticated()
                 .requestMatchers("/clients", "/dashboard").hasRole("ADMIN")
                 .requestMatchers("/saveClient").hasRole("ADMIN")
                 .requestMatchers("/vendor-tickets", "/vendor-tickets/**").hasRole("USER")
-                .requestMatchers("/invoice", "/saveInvoice").hasAnyRole("USER", "ADMIN")
+                .requestMatchers("/invoice", "/invoice/**", "/saveInvoice", "/updateInvoice", "/deleteInvoice/**").hasRole("USER")
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
@@ -125,7 +135,16 @@ public class SecurityConfig {
             )
             .exceptionHandling(ex -> ex.accessDeniedPage("/login?denied=true"))
             .csrf(Customizer.withDefaults())
-            .headers(Customizer.withDefaults())
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.sameOrigin())
+                .contentTypeOptions(Customizer.withDefaults())
+                .referrerPolicy(referrer -> referrer
+                    .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN)
+                )
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives("default-src 'self'; img-src 'self' https: data:; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; frame-ancestors 'self';")
+                )
+            )
             .httpBasic(AbstractHttpConfigurer::disable);
         return http.build();
     }
