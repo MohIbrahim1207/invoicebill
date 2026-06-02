@@ -2,8 +2,6 @@
 target/
 *.jar
 ### Spring Boot Profiles ###
-application-dev.properties
-application-prod.properties
 
 uploads/
 .mvn/wrapper/maven-wrapper.jar
