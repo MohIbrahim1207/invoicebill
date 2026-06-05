@@ -25,9 +25,9 @@ public class EmailService {
     private final String adminEmail;
 
     public EmailService(JavaMailSender mailSender,
-                        SpringTemplateEngine templateEngine,
-                        @Value("${spring.mail.username}") String fromEmail,
-                        @Value("${app.admin.email:admin@invoicehub.com}") String adminEmail) {
+            SpringTemplateEngine templateEngine,
+            @Value("${spring.mail.username}") String fromEmail,
+            @Value("${app.admin.email:admin@invoicehub.com}") String adminEmail) {
         this.mailSender = mailSender;
         this.templateEngine = templateEngine;
         this.fromEmail = fromEmail;
@@ -97,16 +97,16 @@ public class EmailService {
     }
 
     public void sendTicketSubmittedEmail(String to,
-                                         String vendorName,
-                                         String ticketNo,
-                                         String invoiceNo,
-                                         String invoiceDate,
-                                         String clientName,
-                                         String poNumber,
-                                         String subtotal,
-                                         String tax,
-                                         String total,
-                                         String viewUrl) {
+            String vendorName,
+            String ticketNo,
+            String invoiceNo,
+            String invoiceDate,
+            String clientName,
+            String poNumber,
+            String subtotal,
+            String tax,
+            String total,
+            String viewUrl) {
         String subject = "InvoiceHub - Ticket Submitted: " + safe(ticketNo);
         Context context = new Context(Locale.getDefault());
         context.setVariable("vendorName", safe(vendorName));
@@ -124,10 +124,10 @@ public class EmailService {
     }
 
     public void sendTicketCancelledEmail(String to,
-                                         String vendorName,
-                                         String ticketNo,
-                                         String invoiceNo,
-                                         String reason) {
+            String vendorName,
+            String ticketNo,
+            String invoiceNo,
+            String reason) {
         String subject = "InvoiceHub - Ticket Cancelled: " + safe(ticketNo);
         Context context = new Context(Locale.getDefault());
         context.setVariable("vendorName", safe(vendorName));
@@ -138,7 +138,8 @@ public class EmailService {
         sendHtmlEmail(to, subject, html);
     }
 
-    public void sendInvoiceStatusEmail(String to, String invoiceNumber, String vendorName, String newStatus, String amount, String statusDate, String adminRemarks, String viewUrl) {
+    public void sendInvoiceStatusEmail(String to, String invoiceNumber, String vendorName, String newStatus,
+            String amount, String statusDate, String adminRemarks, String viewUrl) {
         String subject = "InvoiceHub - Invoice Status Updated: " + safe(newStatus);
         Context context = new Context(Locale.getDefault());
         context.setVariable("invoiceNumber", safe(invoiceNumber));

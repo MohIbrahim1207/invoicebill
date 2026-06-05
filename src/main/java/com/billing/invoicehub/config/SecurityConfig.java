@@ -52,7 +52,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider(CustomUserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
+    public AuthenticationProvider authenticationProvider(CustomUserDetailsService userDetailsService,
+            PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
@@ -60,93 +61,88 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Order(value=1)
-    public SecurityFilterChain adminSecurityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider, RoleBasedAuthenticationSuccessHandler successHandler, RoleBasedLogoutSuccessHandler logoutSuccessHandler) throws Exception {
+    @Order(value = 1)
+    public SecurityFilterChain adminSecurityFilterChain(HttpSecurity http,
+            AuthenticationProvider authenticationProvider, RoleBasedAuthenticationSuccessHandler successHandler,
+            RoleBasedLogoutSuccessHandler logoutSuccessHandler) throws Exception {
         http.securityMatcher("/admin/**")
-            .authenticationProvider(authenticationProvider)
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/admin/login", "/error", "/css/**", "/js/**").permitAll()
-                .anyRequest().hasRole("ADMIN")
-            )
-            .formLogin(form -> form
-                .loginPage("/admin/login")
-                .loginProcessingUrl("/admin/login")
-                .successHandler(successHandler)
-                .permitAll()
-            )
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessHandler(logoutSuccessHandler)
-            )
-            .exceptionHandling(ex -> ex.accessDeniedPage("/admin/login?denied=true"))
-            .csrf(Customizer.withDefaults())
-            .headers(headers -> headers
-                .frameOptions(frame -> frame.sameOrigin())
-                .contentTypeOptions(Customizer.withDefaults())
-                .referrerPolicy(referrer -> referrer
-                    .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN)
-                )
-                .contentSecurityPolicy(csp -> csp
-                    .policyDirectives("default-src 'self'; img-src 'self' https: data:; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; frame-ancestors 'self';")
-                )
-            )
-            .httpBasic(AbstractHttpConfigurer::disable);
+                .authenticationProvider(authenticationProvider)
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/admin/login", "/error", "/css/**", "/js/**").permitAll()
+                        .anyRequest().hasRole("ADMIN"))
+                .formLogin(form -> form
+                        .loginPage("/admin/login")
+                        .loginProcessingUrl("/admin/login")
+                        .successHandler(successHandler)
+                        .permitAll())
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessHandler(logoutSuccessHandler))
+                .exceptionHandling(ex -> ex.accessDeniedPage("/admin/login?denied=true"))
+                .csrf(Customizer.withDefaults())
+                .headers(headers -> headers
+                        .frameOptions(frame -> frame.sameOrigin())
+                        .contentTypeOptions(Customizer.withDefaults())
+                        .referrerPolicy(referrer -> referrer
+                                .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN))
+                        .contentSecurityPolicy(csp -> csp
+                                .policyDirectives(
+                                        "default-src 'self'; img-src 'self' https: data:; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; frame-ancestors 'self';")))
+                .httpBasic(AbstractHttpConfigurer::disable);
         return http.build();
     }
 
     @Bean
-    @Order(value=2)
-    public SecurityFilterChain appSecurityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider, RoleBasedAuthenticationSuccessHandler successHandler, RoleBasedAuthenticationFailureHandler failureHandler, RoleBasedLogoutSuccessHandler logoutSuccessHandler) throws Exception {
+    @Order(value = 2)
+    public SecurityFilterChain appSecurityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider,
+            RoleBasedAuthenticationSuccessHandler successHandler, RoleBasedAuthenticationFailureHandler failureHandler,
+            RoleBasedLogoutSuccessHandler logoutSuccessHandler) throws Exception {
         http.authenticationProvider(authenticationProvider)
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/",
-                    "/login",
-                    "/signup",
-                    "/register",
-                    "/forgot-password",
-                    "/verify-otp",
-                    "/reset-password",
-                    "/faq",
-                    "/contact",
-                    "/error",
-                    "/css/**",
-                    "/js/**",
-                    "/images/**",
-                    "/webjars/**"
-                ).permitAll()
-                .requestMatchers("/api/purchase-orders/**").authenticated()
-                .requestMatchers("/clients", "/dashboard").hasRole("ADMIN")
-                .requestMatchers("/saveClient").hasRole("ADMIN")
-                .requestMatchers("/vendor-tickets", "/vendor-tickets/**").hasRole("USER")
-                .requestMatchers("/invoice", "/invoice/**", "/saveInvoice", "/updateInvoice", "/deleteInvoice/**").hasRole("USER")
-                .anyRequest().authenticated()
-            )
-            .formLogin(form -> form
-                .loginPage("/login")
-                .loginProcessingUrl("/login")
-                .successHandler(successHandler)
-                .failureHandler(failureHandler)
-                .permitAll()
-            )
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessHandler(logoutSuccessHandler)
-            )
-            .exceptionHandling(ex -> ex.accessDeniedPage("/login?denied=true"))
-            .csrf(Customizer.withDefaults())
-            .headers(headers -> headers
-                .frameOptions(frame -> frame.sameOrigin())
-                .contentTypeOptions(Customizer.withDefaults())
-                .referrerPolicy(referrer -> referrer
-                    .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN)
-                )
-                .contentSecurityPolicy(csp -> csp
-                    .policyDirectives("default-src 'self'; img-src 'self' https: data:; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; frame-ancestors 'self';")
-                )
-            )
-            .httpBasic(AbstractHttpConfigurer::disable);
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/",
+                                "/login",
+                                "/signup",
+                                "/register",
+                                "/forgot-password",
+                                "/verify-otp",
+                                "/reset-password",
+                                "/faq",
+                                "/contact",
+                                "/error",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/webjars/**")
+                        .permitAll()
+                        .requestMatchers("/api/purchase-orders/**").authenticated()
+                        .requestMatchers("/clients", "/dashboard").hasRole("ADMIN")
+                        .requestMatchers("/saveClient").hasRole("ADMIN")
+                        .requestMatchers("/vendor-tickets", "/vendor-tickets/**").hasRole("USER")
+                        .requestMatchers("/invoice", "/invoice/**", "/saveInvoice", "/updateInvoice",
+                                "/deleteInvoice/**")
+                        .hasRole("USER")
+                        .anyRequest().authenticated())
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .loginProcessingUrl("/login")
+                        .successHandler(successHandler)
+                        .failureHandler(failureHandler)
+                        .permitAll())
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessHandler(logoutSuccessHandler))
+                .exceptionHandling(ex -> ex.accessDeniedPage("/login?denied=true"))
+                .csrf(Customizer.withDefaults())
+                .headers(headers -> headers
+                        .frameOptions(frame -> frame.sameOrigin())
+                        .contentTypeOptions(Customizer.withDefaults())
+                        .referrerPolicy(referrer -> referrer
+                                .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN))
+                        .contentSecurityPolicy(csp -> csp
+                                .policyDirectives(
+                                        "default-src 'self'; img-src 'self' https: data:; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; frame-ancestors 'self';")))
+                .httpBasic(AbstractHttpConfigurer::disable);
         return http.build();
     }
 }
-
