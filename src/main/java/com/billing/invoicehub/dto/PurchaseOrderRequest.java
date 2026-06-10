@@ -3,19 +3,23 @@
  * 
  * Could not load the following classes:
  *  com.billing.invoicehub.dto.PurchaseOrderRequest
- *  jakarta.validation.constraints.DecimalMin
  *  jakarta.validation.constraints.FutureOrPresent
  *  jakarta.validation.constraints.NotBlank
+ *  jakarta.validation.Valid
+ *  jakarta.validation.constraints.NotEmpty
  *  jakarta.validation.constraints.NotNull
  */
 package com.billing.invoicehub.dto;
 
-import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class PurchaseOrderRequest {
     @NotBlank(message="PO number is required")
@@ -23,9 +27,10 @@ public class PurchaseOrderRequest {
     @NotNull(message="Vendor is required")
     private @NotNull(message="Vendor is required") Long vendorId;
     private Long clientId;
-    @NotNull(message="Amount is required")
-    @DecimalMin(value="0.01", inclusive=true, message="Amount must be greater than zero")
-    private @NotNull(message="Amount is required") @DecimalMin(value="0.01", inclusive=true, message="Amount must be greater than zero") BigDecimal poAmount;
+    private BigDecimal poAmount;
+    @Valid
+    @NotEmpty(message = "At least one item is required")
+    private List<PurchaseOrderItemRequest> items = new ArrayList<>();
     @NotNull(message="Due date is required")
     @FutureOrPresent(message="Due date cannot be in the past")
     private @NotNull(message="Due date is required") @FutureOrPresent(message="Due date cannot be in the past") LocalDate dueDate;
@@ -96,5 +101,12 @@ public class PurchaseOrderRequest {
     public void setPoStatus(String poStatus) {
         this.poStatus = poStatus;
     }
-}
 
+    public List<PurchaseOrderItemRequest> getItems() {
+        return this.items;
+    }
+
+    public void setItems(List<PurchaseOrderItemRequest> items) {
+        this.items = items;
+    }
+}

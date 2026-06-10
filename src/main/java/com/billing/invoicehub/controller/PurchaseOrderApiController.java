@@ -53,7 +53,11 @@ public class PurchaseOrderApiController {
             response.put("found", true);
             response.put("poNumber", ((PurchaseOrder)po.get()).getPoNumber());
             response.put("amount", ((PurchaseOrder)po.get()).getAmount());
-            response.put("vendor", ((PurchaseOrder)po.get()).getVendor().getUsername());
+            response.put("totalAmount", ((PurchaseOrder)po.get()).getTotalAmount());
+            response.put("paidAmount", ((PurchaseOrder)po.get()).getPaidAmount());
+            response.put("balanceAmount", ((PurchaseOrder)po.get()).getBalanceAmount());
+            response.put("paymentStatus", ((PurchaseOrder)po.get()).getPaymentStatus());
+            response.put("vendor", ((PurchaseOrder)po.get()).getVendor() != null ? ((PurchaseOrder)po.get()).getVendor().getUsername() : null);
             response.put("active", ((PurchaseOrder)po.get()).isActive());
             response.put("createdAt", ((PurchaseOrder)po.get()).getCreatedAt());
         } else {
@@ -63,4 +67,3 @@ public class PurchaseOrderApiController {
         return ResponseEntity.ok(response);
     }
 }
-

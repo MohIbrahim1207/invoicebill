@@ -20,7 +20,7 @@ extends JpaRepository<PurchaseOrder, Long> {
 
     public Optional<PurchaseOrder> findByPoNumberAndVendor_Id(String var1, Long var2);
 
-    @EntityGraph(attributePaths={"vendor"})
+    @EntityGraph(attributePaths={"vendor", "items"})
     public Optional<PurchaseOrder> findWithVendorById(Long var1);
 
     public List<PurchaseOrder> findByVendor_Id(Long var1);
@@ -32,4 +32,3 @@ extends JpaRepository<PurchaseOrder, Long> {
     @EntityGraph(attributePaths={"vendor"})
     public List<PurchaseOrder> findWithVendorByActiveOrderByCreatedAtDesc(boolean var1);
 }
-

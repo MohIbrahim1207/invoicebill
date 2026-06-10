@@ -41,36 +41,45 @@
 
         <div class="card portal-card">
             <div class="card-body">
-                <table class="table portal-table align-middle">
-                    <thead>
-                        <tr>
-                            <th>PO Number</th>
-                            <th>Vendor</th>
-                            <th>PO Amount</th>
-                            <th>Created At</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="po : ${purchaseOrders}">
-                            <td><strong th:text="${po.poNumber}"></strong></td>
-                            <td th:text="${po.vendor != null ? po.vendor.username : 'N/A'}"></td>
-                            <td th:text="${#numbers.formatDecimal(po.poAmount, 1, 2)}"></td>
-                            <td th:text="${#temporals.format(po.createdAt, 'dd MMM yyyy HH:mm')}"></td>
-                            <td>
-                                <span th:if="${po.active}" class="badge bg-success">Active</span>
-                                <span th:if="${!po.active}" class="badge bg-secondary">Inactive</span>
-                            </td>
-                            <td>
-                                <a class="btn btn-sm btn-outline-secondary" th:href="@{/admin/purchase-orders/{id}(id=${po.id})}">View</a>
-                                <form th:if="${po.active}" th:action="@{/admin/purchase-orders/{id}/deactivate(id=${po.id})}" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Deactivate this PO?')">Deactivate</button>
-                                </form>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table portal-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>PO Number</th>
+                                <th>Vendor</th>
+                                <th>Total Amount</th>
+                                <th>Paid Amount</th>
+                                <th>Balance Amount</th>
+                                <th>Payment Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="po : ${purchaseOrders}">
+                                <td><strong th:text="${po.poNumber}"></strong></td>
+                                <td th:text="${po.vendor != null ? po.vendor.username : 'N/A'}"></td>
+                                <td th:text="${#numbers.formatDecimal(po.totalAmount, 1, 2)}"></td>
+                                <td th:text="${#numbers.formatDecimal(po.paidAmount, 1, 2)}"></td>
+                                <td th:text="${#numbers.formatDecimal(po.balanceAmount, 1, 2)}"></td>
+                                <td>
+                                    <span th:text="${po.paymentStatus}">
+                                        <span th:case="PAID" class="badge bg-success">Paid</span>
+                                        <span th:case="PARTIALLY_PAID" class="badge bg-warning text-dark">Partially Paid</span>
+                                        <span th:case="*" class="badge bg-secondary">Unpaid</span>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <a class="btn btn-sm btn-outline-secondary" th:href="@{/admin/purchase-orders/{id}(id=${po.id})}">View</a>
+                                        <a th:if="${po.balanceAmount > 0}" class="btn btn-sm btn-outline-primary" th:href="@{/admin/purchase-orders/{id}/payments/new(id=${po.id})}">
+                                            Record Payment
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
                 <div th:if="${purchaseOrders.isEmpty()}" class="text-center text-muted py-5">
                     <p>No purchase orders found. <a href="/admin/purchase-orders/create">Create one</a></p>
                 </div>
@@ -81,4 +90,3 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

@@ -15,16 +15,21 @@
  */
 package com.billing.invoicehub.service;
 
+import com.billing.invoicehub.dto.PurchaseOrderItemRequest;
 import com.billing.invoicehub.dto.PurchaseOrderRequest;
 import com.billing.invoicehub.entity.AppUser;
 import com.billing.invoicehub.entity.Client;
 import com.billing.invoicehub.entity.PurchaseOrder;
+import com.billing.invoicehub.entity.PurchaseOrderItem;
+import com.billing.invoicehub.entity.PurchaseOrderPaymentStatus;
 import com.billing.invoicehub.repository.AppUserRepository;
 import com.billing.invoicehub.repository.ClientRepository;
 import com.billing.invoicehub.repository.PurchaseOrderRepository;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -72,10 +77,11 @@ public class PurchaseOrderService {
         if (poNumber == null || poNumber.isEmpty()) {
             throw new IllegalArgumentException("PO number is required");
         }
-        BigDecimal poAmount = request.getPoAmount();
-        if (poAmount == null || poAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Amount must be greater than zero");
-        }
+        List<PurchaseOrderItem> items = this.buildItems(request.getItems());
+        BigDecimal poAmount = items.stream()
+            .map(PurchaseOrderItem::getLineTotal)
+            .reduce(BigDecimal.ZERO, BigDecimal::add)
+            .setScale(2, RoundingMode.HALF_UP);
         LocalDate dueDate = request.getDueDate();
         if (dueDate == null) {
             throw new IllegalArgumentException("Due date is required");
@@ -93,6 +99,9 @@ public class PurchaseOrderService {
         po.setAmountInvoiced(poAmount);
         po.setPoAmount(poAmount);
         po.setAmount(poAmount);
+        po.setPaidAmount(BigDecimal.ZERO);
+        po.setBalanceAmount(poAmount);
+        po.setPaymentStatus(PurchaseOrderPaymentStatus.UNPAID);
         if (request.getClientId() != null) {
             Client client = this.clientRepository.findById(request.getClientId()).orElseThrow(() -> new IllegalArgumentException("Client not found"));
             po.setClient(client);
@@ -103,6 +112,7 @@ public class PurchaseOrderService {
         po.setDescription(request.getDescription());
         po.setCreatedAt(LocalDateTime.now());
         po.setActive(true);
+        po.setItems(items);
         return this.poRepository.save(po);
     }
 
@@ -124,5 +134,44 @@ public class PurchaseOrderService {
         po.setActive(false);
         this.poRepository.save(po);
     }
-}
 
+    private List<PurchaseOrderItem> buildItems(List<PurchaseOrderItemRequest> itemRequests) {
+        if (itemRequests == null || itemRequests.isEmpty()) {
+            throw new IllegalArgumentException("At least one purchase order item is required");
+        }
+
+        List<PurchaseOrderItem> items = new ArrayList<>();
+        for (PurchaseOrderItemRequest itemRequest : itemRequests) {
+            if (itemRequest == null) {
+                continue;
+            }
+
+            String itemName = itemRequest.getItemName() == null ? null : itemRequest.getItemName().trim();
+            BigDecimal quantity = itemRequest.getQuantity();
+            BigDecimal unitPrice = itemRequest.getUnitPrice();
+
+            if (itemName == null || itemName.isEmpty()) {
+                throw new IllegalArgumentException("Item name is required");
+            }
+            if (quantity == null || quantity.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("Quantity must be greater than zero");
+            }
+            if (unitPrice == null || unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("Unit price must be greater than zero");
+            }
+
+            PurchaseOrderItem item = new PurchaseOrderItem();
+            item.setItemName(itemName);
+            item.setQuantity(quantity.setScale(2, RoundingMode.HALF_UP));
+            item.setUnitPrice(unitPrice.setScale(2, RoundingMode.HALF_UP));
+            item.setLineTotal(quantity.multiply(unitPrice).setScale(2, RoundingMode.HALF_UP));
+            items.add(item);
+        }
+
+        if (items.isEmpty()) {
+            throw new IllegalArgumentException("At least one purchase order item is required");
+        }
+
+        return items;
+    }
+}

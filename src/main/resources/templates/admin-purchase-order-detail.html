@@ -25,49 +25,170 @@
                     </ol>
                 </nav>
             </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-outline-primary" th:href="@{/admin/purchase-orders/{id}/pdf(id=${purchaseOrder.id})}">
+                    <i class="bi bi-file-earmark-pdf"></i> Download PDF
+                </a>
+                <a th:if="${purchaseOrder.balanceAmount > 0}" class="btn btn-primary" th:href="@{/admin/purchase-orders/{id}/payments/new(id=${purchaseOrder.id})}">
+                    <i class="bi bi-credit-card"></i> Record Payment
+                </a>
+                <a href="/admin/purchase-orders" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <div th:if="${message}" class="alert alert-success alert-dismissible fade show">
+            <span th:text="${message}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
 
         <div class="row g-3">
             <div class="col-lg-8">
-                <div class="card portal-card">
+                <div class="card portal-card mb-3">
                     <div class="card-body">
-                        <h5 class="card-title mb-4">Purchase Order Details</h5>
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
+                            <div>
+                                <h5 class="card-title mb-1">Purchase Order Details</h5>
+                                <p class="text-muted mb-0">Payment tracking summary and history.</p>
+                            </div>
+                            <div>
+                                <span th:switch="${purchaseOrder.paymentStatus}">
+                                    <span th:case="PAID" class="badge bg-success">Paid</span>
+                                    <span th:case="PARTIALLY_PAID" class="badge bg-warning text-dark">Partially Paid</span>
+                                    <span th:case="*" class="badge bg-secondary">Unpaid</span>
+                                </span>
+                            </div>
+                        </div>
 
-                        <div class="row mb-3">
+                        <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <p class="text-muted small text-uppercase">PO Number</p>
-                                <p class="fw-bold" th:text="${purchaseOrder.poNumber}"></p>
+                                <div class="border rounded-3 p-3 h-100 bg-light">
+                                    <p class="text-muted small text-uppercase mb-1">Total Amount</p>
+                                    <p class="fs-5 fw-semibold mb-0" th:text="${#numbers.formatDecimal(purchaseOrder.totalAmount, 1, 2)}"></p>
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                <p class="text-muted small text-uppercase">Status</p>
-                                <p>
+                                <div class="border rounded-3 p-3 h-100 bg-light">
+                                    <p class="text-muted small text-uppercase mb-1">Paid Amount</p>
+                                    <p class="fs-5 fw-semibold mb-0" th:text="${#numbers.formatDecimal(purchaseOrder.paidAmount, 1, 2)}"></p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="border rounded-3 p-3 h-100 bg-light">
+                                    <p class="text-muted small text-uppercase mb-1">Balance Amount</p>
+                                    <p class="fs-5 fw-semibold mb-0" th:text="${#numbers.formatDecimal(purchaseOrder.balanceAmount, 1, 2)}"></p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="border rounded-3 p-3 h-100 bg-light">
+                                    <p class="text-muted small text-uppercase mb-1">Payment Status</p>
+                                    <p class="fs-5 fw-semibold mb-0" th:text="${purchaseOrder.paymentStatus}"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <p class="text-muted small text-uppercase mb-1">Vendor</p>
+                                <p class="fw-bold mb-0" th:text="${purchaseOrder.vendor != null ? purchaseOrder.vendor.username : 'N/A'}"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="text-muted small text-uppercase mb-1">Status</p>
+                                <p class="mb-0">
                                     <span th:if="${purchaseOrder.active}" class="badge bg-success">Active</span>
                                     <span th:if="${!purchaseOrder.active}" class="badge bg-secondary">Inactive</span>
                                 </p>
                             </div>
-                        </div>
-
-                        <div class="row mb-3">
                             <div class="col-md-6">
-                                <p class="text-muted small text-uppercase">Vendor</p>
-                                <p class="fw-bold" th:text="${purchaseOrder.vendor != null ? purchaseOrder.vendor.username : 'N/A'}"></p>
+                                <p class="text-muted small text-uppercase mb-1">Created At</p>
+                                <p class="fw-bold mb-0" th:text="${#temporals.format(purchaseOrder.createdAt, 'dd MMM yyyy HH:mm')}"></p>
                             </div>
                             <div class="col-md-6">
-                                <p class="text-muted small text-uppercase">PO Amount</p>
-                                <p class="fw-bold" th:text="${#numbers.formatDecimal(purchaseOrder.poAmount, 1, 2)}"></p>
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <p class="text-muted small text-uppercase">Created At</p>
-                                <p class="fw-bold" th:text="${#temporals.format(purchaseOrder.createdAt, 'dd MMM yyyy HH:mm')}"></p>
+                                <p class="text-muted small text-uppercase mb-1">Due Date</p>
+                                <p class="fw-bold mb-0" th:text="${purchaseOrder.dueDate != null ? #temporals.format(purchaseOrder.dueDate, 'dd MMM yyyy') : 'N/A'}"></p>
                             </div>
                         </div>
 
                         <div th:if="${purchaseOrder.description}" class="mb-3">
-                            <p class="text-muted small text-uppercase">Description</p>
-                            <p th:text="${purchaseOrder.description}"></p>
+                            <p class="text-muted small text-uppercase mb-1">Description</p>
+                            <p class="mb-0" th:text="${purchaseOrder.description}"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card portal-card">
+                    <div class="card-body">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+                            <div>
+                                <h5 class="card-title mb-1">Line Items</h5>
+                                <p class="text-muted mb-0">Purchase order items and calculated totals.</p>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive mb-4">
+                            <table class="table portal-table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Sl No</th>
+                                        <th>Item Name</th>
+                                        <th>Quantity</th>
+                                        <th>Unit Price</th>
+                                        <th>Line Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="item, itemStat : ${purchaseOrder.items}">
+                                        <td th:text="${itemStat.count}"></td>
+                                        <td th:text="${item.itemName}"></td>
+                                        <td th:text="${#numbers.formatDecimal(item.quantity, 1, 2)}"></td>
+                                        <td th:text="${#numbers.formatDecimal(item.unitPrice, 1, 2)}"></td>
+                                        <td th:text="${#numbers.formatDecimal(item.lineTotal, 1, 2)}"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div th:if="${purchaseOrder.items == null or purchaseOrder.items.isEmpty()}" class="text-center text-muted py-4 mb-4">
+                            <p class="mb-0">No line items recorded for this purchase order.</p>
+                        </div>
+
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+                            <div>
+                                <h5 class="card-title mb-1">Payment History</h5>
+                                <p class="text-muted mb-0">All recorded payments for this purchase order.</p>
+                            </div>
+                            <a th:if="${purchaseOrder.balanceAmount > 0}" class="btn btn-outline-primary" th:href="@{/admin/purchase-orders/{id}/payments/new(id=${purchaseOrder.id})}">
+                                <i class="bi bi-plus-circle"></i> Record Payment
+                            </a>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table portal-table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Amount</th>
+                                        <th>Remarks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="payment : ${paymentHistory}">
+                                        <td th:text="${#temporals.format(payment.paymentDate, 'dd MMM yyyy')}"></td>
+                                        <td th:text="${#numbers.formatDecimal(payment.amount, 1, 2)}"></td>
+                                        <td th:text="${payment.remarks != null ? payment.remarks : '-'}"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div th:if="${paymentHistory == null or paymentHistory.isEmpty()}" class="text-center text-muted py-5">
+                            <p class="mb-0">No payments recorded yet.</p>
                         </div>
                     </div>
                 </div>
@@ -79,6 +200,12 @@
                         <h5 class="card-title mb-3">Actions</h5>
                         <a href="/admin/purchase-orders" class="btn btn-outline-secondary w-100 mb-2">
                             <i class="bi bi-arrow-left"></i> Back to List
+                        </a>
+                        <a class="btn btn-outline-primary w-100 mb-2" th:href="@{/admin/purchase-orders/{id}/pdf(id=${purchaseOrder.id})}">
+                            <i class="bi bi-file-earmark-pdf"></i> Download PDF
+                        </a>
+                        <a th:if="${purchaseOrder.balanceAmount > 0}" class="btn btn-primary w-100 mb-2" th:href="@{/admin/purchase-orders/{id}/payments/new(id=${purchaseOrder.id})}">
+                            <i class="bi bi-credit-card"></i> Record Payment
                         </a>
                         <form th:if="${purchaseOrder.active}" th:action="@{/admin/purchase-orders/{id}/deactivate(id=${purchaseOrder.id})}" method="post">
                             <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Deactivate this PO?')">
@@ -95,4 +222,3 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

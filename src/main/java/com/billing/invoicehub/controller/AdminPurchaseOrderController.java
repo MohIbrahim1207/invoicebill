@@ -21,8 +21,12 @@
 package com.billing.invoicehub.controller;
 
 import com.billing.invoicehub.dto.PurchaseOrderRequest;
+import com.billing.invoicehub.dto.PurchaseOrderItemRequest;
+import com.billing.invoicehub.entity.PurchaseOrder;
+import com.billing.invoicehub.service.PurchaseOrderPaymentService;
 import com.billing.invoicehub.repository.AppUserRepository;
 import com.billing.invoicehub.repository.ClientRepository;
+import com.billing.invoicehub.service.PurchaseOrderPdfService;
 import com.billing.invoicehub.service.PurchaseOrderService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -30,6 +34,9 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -45,11 +52,15 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class AdminPurchaseOrderController {
     private static final Logger log = LoggerFactory.getLogger(AdminPurchaseOrderController.class);
     private final PurchaseOrderService poService;
+    private final PurchaseOrderPaymentService paymentService;
+    private final PurchaseOrderPdfService pdfService;
     private final AppUserRepository userRepository;
     private final ClientRepository clientRepository;
 
-    public AdminPurchaseOrderController(PurchaseOrderService poService, AppUserRepository userRepository, ClientRepository clientRepository) {
+    public AdminPurchaseOrderController(PurchaseOrderService poService, PurchaseOrderPaymentService paymentService, PurchaseOrderPdfService pdfService, AppUserRepository userRepository, ClientRepository clientRepository) {
         this.poService = poService;
+        this.paymentService = paymentService;
+        this.pdfService = pdfService;
         this.userRepository = userRepository;
         this.clientRepository = clientRepository;
     }
@@ -99,7 +110,22 @@ public class AdminPurchaseOrderController {
             return "redirect:/admin/purchase-orders";
         }
         model.addAttribute("purchaseOrder", po.get());
+        model.addAttribute("paymentHistory", this.paymentService.listByPurchaseOrderId(id));
         return "admin-purchase-order-detail";
+    }
+
+    @GetMapping(value={"/{id}/pdf"})
+    public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id) {
+        Optional<PurchaseOrder> po = this.poService.getPOById(id);
+        if (po.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        byte[] pdf = this.pdfService.generatePurchaseOrderPdf(po.get());
+        String filename = "purchase-order-" + sanitizeFilename(po.get().getPoNumber()) + ".pdf";
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .contentType(MediaType.APPLICATION_PDF)
+            .body(pdf);
     }
 
     @PostMapping(value={"/{id}/deactivate"})
@@ -116,6 +142,9 @@ public class AdminPurchaseOrderController {
     }
 
     private void populateCreateForm(Model model, PurchaseOrderRequest request) {
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            request.setItems(List.of(new PurchaseOrderItemRequest()));
+        }
         List vendors = this.userRepository.findByRoles_NameOrderByIdDesc("ROLE_USER");
         List clients = this.clientRepository.findAll();
         model.addAttribute("vendors", (Object)vendors);
@@ -123,5 +152,11 @@ public class AdminPurchaseOrderController {
         model.addAttribute("purchaseOrderRequest", (Object)request);
         model.addAttribute("minDueDate", (Object)LocalDate.now().toString());
     }
-}
 
+    private String sanitizeFilename(String value) {
+        if (value == null || value.isBlank()) {
+            return "document";
+        }
+        return value.trim().replaceAll("[^a-zA-Z0-9._-]", "-");
+    }
+}

@@ -8,6 +8,7 @@
 package com.billing.invoicehub.dto;
 
 import com.billing.invoicehub.entity.PurchaseOrder;
+import com.billing.invoicehub.entity.PurchaseOrderPaymentStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,6 +20,10 @@ public class PurchaseOrderDTO {
     private String vendorUsername;
     private BigDecimal amountInvoiced;
     private BigDecimal poAmount;
+    private BigDecimal totalAmount;
+    private BigDecimal paidAmount;
+    private BigDecimal balanceAmount;
+    private PurchaseOrderPaymentStatus paymentStatus;
     private String currency;
     private LocalDate dueDate;
     private String description;
@@ -35,6 +40,10 @@ public class PurchaseOrderDTO {
         }
         dto.setAmountInvoiced(purchaseOrder.getAmountInvoiced());
         dto.setPoAmount(purchaseOrder.getPoAmount());
+        dto.setTotalAmount(purchaseOrder.getTotalAmount());
+        dto.setPaidAmount(purchaseOrder.getPaidAmount());
+        dto.setBalanceAmount(purchaseOrder.getBalanceAmount());
+        dto.setPaymentStatus(purchaseOrder.getPaymentStatus());
         dto.setCurrency(purchaseOrder.getCurrency());
         dto.setDueDate(purchaseOrder.getDueDate());
         dto.setDescription(purchaseOrder.getDescription());
@@ -91,6 +100,38 @@ public class PurchaseOrderDTO {
         this.poAmount = poAmount;
     }
 
+    public BigDecimal getTotalAmount() {
+        return this.totalAmount;
+    }
+
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
+    }
+
+    public BigDecimal getPaidAmount() {
+        return this.paidAmount;
+    }
+
+    public void setPaidAmount(BigDecimal paidAmount) {
+        this.paidAmount = paidAmount;
+    }
+
+    public BigDecimal getBalanceAmount() {
+        return this.balanceAmount;
+    }
+
+    public void setBalanceAmount(BigDecimal balanceAmount) {
+        this.balanceAmount = balanceAmount;
+    }
+
+    public PurchaseOrderPaymentStatus getPaymentStatus() {
+        return this.paymentStatus;
+    }
+
+    public void setPaymentStatus(PurchaseOrderPaymentStatus paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+
     public String getCurrency() {
         return this.currency;
     }
@@ -131,4 +172,3 @@ public class PurchaseOrderDTO {
         this.active = active;
     }
 }
-
