@@ -1,31 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.billing.invoicehub.config.RoleBasedAuthenticationFailureHandler
- *  com.billing.invoicehub.config.RoleBasedAuthenticationSuccessHandler
- *  com.billing.invoicehub.config.RoleBasedLogoutSuccessHandler
- *  com.billing.invoicehub.config.SecurityConfig
- *  com.billing.invoicehub.service.CustomUserDetailsService
- *  org.springframework.context.annotation.Bean
- *  org.springframework.context.annotation.Configuration
- *  org.springframework.core.annotation.Order
- *  org.springframework.security.authentication.AuthenticationProvider
- *  org.springframework.security.authentication.dao.DaoAuthenticationProvider
- *  org.springframework.security.config.Customizer
- *  org.springframework.security.config.annotation.web.builders.HttpSecurity
- *  org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
- *  org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer
- *  org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer$AuthorizedUrl
- *  org.springframework.security.config.annotation.web.configurers.FormLoginConfigurer
- *  org.springframework.security.core.userdetails.UserDetailsService
- *  org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
- *  org.springframework.security.crypto.password.PasswordEncoder
- *  org.springframework.security.web.SecurityFilterChain
- *  org.springframework.security.web.authentication.AuthenticationFailureHandler
- *  org.springframework.security.web.authentication.AuthenticationSuccessHandler
- *  org.springframework.security.web.authentication.logout.LogoutSuccessHandler
- */
 package com.billing.invoicehub.config;
 
 import com.billing.invoicehub.service.CustomUserDetailsService;
@@ -46,6 +18,7 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -53,7 +26,7 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider(CustomUserDetailsService userDetailsService,
-            PasswordEncoder passwordEncoder) {
+                                                         PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
@@ -63,12 +36,12 @@ public class SecurityConfig {
     @Bean
     @Order(value = 1)
     public SecurityFilterChain adminSecurityFilterChain(HttpSecurity http,
-            AuthenticationProvider authenticationProvider, RoleBasedAuthenticationSuccessHandler successHandler,
-            RoleBasedLogoutSuccessHandler logoutSuccessHandler) throws Exception {
+                                                        AuthenticationProvider authenticationProvider, RoleBasedAuthenticationSuccessHandler successHandler,
+                                                        RoleBasedLogoutSuccessHandler logoutSuccessHandler) throws Exception {
         http.securityMatcher("/admin/**")
                 .authenticationProvider(authenticationProvider)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/admin/login", "/error", "/css/**", "/js/**").permitAll()
+                        .requestMatchers("/admin/login", "/error", "/css/**", "/js/**", "/favicon.ico").permitAll()
                         .anyRequest().hasRole("ADMIN"))
                 .formLogin(form -> form
                         .loginPage("/admin/login")
@@ -87,7 +60,7 @@ public class SecurityConfig {
                                 .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN))
                         .contentSecurityPolicy(csp -> csp
                                 .policyDirectives(
-                                        "default-src 'self'; img-src 'self' https: data:; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; frame-ancestors 'self';")))
+                                        "default-src 'self'; img-src 'self' https: data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; frame-ancestors 'self';")))
                 .httpBasic(AbstractHttpConfigurer::disable);
         return http.build();
     }
@@ -95,8 +68,8 @@ public class SecurityConfig {
     @Bean
     @Order(value = 2)
     public SecurityFilterChain appSecurityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider,
-            RoleBasedAuthenticationSuccessHandler successHandler, RoleBasedAuthenticationFailureHandler failureHandler,
-            RoleBasedLogoutSuccessHandler logoutSuccessHandler) throws Exception {
+                                                      RoleBasedAuthenticationSuccessHandler successHandler, RoleBasedAuthenticationFailureHandler failureHandler,
+                                                      RoleBasedLogoutSuccessHandler logoutSuccessHandler) throws Exception {
         http.authenticationProvider(authenticationProvider)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
@@ -113,7 +86,8 @@ public class SecurityConfig {
                                 "/css/**",
                                 "/js/**",
                                 "/images/**",
-                                "/webjars/**")
+                                "/webjars/**",
+                                "/favicon.ico")
                         .permitAll()
                         .requestMatchers("/api/purchase-orders/**").authenticated()
                         .requestMatchers("/clients", "/dashboard").hasRole("ADMIN")
@@ -141,7 +115,7 @@ public class SecurityConfig {
                                 .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN))
                         .contentSecurityPolicy(csp -> csp
                                 .policyDirectives(
-                                        "default-src 'self'; img-src 'self' https: data:; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; frame-ancestors 'self';")))
+                                        "default-src 'self'; img-src 'self' https: data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; frame-ancestors 'self';")))
                 .httpBasic(AbstractHttpConfigurer::disable);
         return http.build();
     }

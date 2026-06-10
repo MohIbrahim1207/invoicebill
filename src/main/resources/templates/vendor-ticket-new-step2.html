@@ -134,6 +134,11 @@
             flex: 1;
         }
 
+        .total-field {
+            background-color: #f0f0f0;
+            pointer-events: none;
+        }
+
         @media (max-width: 768px) {
             .progress-dots {
                 gap: 0.5rem;
@@ -261,10 +266,11 @@
                     </div>
 
                     <!-- Total Section -->
+                    <!-- NOTE: removed 'readonly' attribute — using CSS + disabled tabindex instead so JS can update the value freely -->
                     <div class="form-section">
                         <label for="total" class="form-label form-section-title">Total (Auto-calculated) *</label>
-                        <input type="number" id="total" th:field="*{total}" class="form-control"
-                               placeholder="0.00" step="0.01" min="0" required readonly style="background-color: #f0f0f0;">
+                        <input type="number" id="total" th:field="*{total}" class="form-control total-field"
+                               placeholder="0.00" step="0.01" min="0" required tabindex="-1">
                         <div class="form-text">Automatically calculated as subtotal + tax</div>
                     </div>
 
@@ -290,23 +296,24 @@
     const subtotalInput = document.getElementById('subtotal');
     const taxInput = document.getElementById('tax');
     const totalInput = document.getElementById('total');
-    const submitBtn = document.getElementById('submitBtn');
     const form = document.querySelector('form');
 
-    // Auto-calculate total
     function calculateTotal() {
         const subtotal = parseFloat(subtotalInput.value) || 0;
         const tax = parseFloat(taxInput.value) || 0;
-        const total = subtotal + tax;
-        totalInput.value = total.toFixed(2);
+        totalInput.value = (subtotal + tax).toFixed(2);
     }
 
-    subtotalInput.addEventListener('change', calculateTotal);
     subtotalInput.addEventListener('input', calculateTotal);
-    taxInput.addEventListener('change', calculateTotal);
+    subtotalInput.addEventListener('change', calculateTotal);
+    subtotalInput.addEventListener('keyup', calculateTotal);
     taxInput.addEventListener('input', calculateTotal);
+    taxInput.addEventListener('change', calculateTotal);
+    taxInput.addEventListener('keyup', calculateTotal);
 
-    // Show toast notifications
+    // Run on page load to handle pre-filled values from wizard session
+    calculateTotal();
+
     function showToast(message, type = 'info', duration = 3000) {
         const toastContainer = document.getElementById('toastContainer');
         const toast = document.createElement('div');
@@ -318,14 +325,12 @@
             </div>
         `;
         toastContainer.appendChild(toast);
-
-        setTimeout(() => {
-            toast.remove();
-        }, duration);
+        setTimeout(() => toast.remove(), duration);
     }
 
-    // Form submission
     form.addEventListener('submit', function(e) {
+        calculateTotal(); // ensure total is up to date before submit
+
         const subtotal = parseFloat(subtotalInput.value);
         const tax = parseFloat(taxInput.value);
         const total = parseFloat(totalInput.value);
@@ -335,13 +340,11 @@
             showToast('❌ Subtotal must be greater than 0', 'error');
             return false;
         }
-
         if (isNaN(tax) || tax < 0) {
             e.preventDefault();
             showToast('❌ Tax must be 0 or greater', 'error');
             return false;
         }
-
         if (isNaN(total) || total <= 0) {
             e.preventDefault();
             showToast('❌ Total must be greater than 0', 'error');
@@ -351,9 +354,10 @@
         showToast('✓ Form submitted successfully!', 'success', 2000);
     });
 
-    // Show initial notification
     window.addEventListener('load', function() {
         showToast('📝 Please fill in all required fields', 'info', 4000);
     });
 </script>
 
+</body>
+</html>
