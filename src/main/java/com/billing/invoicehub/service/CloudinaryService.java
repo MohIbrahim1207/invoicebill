@@ -57,22 +57,26 @@ public class CloudinaryService {
         validateFile(file);
 
         try {
-            // No extension in public_id — Cloudinary handles it automatically
-            String uniqueFilename = folder + "/" + UUID.randomUUID();
+
+
+            String uniqueFilename =
+                    folder + "/" + UUID.randomUUID();
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> result = (Map<String, Object>) cloudinary.uploader().upload(
-                    file.getBytes(),
-                    ObjectUtils.asMap(
-                            "public_id", uniqueFilename,
-                            "resource_type", "raw",
-                            "overwrite", false
-                    )
-            );
+            Map<String, Object> result =
+                    (Map<String, Object>) cloudinary.uploader().upload(
+                            file.getBytes(),
+                            ObjectUtils.asMap(
+                                    "public_id", uniqueFilename,
+                                    "resource_type", "auto",
+                                    "overwrite", false
+                            )
+                    );
 
             String secureUrl = (String) result.get("secure_url");
-            secureUrl = fixDocumentUrl(secureUrl, file.getOriginalFilename());
+
             logger.info("File uploaded successfully to Cloudinary: {}", uniqueFilename);
+
             return secureUrl;
 
         } catch (IOException e) {
@@ -114,31 +118,22 @@ public class CloudinaryService {
         return filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
     }
 
-    private String fixDocumentUrl(String secureUrl, String originalFilename) {
-        if (secureUrl == null || originalFilename == null) {
-            return secureUrl;
-        }
-
-        String extension = getFileExtension(originalFilename);
-        if ("pdf".equals(extension) || "doc".equals(extension) || "docx".equals(extension)) {
-            return secureUrl.replace("/image/upload/", "/raw/upload/");
-        }
-
-        return secureUrl;
-    }
-
     public boolean deleteFile(String fileUrl) {
         try {
             if (fileUrl == null || !fileUrl.startsWith("http")) {
                 return false;
             }
+
             String publicId = extractPublicIdFromUrl(fileUrl);
             if (publicId == null) {
                 return false;
             }
+
             cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+
             logger.info("File deleted successfully from Cloudinary: {}", publicId);
             return true;
+
         } catch (Exception e) {
             logger.warn("Failed to delete file from Cloudinary: {}", e.getMessage());
             return false;
@@ -148,11 +143,15 @@ public class CloudinaryService {
     public String extractPublicIdFromUrl(String secureUrl) {
         try {
             String[] parts = secureUrl.split("/upload/");
-            if (parts.length != 2) return null;
+            if (parts.length != 2) {
+                return null;
+            }
 
             String pathPart = parts[1];
             pathPart = pathPart.replaceAll("^v\\d+/", "");
+
             return pathPart;
+
         } catch (Exception e) {
             logger.warn("Failed to extract public_id from URL: {}", secureUrl);
             return null;
