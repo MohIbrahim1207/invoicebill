@@ -30,7 +30,45 @@
                         <li><a class="dropdown-item text-center small" href="/notifications">View all notifications</a></li>
                     </ul>
                 </div>
-                <button class="btn btn-light btn-sm"><i class="bi bi-moon-stars"></i></button>
+                <button class="btn btn-light btn-sm" type="button" title="Toggle theme" aria-label="Toggle theme">
+                    <i class="bi bi-moon-stars"></i>
+                </button>
+                <div class="dropdown" th:with="currentLang=${param.lang != null && !#lists.isEmpty(param.lang) ? param.lang[0] : 'en'}">
+                    <button class="btn btn-light btn-sm dropdown-toggle d-inline-flex align-items-center gap-1"
+                            type="button"
+                            id="languageSelector"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false"
+                            title="Language"
+                            aria-label="Select language">
+                        <i class="bi bi-globe2" aria-hidden="true"></i>
+                        <span class="d-none d-sm-inline" th:text="${currentLang == 'id' ? 'Bahasa Indonesia' : 'English'}">English</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="languageSelector">
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2"
+                               href="#"
+                               th:classappend="${currentLang != 'id'} ? ' active' : ''"
+                               data-lang="en"
+                               onclick="changeLanguage('en'); return false;">
+                                <i class="bi bi-check-lg text-primary" th:classappend="${currentLang == 'id'} ? ' invisible' : ''"></i>
+                                <span>English</span>
+                                <span class="text-muted small">(en)</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2"
+                               href="#"
+                               th:classappend="${currentLang == 'id'} ? ' active' : ''"
+                               data-lang="id"
+                               onclick="changeLanguage('id'); return false;">
+                                <i class="bi bi-check-lg text-primary" th:classappend="${currentLang != 'id'} ? ' invisible' : ''"></i>
+                                <span>Bahasa Indonesia</span>
+                                <span class="text-muted small">(id)</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
                 <span class="badge rounded-pill text-bg-primary px-3 py-2" th:text="${title}">Billing</span>
                 <span class="text-muted small d-none d-md-inline" sec:authorize="isAuthenticated()">Hi, <span sec:authentication="name"></span></span>
                 <form th:action="@{/logout}" method="post" sec:authorize="isAuthenticated()" class="m-0">
@@ -39,6 +77,12 @@
                 </form>
             </div>
             <script>
+                function changeLanguage(lang) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('lang', lang);
+                    window.location.assign(url.toString());
+                }
+
                 function loadNotifications() {
                     fetch('/notifications/recent')
                         .then(response => response.json())
