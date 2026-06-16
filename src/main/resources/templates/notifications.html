@@ -1,195 +1,65 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notifications</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .notification-card {
-            border-left: 4px solid #007bff;
-            margin-bottom: 15px;
-            background-color: #f8f9fa;
-            transition: all 0.3s ease;
-        }
-        .notification-card:hover {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .notification-card.unread {
-            background-color: #e7f3ff;
-            border-left-color: #0056b3;
-        }
-        .notification-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .badge-success {
-            background-color: #28a745;
-            color: white;
-        }
-        .badge-warning {
-            background-color: #ffc107;
-            color: black;
-        }
-        .badge-danger {
-            background-color: #dc3545;
-            color: white;
-        }
-        .badge-info {
-            background-color: #17a2b8;
-            color: white;
-        }
-        .notification-time {
-            font-size: 12px;
-            color: #6c757d;
-        }
-        .notification-actions {
-            margin-top: 10px;
-        }
-        .notification-actions .btn {
-            margin-right: 5px;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #6c757d;
-        }
-        .empty-state i {
-            font-size: 48px;
-            margin-bottom: 15px;
-            opacity: 0.5;
-        }
-    </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="#{notification.title}">Notifications</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/portal.css}">
 </head>
-<body>
-<div class="container mt-5">
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="mb-0">Notifications</h2>
-                <div>
-                    <button class="btn btn-sm btn-outline-secondary" id="markAllRead" th:if="${unreadCount > 0}">
-                        <i class="fas fa-check-double"></i> Mark All as Read
-                    </button>
-                </div>
-            </div>
+<body class="portal-bg">
+<div th:replace="fragments/layout :: topbar(#{notification.heading})"></div>
+<div th:replace="fragments/layout :: sidebarMobile('notifications')"></div>
+<div class="portal-shell">
+    <div th:replace="fragments/layout :: sidebar('notifications')"></div>
+    <main class="portal-main">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="portal-heading mb-0" th:text="#{notification.heading}">Notifications</h1>
+            <form th:action="@{/notifications/mark-all-read}" method="post" th:if="${unreadCount > 0}">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-check-all"></i> <span th:text="#{notification.mark.all.read}">Mark All as Read</span></button>
+            </form>
+        </div>
 
-            <!-- Unread Count Badge -->
-            <div th:if="${unreadCount > 0}" class="alert alert-info mb-4">
-                <i class="fas fa-bell"></i> You have <strong th:text="${unreadCount}"></strong> unread notification(s)
-            </div>
+        <div th:if="${unreadCount > 0}" class="alert alert-info mb-4">
+            <i class="bi bi-info-circle me-2"></i> <span th:text="#{notification.unread.count(${unreadCount})}">You have unread notification(s)</span>
+        </div>
 
-            <!-- Notifications List -->
-            <div id="notificationsList">
-                <div th:if="${#lists.isEmpty(notifications)}" class="empty-state card">
-                    <i class="fas fa-inbox"></i>
-                    <p>No notifications yet</p>
-                </div>
-
-                <div th:each="notification : ${notifications}" th:class="${!notification.read} ? 'notification-card unread' : 'notification-card card p-3'">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="flex-grow-1">
-                            <div class="d-flex align-items-center gap-2">
-                                <h5 class="mb-1" th:text="${notification.title}">Title</h5>
-                                <span th:class="'notification-badge badge-' + ${#strings.toLowerCase(notification.notificationType)}"
-                                      th:text="${notification.notificationType}">
-                                    Type
-                                </span>
-                                <span th:if="${!notification.read}" class="badge bg-primary">New</span>
-                            </div>
-                            <p class="mb-2" th:text="${notification.message}">Message content</p>
-                            <p class="notification-time mb-0">
-                                <i class="fas fa-clock"></i>
-                                <span th:text="${#temporals.format(notification.createdAt, 'yyyy-MM-dd HH:mm')}">Time</span>
-                            </p>
+        <div class="card portal-card">
+            <div class="list-group list-group-flush" th:if="${!notifications.empty}">
+                <div th:each="notification : ${notifications}"
+                     class="list-group-item list-group-item-action p-3"
+                     th:classappend="${!notification.read} ? 'bg-light' : ''">
+                    <div class="d-flex w-100 justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1 fw-bold">
+                                <span th:if="${!notification.read}" class="badge bg-primary me-2">New</span>
+                                <span th:text="${notification.title}">Notification Title</span>
+                            </h6>
+                            <p class="mb-1 text-muted" th:text="${notification.message}">Notification message</p>
+                            <small class="text-secondary" th:text="${#temporals.format(notification.createdAt, 'MMM dd, yyyy HH:mm')}">Date</small>
                         </div>
-                        <div class="notification-actions">
-                            <button th:if="${!notification.read}"
-                                    class="btn btn-sm btn-primary mark-read"
-                                    th:data-notification-id="${notification.id}"
-                                    title="Mark as read">
-                                <i class="fas fa-check"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger delete-notification"
-                                    th:data-notification-id="${notification.id}"
-                                    title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                        <div class="d-flex gap-2">
+                            <form th:if="${!notification.read}" th:action="@{/notifications/{id}/read(id=${notification.id})}" method="post">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" th:title="#{notification.mark.read}"><i class="bi bi-check2"></i></button>
+                            </form>
+                            <form th:action="@{/notifications/{id}/delete(id=${notification.id})}" method="post">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" th:title="#{notification.delete}" th:data-confirm="#{notification.delete.confirm}" onclick="return confirm(this.getAttribute('data-confirm'))"><i class="bi bi-trash"></i></button>
+                            </form>
                         </div>
                     </div>
                 </div>
             </div>
+            <div class="card-body text-center py-5 text-muted" th:if="${notifications.empty}">
+                <i class="bi bi-bell-slash" style="font-size: 3rem;"></i>
+                <p class="mt-3 mb-0" th:text="#{notification.empty}">No notifications yet</p>
+            </div>
         </div>
-    </div>
+    </main>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Mark as read
-        document.querySelectorAll('.mark-read').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const notificationId = this.getAttribute('data-notification-id');
-                fetch(`/notifications/${notificationId}/read`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        location.reload();
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-            });
-        });
-
-        // Mark all as read
-        document.getElementById('markAllRead')?.addEventListener('click', function() {
-            fetch('/notifications/read-all', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    location.reload();
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        });
-
-        // Delete notification
-        document.querySelectorAll('.delete-notification').forEach(btn => {
-            btn.addEventListener('click', function() {
-                if (confirm('Are you sure you want to delete this notification?')) {
-                    const notificationId = this.getAttribute('data-notification-id');
-                    fetch(`/notifications/${notificationId}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            location.reload();
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
-                }
-            });
-        });
-    });
-</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

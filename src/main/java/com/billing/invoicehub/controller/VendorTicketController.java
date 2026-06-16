@@ -105,8 +105,23 @@ public class VendorTicketController {
     }
 
     @GetMapping(value = {"/vendor/tickets/{id}/history", "/vendor-tickets/{id}/history"})
-    public String ticketHistory(@PathVariable Long id) {
-        return "redirect:/vendor/tickets?historyTicketId=" + id + "#ticket-history";
+    public String ticketHistory(@PathVariable Long id, Authentication authentication, Model model, RedirectAttributes redirectAttributes) {
+        Optional<AppUser> currentUser = this.currentUser(authentication);
+        if (currentUser.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
+            return "redirect:/login";
+        }
+
+        Optional<VendorTicket> ticket = this.vendorTicketService.getAccessibleTicket(id, authentication.getName());
+        if (ticket.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Ticket not found or access denied.");
+            return "redirect:/vendor/tickets";
+        }
+
+        List<VendorTicketHistory> history = this.vendorTicketService.getTicketHistory(id);
+        model.addAttribute("ticket", ticket.get());
+        model.addAttribute("history", history.isEmpty() ? Collections.emptyList() : history);
+        return "ticket-history";
     }
 
     @GetMapping(value = {"/vendor-tickets/new"})

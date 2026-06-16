@@ -3,30 +3,33 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>FAQ - InvoiceHub</title>
+    <title th:text="#{faq.title}">FAQ - InvoiceHub</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/portal.css}">
 </head>
 <body class="portal-bg">
-<div th:replace="fragments/layout :: topbar('FAQ')"></div>
+<div th:replace="fragments/layout :: topbar(#{faq.heading})"></div>
+<div th:replace="fragments/layout :: sidebarMobile('faq')"></div>
 <div class="portal-shell">
-    <div th:replace="fragments/layout :: sidebarMobile('')"></div>
+    <div th:replace="fragments/layout :: sidebar('faq')"></div>
     <main class="portal-main">
-        <div class="card" style="max-width:900px;margin:2rem auto;">
+        <h1 class="portal-heading mb-4" th:text="#{faq.heading}">Frequently Asked Questions</h1>
+        <div class="card portal-card">
             <div class="card-body">
-                <h2>Frequently Asked Questions</h2>
-                <div class="mt-4">
-                    <h5>How do I submit an invoice?</h5>
-                    <p>Go to Vendor Tickets &gt; Create New Ticket and follow the steps.</p>
-                </div>
-                <div class="mt-3">
-                    <h5>What file types are supported?</h5>
-                    <p>PDF, PNG, JPG, JPEG, WEBP.</p>
-                </div>
-                <div class="mt-3">
-                    <h5>Who do I contact for help?</h5>
-                    <p>Call our helpline: <strong>+1-800-123-4567</strong> or use the <a href="/contact">Contact Form</a>.</p>
+                <div class="accordion" id="faqAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#q1" th:text="#{faq.q1}">How do I submit an invoice?</button></h2>
+                        <div id="q1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion"><div class="accordion-body" th:text="#{faq.a1}">Go to Vendor Tickets > Create New Ticket and follow the steps.</div></div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q2" th:text="#{faq.q2}">What file types are supported?</button></h2>
+                        <div id="q2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion"><div class="accordion-body" th:text="#{faq.a2}">PDF, PNG, JPG, JPEG, WEBP.</div></div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q3" th:text="#{faq.q3}">Who do I contact for help?</button></h2>
+                        <div id="q3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion"><div class="accordion-body" th:utext="#{faq.a3}">Call our helpline: <strong>+1-800-123-4567</strong> or use the <a href="/contact">Contact Form</a>.</div></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -35,4 +38,3 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
