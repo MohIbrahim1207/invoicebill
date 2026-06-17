@@ -41,11 +41,10 @@
                         <h5 class="text-muted" th:text="#{ticket.history.currentStatus}">Current Status</h5>
                         <p class="fw-bold" th:with="statusName=${ticket != null && ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
                             <span th:if="${statusName == 'OPEN'}" class="badge bg-dark" th:text="#{ticket.history.status.open}">Open</span>
-                            <span th:if="${statusName == 'CONFIRM'}" class="badge bg-warning" th:text="#{ticket.history.status.confirm}">Confirm</span>
-                            <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary" th:text="#{ticket.history.status.cancel}">Cancel</span>
-                            <span th:if="${statusName == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success" th:text="#{ticket.history.status.waiting}">Waiting Physical Document</span>
-                            <span th:if="${statusName == 'RELEASE'}" class="badge bg-info" th:text="#{ticket.history.status.release}">Release</span>
+                            <span th:if="${statusName == 'IN_PROGRESS'}" class="badge bg-primary" th:text="#{ticket.history.status.in_progress}">In Progress</span>
                             <span th:if="${statusName == 'REVISE'}" class="badge bg-danger" th:text="#{ticket.history.status.revise}">Revise</span>
+                            <span th:if="${statusName == 'RESOLVED'}" class="badge bg-success" th:text="#{ticket.history.status.resolved}">Resolved</span>
+                            <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary" th:text="#{ticket.history.status.cancel}">Cancel</span>
                             <span th:if="${statusName == null}" class="badge bg-light text-dark">-</span>
                         </p>
                     </div>
@@ -89,11 +88,10 @@
                         <tr th:if="${history != null and !#lists.isEmpty(history)}" th:each="record : ${history}" th:with="recordStatus=${record.status != null ? record.status.name() : null}">
                             <td>
                                 <span th:if="${recordStatus == 'OPEN'}" class="badge bg-dark" th:text="#{ticket.history.status.open}">Open</span>
-                                <span th:if="${recordStatus == 'CONFIRM'}" class="badge bg-warning" th:text="#{ticket.history.status.confirm}">Confirm</span>
-                                <span th:if="${recordStatus == 'CANCEL'}" class="badge bg-secondary" th:text="#{ticket.history.status.cancel}">Cancel</span>
-                                <span th:if="${recordStatus == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success" th:text="#{ticket.history.status.waiting}">Waiting Physical Document</span>
-                                <span th:if="${recordStatus == 'RELEASE'}" class="badge bg-info" th:text="#{ticket.history.status.release}">Release</span>
+                                <span th:if="${recordStatus == 'IN_PROGRESS'}" class="badge bg-primary" th:text="#{ticket.history.status.in_progress}">In Progress</span>
                                 <span th:if="${recordStatus == 'REVISE'}" class="badge bg-danger" th:text="#{ticket.history.status.revise}">Revise</span>
+                                <span th:if="${recordStatus == 'RESOLVED'}" class="badge bg-success" th:text="#{ticket.history.status.resolved}">Resolved</span>
+                                <span th:if="${recordStatus == 'CANCEL'}" class="badge bg-secondary" th:text="#{ticket.history.status.cancel}">Cancel</span>
                                 <span th:if="${recordStatus == null}" class="badge bg-light text-dark">-</span>
                             </td>
                             <td th:text="${#temporals.format(record.changedAt, 'MMM dd, yyyy')}">-</td>

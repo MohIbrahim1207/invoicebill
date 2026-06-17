@@ -26,7 +26,7 @@ public class EmailService {
 
     public EmailService(JavaMailSender mailSender,
             SpringTemplateEngine templateEngine,
-            @Value("${spring.mail.username}") String fromEmail,
+            @Value("${spring.mail.username:}") String fromEmail,
             @Value("${app.admin.email:admin@invoicehub.com}") String adminEmail) {
         this.mailSender = mailSender;
         this.templateEngine = templateEngine;

@@ -84,11 +84,10 @@
                                     <label class="text-muted small">Current Status</label>
                                     <p th:with="statusName=${ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
                                         <span th:if="${statusName == 'OPEN'}" class="badge bg-dark">Open</span>
-                                        <span th:if="${statusName == 'CONFIRM'}" class="badge bg-warning">Confirm</span>
-                                        <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
-                                        <span th:if="${statusName == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success">Waiting Physical Document</span>
-                                        <span th:if="${statusName == 'RELEASE'}" class="badge bg-info">Release</span>
+                                        <span th:if="${statusName == 'IN_PROGRESS'}" class="badge bg-primary">In Progress</span>
                                         <span th:if="${statusName == 'REVISE'}" class="badge bg-danger">Revise</span>
+                                        <span th:if="${statusName == 'RESOLVED'}" class="badge bg-success">Resolved</span>
+                                        <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
                                         <span th:if="${statusName == null}" class="badge bg-light text-dark">-</span>
                                     </p>
                                 </div>
@@ -218,20 +217,17 @@
                                             <span th:if="${recordStatus == 'OPEN'}" class="badge bg-dark">
                                                 <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Open
                                             </span>
-                                            <span th:if="${recordStatus == 'CONFIRM'}" class="badge bg-warning">
-                                                <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Confirm
-                                            </span>
-                                            <span th:if="${recordStatus == 'CANCEL'}" class="badge bg-secondary">
-                                                <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Cancel
-                                            </span>
-                                            <span th:if="${recordStatus == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success">
-                                                <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Physical Doc
-                                            </span>
-                                            <span th:if="${recordStatus == 'RELEASE'}" class="badge bg-info">
-                                                <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Release
+                                            <span th:if="${recordStatus == 'IN_PROGRESS'}" class="badge bg-primary">
+                                                <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>In Progress
                                             </span>
                                             <span th:if="${recordStatus == 'REVISE'}" class="badge bg-danger">
                                                 <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Revise
+                                            </span>
+                                            <span th:if="${recordStatus == 'RESOLVED'}" class="badge bg-success">
+                                                <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Resolved
+                                            </span>
+                                            <span th:if="${recordStatus == 'CANCEL'}" class="badge bg-secondary">
+                                                <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Cancel
                                             </span>
                                             <span th:if="${recordStatus == null}" class="badge bg-light text-dark">-</span>
                                         </div>

@@ -52,11 +52,10 @@
                         <select name="status" class="form-select">
                             <option value="" th:text="#{common.all}">All</option>
                             <option value="OPEN" th:selected="${searchStatus == 'OPEN'}" th:text="#{ticket.history.status.open}">OPEN</option>
-                            <option value="CONFIRM" th:selected="${searchStatus == 'CONFIRM'}" th:text="#{ticket.status.confirm}">CONFIRM</option>
-                            <option value="CANCEL" th:selected="${searchStatus == 'CANCEL'}" th:text="#{ticket.status.cancel}">CANCEL</option>
-                            <option value="WAITING_PHYSICAL_DOCUMENT" th:selected="${searchStatus == 'WAITING_PHYSICAL_DOCUMENT'}" th:text="#{ticket.history.status.waiting}">WAITING_PHYSICAL_DOCUMENT</option>
-                            <option value="RELEASE" th:selected="${searchStatus == 'RELEASE'}" th:text="#{ticket.history.status.release}">RELEASE</option>
+                            <option value="IN_PROGRESS" th:selected="${searchStatus == 'IN_PROGRESS'}" th:text="#{ticket.history.status.in_progress}">IN_PROGRESS</option>
                             <option value="REVISE" th:selected="${searchStatus == 'REVISE'}" th:text="#{ticket.history.status.revise}">REVISE</option>
+                            <option value="RESOLVED" th:selected="${searchStatus == 'RESOLVED'}" th:text="#{ticket.history.status.resolved}">RESOLVED</option>
+                            <option value="CANCEL" th:selected="${searchStatus == 'CANCEL'}" th:text="#{ticket.history.status.cancel}">CANCEL</option>
                         </select>
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
@@ -116,11 +115,10 @@
                             <td th:text="${ticket.currency}">-</td>
                             <td>
                                 <span th:if="${statusName == 'OPEN'}" class="badge bg-dark" th:text="#{ticket.history.status.open}">Open</span>
-                                <span th:if="${statusName == 'CONFIRM'}" class="badge bg-warning" th:text="#{ticket.status.confirm}">Confirm</span>
-                                <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary" th:text="#{ticket.status.cancel}">Cancel</span>
-                                <span th:if="${statusName == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success" th:text="#{ticket.history.status.waiting}">Waiting Physical Document</span>
-                                <span th:if="${statusName == 'RELEASE'}" class="badge bg-info" th:text="#{ticket.history.status.release}">Release</span>
+                                <span th:if="${statusName == 'IN_PROGRESS'}" class="badge bg-primary" th:text="#{ticket.history.status.in_progress}">In Progress</span>
                                 <span th:if="${statusName == 'REVISE'}" class="badge bg-danger" th:text="#{ticket.history.status.revise}">Revise</span>
+                                <span th:if="${statusName == 'RESOLVED'}" class="badge bg-success" th:text="#{ticket.history.status.resolved}">Resolved</span>
+                                <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary" th:text="#{ticket.history.status.cancel}">Cancel</span>
                                 <span th:if="${statusName == null}" class="badge bg-light text-dark">-</span>
                             </td>
                             <td>

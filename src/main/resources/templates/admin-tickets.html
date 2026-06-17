@@ -99,11 +99,10 @@
                                 <td th:text="${ticket.invoiceDate}"></td>
                                 <td th:with="statusName=${ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
                                     <span th:if="${statusName == 'OPEN'}" class="badge bg-dark">Open</span>
-                                    <span th:if="${statusName == 'CONFIRM'}" class="badge bg-warning">Confirm</span>
-                                    <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
-                                    <span th:if="${statusName == 'WAITING_PHYSICAL_DOCUMENT'}" class="badge bg-success">Waiting Physical Document</span>
-                                    <span th:if="${statusName == 'RELEASE'}" class="badge bg-info">Release</span>
+                                    <span th:if="${statusName == 'IN_PROGRESS'}" class="badge bg-primary">In Progress</span>
                                     <span th:if="${statusName == 'REVISE'}" class="badge bg-danger">Revise</span>
+                                    <span th:if="${statusName == 'RESOLVED'}" class="badge bg-success">Resolved</span>
+                                    <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
                                     <span th:if="${statusName == null}" class="text-muted">-</span>
                                 </td>
                                 <td>
