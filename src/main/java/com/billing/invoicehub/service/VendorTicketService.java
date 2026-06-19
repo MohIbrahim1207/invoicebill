@@ -188,12 +188,11 @@ public class VendorTicketService {
                 inv.setFileUrl(saved.getInvoiceFileUrl());
                 inv.setInvoiceNumber(saved.getInvoiceNo());
                 inv.setInvoiceDate(saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : null);
-                // Use total as the final payable amount for Billing Intake; fallback to amount
+                // Use total as the final payable amount for Billing Intake; fallback to subtotal + tax
                 // if total is null
-                java.math.BigDecimal billingAmount = (saved.getAmount() == null ? java.math.BigDecimal.ZERO
-                        : saved.getAmount())
-                        .add(saved.getSubtotal() == null ? java.math.BigDecimal.ZERO : saved.getSubtotal())
-                        .add(saved.getTax() == null ? java.math.BigDecimal.ZERO : saved.getTax());
+                java.math.BigDecimal billingAmount = saved.getTotal() != null ? saved.getTotal()
+                        : (saved.getSubtotal() == null ? java.math.BigDecimal.ZERO : saved.getSubtotal())
+                                .add(saved.getTax() == null ? java.math.BigDecimal.ZERO : saved.getTax());
 
                 inv.setAmount(billingAmount);
                 inv.setClient(saved.getClient());

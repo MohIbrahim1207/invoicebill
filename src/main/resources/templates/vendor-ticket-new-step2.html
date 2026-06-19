@@ -404,10 +404,9 @@
 
             function calculateTotal() {
                 const currency = currencySelect.value;
-                const amount = parseFloat(amountInput.value) || 0;
                 const subtotal = parseValue(subtotalInput.value, currency);
                 const tax = taxInput.value ? parseValue(taxInput.value, currency) : 0;
-                const total = amount + subtotal + tax;
+                const total = subtotal + tax;
 
                 totalDisplay.value = formatCurrencyValue(total, currency);
                 subtotalHidden.value = subtotal;
@@ -448,7 +447,13 @@
                 calculateTotal();
             }
 
-            amountInput.addEventListener("input", calculateTotal);
+            amountInput.addEventListener("input", function() {
+                const currency = currencySelect.value;
+                const amt = parseFloat(amountInput.value) || 0;
+                subtotalHidden.value = amt;
+                subtotalInput.value = formatCurrencyValue(amt, currency);
+                calculateTotal();
+            });
             subtotalInput.addEventListener("input", handleInput);
             taxInput.addEventListener("input", handleInput);
             subtotalInput.addEventListener("blur", () => applyFormat(subtotalInput));
