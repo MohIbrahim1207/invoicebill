@@ -52,7 +52,12 @@ public class VendorTicketWizardState implements Serializable {
     @Size(max = 50, message = "PO number must not exceed 50 characters")
     private String poNumber;
 
+    @Size(max = 2000, message = "Remarks must not exceed 2000 characters")
+    private String vendorRemarks;
+
     // Getters and Setters
+    public String getVendorRemarks() { return this.vendorRemarks; }
+    public void setVendorRemarks(String vendorRemarks) { this.vendorRemarks = vendorRemarks; }
     public Long getClientId() { return this.clientId; }
     public void setClientId(Long clientId) { this.clientId = clientId; }
 

@@ -57,7 +57,13 @@ public class VendorTicket {
 
     private LocalDateTime createdAt;
 
+    @jakarta.persistence.Column(length = 2000)
+    private String vendorRemarks;
+
     // Getters and Setters
+    public String getVendorRemarks() { return vendorRemarks; }
+    public void setVendorRemarks(String vendorRemarks) { this.vendorRemarks = vendorRemarks; }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

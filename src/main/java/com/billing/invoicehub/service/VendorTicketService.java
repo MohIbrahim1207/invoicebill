@@ -172,6 +172,7 @@ public class VendorTicketService {
         vendorTicket.setTax(taxVal);
         vendorTicket.setTotal(state.getTotal());
         vendorTicket.setPoNumber(state.getPoNumber());
+        vendorTicket.setVendorRemarks(state.getVendorRemarks());
         vendorTicket.setTaxDocumentUrl(state.getTaxDocumentUrl());
         vendorTicket.setPoCopyUrl(state.getPoCopyUrl());
         vendorTicket.setDeliveryNoteUrl(state.getDeliveryNoteUrl());

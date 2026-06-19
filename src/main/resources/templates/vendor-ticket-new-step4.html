@@ -216,6 +216,12 @@
                                     -</div>
                             </div>
                         </div>
+                        <div class="col-12" th:if="${wizardState.vendorRemarks != null && !wizardState.vendorRemarks.isBlank()}">
+                            <div class="summary-card">
+                                <div class="summary-label">Vendor Remarks</div>
+                                <div class="summary-value" style="white-space: pre-wrap;" th:text="${wizardState.vendorRemarks}">Remarks text</div>
+                            </div>
+                        </div>
                     </div>
 
                     <form th:action="@{/vendor-tickets/save}" method="post">

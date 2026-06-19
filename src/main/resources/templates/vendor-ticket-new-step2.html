@@ -271,6 +271,14 @@
                             </div>
 
                             <div class="col-12">
+                                <label class="form-label" th:text="#{ticket.new.remarks}">Vendor Remarks (Optional)</label>
+                                <textarea name="vendorRemarks" class="form-control" rows="3" maxlength="2000"
+                                    th:placeholder="#{ticket.new.remarks.placeholder}"
+                                    th:text="${wizardState.vendorRemarks}"></textarea>
+                                <div class="form-text">Maximum 2000 characters. Explain any special situations, e.g. missing invoices or order confirmation reference.</div>
+                            </div>
+
+                            <div class="col-12">
                                 <div class="calc-group">
                                     <div class="calc-row mb-3">
                                         <div class="calc-label" th:text="#{ticket.new.subtotal}">Subtotal *</div>
