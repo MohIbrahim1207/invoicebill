@@ -12,6 +12,7 @@ import com.billing.invoicehub.repository.ClientRepository;
 import com.billing.invoicehub.repository.InvoiceRepository;
 import com.billing.invoicehub.repository.VendorTicketHistoryRepository;
 import com.billing.invoicehub.repository.VendorTicketRepository;
+import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -41,14 +42,14 @@ public class VendorTicketService {
     private final PurchaseOrderService purchaseOrderService;
 
     public VendorTicketService(VendorTicketRepository vendorTicketRepository,
-                               VendorTicketHistoryRepository vendorTicketHistoryRepository,
-                               AppUserRepository appUserRepository,
-                               ClientRepository clientRepository,
-                               InvoiceRepository invoiceRepository,
-                               EmailService emailService,
-                               PurchaseOrderService purchaseOrderService,
-                               @Value("${app.admin.email:}") String configuredAdminEmail,
-                               @Value("${app.base-url:https://your-invoicehub.example.com}") String appBaseUrl) {
+            VendorTicketHistoryRepository vendorTicketHistoryRepository,
+            AppUserRepository appUserRepository,
+            ClientRepository clientRepository,
+            InvoiceRepository invoiceRepository,
+            EmailService emailService,
+            PurchaseOrderService purchaseOrderService,
+            @Value("${app.admin.email:}") String configuredAdminEmail,
+            @Value("${app.base-url:https://your-invoicehub.example.com}") String appBaseUrl) {
         this.vendorTicketRepository = vendorTicketRepository;
         this.vendorTicketHistoryRepository = vendorTicketHistoryRepository;
         this.appUserRepository = appUserRepository;
@@ -62,12 +63,15 @@ public class VendorTicketService {
 
     @Transactional(readOnly = true)
     public List<VendorTicket> searchTickets(String ticketNo, String invoiceNo, Integer year, String status) {
-        return vendorTicketRepository.searchTickets(normalize(ticketNo), normalize(invoiceNo), year, parseStatus(status));
+        return vendorTicketRepository.searchTickets(normalize(ticketNo), normalize(invoiceNo), year,
+                parseStatus(status));
     }
 
     @Transactional(readOnly = true)
-    public List<VendorTicket> searchTicketsForOwner(Long ownerId, String ticketNo, String invoiceNo, Integer year, String status) {
-        return vendorTicketRepository.searchTicketsByOwner(ownerId, normalize(ticketNo), normalize(invoiceNo), year, parseStatus(status));
+    public List<VendorTicket> searchTicketsForOwner(Long ownerId, String ticketNo, String invoiceNo, Integer year,
+            String status) {
+        return vendorTicketRepository.searchTicketsByOwner(ownerId, normalize(ticketNo), normalize(invoiceNo), year,
+                parseStatus(status));
     }
 
     @Transactional(readOnly = true)
@@ -144,7 +148,8 @@ public class VendorTicketService {
     public VendorTicket saveWizardTicket(VendorTicketWizardState state, String vendorUsername) {
         AppUser vendor = appUserRepository.findByUsername(vendorUsername)
                 .orElseThrow(() -> new IllegalArgumentException("Vendor not found"));
-        if (state.getPoNumber() != null && !state.getPoNumber().trim().isEmpty() && !validatePONumber(state.getPoNumber())) {
+        if (state.getPoNumber() != null && !state.getPoNumber().trim().isEmpty()
+                && !validatePONumber(state.getPoNumber())) {
             log.warn("PO number {} was not found or inactive for vendor {}. Continuing ticket submission.",
                     state.getPoNumber(), vendorUsername);
         }
@@ -163,7 +168,8 @@ public class VendorTicketService {
         vendorTicket.setSupportingDocumentUrl(state.getSupportingDocumentUrl());
         vendorTicket.setTicketNo(state.getTicketNo());
         vendorTicket.setSubtotal(state.getSubtotal());
-        vendorTicket.setTax(state.getTax());
+        BigDecimal taxVal = state.getTax() != null ? state.getTax() : java.math.BigDecimal.ZERO;
+        vendorTicket.setTax(taxVal);
         vendorTicket.setTotal(state.getTotal());
         vendorTicket.setPoNumber(state.getPoNumber());
         vendorTicket.setTaxDocumentUrl(state.getTaxDocumentUrl());
@@ -173,7 +179,8 @@ public class VendorTicketService {
         vendorTicket.setStatusRequest(TicketStatus.OPEN);
         vendorTicket.setCreatedAt(LocalDateTime.now());
         VendorTicket saved = vendorTicketRepository.save(vendorTicket);
-        vendorTicketHistoryRepository.save(new VendorTicketHistory(saved, TicketStatus.OPEN, LocalDateTime.now(), "Ticket submitted"));
+        vendorTicketHistoryRepository
+                .save(new VendorTicketHistory(saved, TicketStatus.OPEN, LocalDateTime.now(), "Ticket submitted"));
         try {
             if (saved.getInvoiceFileUrl() != null && !saved.getInvoiceFileUrl().isBlank()) {
                 Invoice inv = new Invoice();
@@ -181,14 +188,16 @@ public class VendorTicketService {
                 inv.setFileUrl(saved.getInvoiceFileUrl());
                 inv.setInvoiceNumber(saved.getInvoiceNo());
                 inv.setInvoiceDate(saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : null);
-                // Use total as the final payable amount for Billing Intake; fallback to amount if total is null
-                java.math.BigDecimal billingAmount =
-                        (saved.getAmount() == null ? java.math.BigDecimal.ZERO : saved.getAmount())
-                                .add(saved.getSubtotal() == null ? java.math.BigDecimal.ZERO : saved.getSubtotal())
-                                .add(saved.getTax() == null ? java.math.BigDecimal.ZERO : saved.getTax());
+                // Use total as the final payable amount for Billing Intake; fallback to amount
+                // if total is null
+                java.math.BigDecimal billingAmount = (saved.getAmount() == null ? java.math.BigDecimal.ZERO
+                        : saved.getAmount())
+                        .add(saved.getSubtotal() == null ? java.math.BigDecimal.ZERO : saved.getSubtotal())
+                        .add(saved.getTax() == null ? java.math.BigDecimal.ZERO : saved.getTax());
 
                 inv.setAmount(billingAmount);
                 inv.setClient(saved.getClient());
+                inv.setCurrency(saved.getCurrency());
                 invoiceRepository.save(inv);
                 log.info("Created Invoice record {} for ticket {}", inv.getId(), saved.getTicketNo());
             }
@@ -202,6 +211,7 @@ public class VendorTicketService {
             recipientEmail = resolveAdminEmail();
         }
         if (recipientEmail != null && !recipientEmail.isBlank()) {
+            String curr = saved.getCurrency() != null ? saved.getCurrency() : "IDR";
             emailService.sendTicketSubmittedEmail(
                     recipientEmail,
                     recipientName,
@@ -210,11 +220,10 @@ public class VendorTicketService {
                     saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : "-",
                     saved.getClient() != null ? saved.getClient().getCompanyName() : "-",
                     saved.getPoNumber(),
-                    saved.getSubtotal() != null ? formatIdr(saved.getSubtotal()) : "Rp 0",
-                    saved.getTax() != null ? formatIdr(saved.getTax()) : "Rp 0",
-                    saved.getTotal() != null ? formatIdr(saved.getTotal()) : "Rp 0",
-                    appBaseUrl + "/vendor/tickets?historyTicketId=" + saved.getId() + "#ticket-history"
-            );
+                    saved.getSubtotal() != null ? formatCurrency(saved.getSubtotal(), saved.getCurrency()) : curr + " 0",
+                    saved.getTax() != null ? formatCurrency(saved.getTax(), saved.getCurrency()) : curr + " 0",
+                    saved.getTotal() != null ? formatCurrency(saved.getTotal(), saved.getCurrency()) : curr + " 0",
+                    appBaseUrl + "/vendor/tickets?historyTicketId=" + saved.getId() + "#ticket-history");
         }
         return saved;
     }
@@ -248,7 +257,8 @@ public class VendorTicketService {
         }
         ticket.get().setStatusRequest(TicketStatus.CANCEL);
         vendorTicketRepository.save(ticket.get());
-        vendorTicketHistoryRepository.save(new VendorTicketHistory(ticket.get(), TicketStatus.CANCEL, LocalDateTime.now(), "Ticket cancelled"));
+        vendorTicketHistoryRepository.save(
+                new VendorTicketHistory(ticket.get(), TicketStatus.CANCEL, LocalDateTime.now(), "Ticket cancelled"));
         return true;
     }
 
@@ -261,7 +271,8 @@ public class VendorTicketService {
             if (maybe.isPresent()) {
                 VendorTicket t = maybe.get();
                 String ownerName = t.getOwner() != null ? t.getOwner().getUsername() : "<no-owner>";
-                log.warn("User {} attempted to cancel ticket {} but access denied. Ticket owner: {}", username, id, ownerName);
+                log.warn("User {} attempted to cancel ticket {} but access denied. Ticket owner: {}", username, id,
+                        ownerName);
             } else {
                 log.warn("User {} attempted to cancel ticket {} but ticket not found", username, id);
             }
@@ -270,7 +281,8 @@ public class VendorTicketService {
         VendorTicket t = ticket.get();
         t.setStatusRequest(TicketStatus.CANCEL);
         vendorTicketRepository.save(t);
-        vendorTicketHistoryRepository.save(new VendorTicketHistory(t, TicketStatus.CANCEL, LocalDateTime.now(), "Ticket cancelled"));
+        vendorTicketHistoryRepository
+                .save(new VendorTicketHistory(t, TicketStatus.CANCEL, LocalDateTime.now(), "Ticket cancelled"));
         String recipientEmail = t.getVendor() != null ? t.getVendor().getEmail() : null;
         if (recipientEmail != null && !recipientEmail.isBlank()) {
             emailService.sendTicketCancelledEmail(
@@ -278,8 +290,7 @@ public class VendorTicketService {
                     t.getVendor() != null ? t.getVendor().getUsername() : "-",
                     t.getTicketNo(),
                     t.getInvoiceNo(),
-                    "Cancelled by user " + username
-            );
+                    "Cancelled by user " + username);
         }
         log.info("Ticket {} cancelled by user {}", id, username);
         return true;
@@ -306,7 +317,8 @@ public class VendorTicketService {
                 && ticket.getOwner() != null && ticket.getOwner().getId() != null) {
             try {
                 invoiceRepository
-                        .findTopByInvoiceNumberAndClient_Owner_IdOrderByIdDesc(ticket.getInvoiceNo(), ticket.getOwner().getId())
+                        .findTopByInvoiceNumberAndClient_Owner_IdOrderByIdDesc(ticket.getInvoiceNo(),
+                                ticket.getOwner().getId())
                         .ifPresent(invoice -> {
                             invoice.setStatus(mappedInvoiceStatus);
                             invoiceRepository.save(invoice);
@@ -325,14 +337,16 @@ public class VendorTicketService {
         try {
             String invoiceNumber = ticket.getInvoiceNo() != null ? ticket.getInvoiceNo() : "-";
             String vendorName = ticket.getVendor() != null ? ticket.getVendor().getUsername() : "-";
-            String amount = ticket.getAmount() != null ? formatIdr(ticket.getAmount()) : "Rp 0";
+            String amount = ticket.getAmount() != null ? formatCurrency(ticket.getAmount(), ticket.getCurrency()) : (ticket.getCurrency() != null ? ticket.getCurrency() : "IDR") + " 0";
             String statusDate = LocalDateTime.now().toString();
             String adminRemarks = comment != null ? comment.trim() : null;
             String viewUrl = appBaseUrl + "/invoice";
-            emailService.sendInvoiceStatusEmail(vendorEmail, invoiceNumber, vendorName, mappedInvoiceStatus, amount, statusDate, adminRemarks, viewUrl);
+            emailService.sendInvoiceStatusEmail(vendorEmail, invoiceNumber, vendorName, mappedInvoiceStatus, amount,
+                    statusDate, adminRemarks, viewUrl);
             log.info("Invoice status email sent to {} for ticket {}", vendorEmail, ticket.getTicketNo());
         } catch (Exception ex) {
-            log.error("Failed to send invoice status email for ticket {}: {}", ticket.getTicketNo(), ex.getMessage(), ex);
+            log.error("Failed to send invoice status email for ticket {}: {}", ticket.getTicketNo(), ex.getMessage(),
+                    ex);
         }
     }
 
@@ -357,14 +371,22 @@ public class VendorTicketService {
         return purchaseOrderService.validatePO(poNumber);
     }
 
-    private String formatIdr(Number n) {
+    private String formatCurrency(Number n, String currency) {
         if (n == null) {
             return "-";
         }
-        NumberFormat nf = NumberFormat.getInstance(Locale.forLanguageTag("id-ID"));
-        nf.setMaximumFractionDigits(0);
-        nf.setMinimumFractionDigits(0);
-        return "Rp " + nf.format(n);
+        String curr = (currency == null || currency.isBlank()) ? "IDR" : currency.trim();
+        NumberFormat nf;
+        if ("IDR".equalsIgnoreCase(curr)) {
+            nf = NumberFormat.getInstance(Locale.forLanguageTag("id-ID"));
+            nf.setMaximumFractionDigits(0);
+            nf.setMinimumFractionDigits(0);
+        } else {
+            nf = NumberFormat.getInstance(Locale.US);
+            nf.setMaximumFractionDigits(2);
+            nf.setMinimumFractionDigits(2);
+        }
+        return curr + " " + nf.format(n);
     }
 
     private boolean isAdmin(AppUser user) {

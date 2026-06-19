@@ -37,11 +37,11 @@ implements AuthenticationFailureHandler {
         this.roleValidator = roleValidator;
     }
 
+    @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
-        String loginUrl;
         String requestPath = request.getRequestURI();
         String username = request.getParameter("username");
-        String string = loginUrl = requestPath.contains("/admin/") ? "/admin/login" : "/login";
+        String loginUrl = requestPath.contains("/admin/") ? "/admin/login" : "/login";
         if (exception instanceof DisabledException) {
             response.sendRedirect(request.getContextPath() + loginUrl + "?pendingVerification=true");
             return;

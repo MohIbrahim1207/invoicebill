@@ -21,23 +21,42 @@ public class FormatUtils {
 
     /**
      * Formats a BigDecimal amount as IDR currency
+     * 
      * @param amount the amount to format
      * @return formatted string (e.g., "Rp 1.234.567,89")
      */
     public static String formatIDR(BigDecimal amount) {
+        return formatCurrency(amount, "IDR");
+    }
+
+    /**
+     * Formats a BigDecimal amount with a specific currency
+     * 
+     * @param amount the amount to format
+     * @param currency the currency code (e.g., EUR, USD, IDR)
+     * @return formatted string
+     */
+    public static String formatCurrency(BigDecimal amount, String currency) {
         if (amount == null) {
-            return "Rp 0";
+            return (currency != null && !currency.isBlank() ? currency.trim() : "IDR") + " 0";
         }
-        try {
-            NumberFormat nf = NumberFormat.getCurrencyInstance(IDR_LOCALE);
-            return nf.format(amount);
-        } catch (Exception e) {
-            return "Rp " + amount.toPlainString();
+        String curr = (currency != null && !currency.isBlank()) ? currency.trim() : "IDR";
+        NumberFormat nf;
+        if ("IDR".equalsIgnoreCase(curr)) {
+            nf = NumberFormat.getNumberInstance(IDR_LOCALE);
+            nf.setMinimumFractionDigits(0);
+            nf.setMaximumFractionDigits(0);
+        } else {
+            nf = NumberFormat.getNumberInstance(Locale.US);
+            nf.setMinimumFractionDigits(2);
+            nf.setMaximumFractionDigits(2);
         }
+        return curr + " " + nf.format(amount);
     }
 
     /**
      * Formats a LocalDateTime as a readable string
+     * 
      * @param dateTime the datetime to format
      * @return formatted string (e.g., "Jan 15, 2026 02:30 PM")
      */
@@ -50,6 +69,7 @@ public class FormatUtils {
 
     /**
      * Formats a LocalDateTime as date-only string
+     * 
      * @param dateTime the datetime to format
      * @return formatted string (e.g., "Jan 15, 2026")
      */
@@ -62,6 +82,7 @@ public class FormatUtils {
 
     /**
      * Escapes HTML special characters to prevent XSS
+     * 
      * @param value the value to escape
      * @return escaped string safe for HTML output
      */
@@ -79,7 +100,8 @@ public class FormatUtils {
 
     /**
      * Truncates a string to a maximum length
-     * @param value the string to truncate
+     * 
+     * @param value     the string to truncate
      * @param maxLength the maximum length
      * @return truncated string with "..." appended if truncated
      */
@@ -93,4 +115,3 @@ public class FormatUtils {
         return value.substring(0, maxLength - 3) + "...";
     }
 }
-

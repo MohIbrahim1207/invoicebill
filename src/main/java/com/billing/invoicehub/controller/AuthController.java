@@ -42,12 +42,13 @@ public class AuthController {
     private final VendorRegistrationService vendorRegistrationService;
     private final RoleBasedAuthenticationValidator roleValidator;
 
-    public AuthController(VendorRegistrationService vendorRegistrationService, RoleBasedAuthenticationValidator roleValidator) {
+    public AuthController(VendorRegistrationService vendorRegistrationService,
+            RoleBasedAuthenticationValidator roleValidator) {
         this.vendorRegistrationService = vendorRegistrationService;
         this.roleValidator = roleValidator;
     }
 
-    @GetMapping(value={"/login"})
+    @GetMapping(value = { "/login" })
     public String login(Authentication authentication) {
         if (this.isAuthenticated(authentication)) {
             return this.hasRole(authentication, "ROLE_ADMIN") ? "redirect:/admin/dashboard" : "redirect:/invoice";
@@ -55,7 +56,7 @@ public class AuthController {
         return "login";
     }
 
-    @GetMapping(value={"/admin/login"})
+    @GetMapping(value = { "/admin/login" })
     public String adminLogin(Authentication authentication) {
         if (this.isAuthenticated(authentication)) {
             return this.hasRole(authentication, "ROLE_ADMIN") ? "redirect:/admin/dashboard" : "redirect:/invoice";
@@ -63,7 +64,7 @@ public class AuthController {
         return "admin-login";
     }
 
-    @GetMapping(value={"/signup", "/register"})
+    @GetMapping(value = { "/signup", "/register" })
     public String signup(Authentication authentication, Model model) {
         if (this.isAuthenticated(authentication)) {
             return "redirect:/invoice";
@@ -72,10 +73,15 @@ public class AuthController {
         return "signup";
     }
 
-    @PostMapping(value={"/register"})
-    public String registerUser(@Valid @ModelAttribute("vendorRegistrationForm") VendorRegistrationForm form, BindingResult bindingResult, Model model, @RequestParam(value="gstDocument", required=false) MultipartFile gstDocument, @RequestParam(value="companyDocument", required=false) MultipartFile companyDocument, @RequestParam(value="supportingDocument", required=false) MultipartFile supportingDocument) {
+    @PostMapping(value = { "/register" })
+    public String registerUser(@Valid @ModelAttribute("vendorRegistrationForm") VendorRegistrationForm form,
+            BindingResult bindingResult, Model model,
+            @RequestParam(value = "gstDocument", required = false) MultipartFile gstDocument,
+            @RequestParam(value = "companyDocument", required = false) MultipartFile companyDocument,
+            @RequestParam(value = "supportingDocument", required = false) MultipartFile supportingDocument) {
         if (bindingResult.hasErrors()) {
-            log.warn("Registration validation failed for username {} with {} error(s)", form.getUsername(), bindingResult.getErrorCount());
+            log.warn("Registration validation failed for username {} with {} error(s)", form.getUsername(),
+                    bindingResult.getErrorCount());
             model.addAttribute("vendorRegistrationForm", form);
             return "signup";
         }
@@ -84,31 +90,31 @@ public class AuthController {
             this.vendorRegistrationService.registerVendor(form, gstDocument, companyDocument, supportingDocument);
             log.info("Vendor registration successful for: {}", form.getUsername());
             return "redirect:/login?pendingVerification=true";
-        }
-        catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException ex) {
             log.warn("Registration validation error for username {}: {}", form.getUsername(), ex.getMessage());
             return "redirect:/signup?error=" + this.mapRegistrationError(ex.getMessage());
-        }
-        catch (Exception ex) {
-            log.error("Unexpected error during vendor registration for username {}: {}", form.getUsername(), ex.getMessage(), ex);
+        } catch (Exception ex) {
+            log.error("Unexpected error during vendor registration for username {}: {}", form.getUsername(),
+                    ex.getMessage(), ex);
             ex.printStackTrace();
             return "redirect:/signup?error=registration_failed";
         }
 
     }
 
-    @PostMapping(value={"/signup"})
+    @PostMapping(value = { "/signup" })
     public String legacySignupRedirect() {
         return "redirect:/register";
     }
 
-    @GetMapping(value={"/admin/dashboard"})
+    @GetMapping(value = { "/admin/dashboard" })
     public String adminDashboard() {
         return "dashboard";
     }
 
     private boolean isAuthenticated(Authentication authentication) {
-        return authentication != null && authentication.isAuthenticated() && !(authentication instanceof AnonymousAuthenticationToken);
+        return authentication != null && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken);
     }
 
     private boolean hasRole(Authentication authentication, String role) {
@@ -135,4 +141,3 @@ public class AuthController {
     }
 
 }
-

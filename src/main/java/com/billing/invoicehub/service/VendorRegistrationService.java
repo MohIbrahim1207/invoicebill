@@ -70,6 +70,15 @@ public class VendorRegistrationService {
     @Transactional
     public AppUser registerVendor(VendorRegistrationForm form, MultipartFile gstDocument, MultipartFile companyDocument, MultipartFile supportingDocument) throws IOException {
         log.info("=== Starting vendor registration for username: {} ===", form.getUsername());
+        
+        long maxSizeBytes = 10 * 1024 * 1024;
+        String sizeError = "File size exceeds the maximum allowed limit of 10 MB. Please upload a smaller file.";
+        if ((gstDocument != null && gstDocument.getSize() > maxSizeBytes) ||
+            (companyDocument != null && companyDocument.getSize() > maxSizeBytes) ||
+            (supportingDocument != null && supportingDocument.getSize() > maxSizeBytes)) {
+            throw new IllegalArgumentException(sizeError);
+        }
+
         this.validateRegistration(form, gstDocument, companyDocument);
         if (this.userRepository.findByUsername(form.getUsername()).isPresent()) {
             throw new IllegalArgumentException("Username already exists");

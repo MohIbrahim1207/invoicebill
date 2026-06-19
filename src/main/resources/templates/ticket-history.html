@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,108 +9,135 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/portal.css}">
 </head>
+
 <body class="portal-bg">
-<div th:replace="fragments/layout :: topbar(#{ticket.history.page.heading})"></div>
-<div th:replace="fragments/layout :: sidebarMobile('history')"></div>
-<div class="portal-shell">
-    <div th:replace="fragments/layout :: sidebar('history')"></div>
-    <main class="portal-main">
-        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 gap-2">
-            <div>
-                <h1 class="portal-heading mb-1" th:text="#{ticket.history.page.heading}">Ticket History</h1>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="/vendor-tickets" th:text="#{ticket.history.breadcrumb.tickets}">Vendor Tickets</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Ticket <span th:text="${ticket?.ticketNo}">History</span></li>
-                    </ol>
-                </nav>
-            </div>
-        </div>
-
-        <div class="card portal-card mt-3">
-            <div class="card-body">
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <h5 class="text-muted" th:text="#{ticket.history.ticketNo}">Ticket No</h5>
-                        <p class="fw-bold" th:text="${ticket != null && ticket.ticketNo != null ? ticket.ticketNo : '-'}">-</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h5 class="text-muted" th:text="#{ticket.history.invoiceNo}">Invoice No</h5>
-                        <p class="fw-bold" th:text="${ticket != null && ticket.invoiceNo != null ? ticket.invoiceNo : '-'}">-</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h5 class="text-muted" th:text="#{ticket.history.currentStatus}">Current Status</h5>
-                        <p class="fw-bold" th:with="statusName=${ticket != null && ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
-                            <span th:if="${statusName == 'OPEN'}" class="badge bg-dark" th:text="#{ticket.history.status.open}">Open</span>
-                            <span th:if="${statusName == 'IN_PROGRESS'}" class="badge bg-primary" th:text="#{ticket.history.status.in_progress}">In Progress</span>
-                            <span th:if="${statusName == 'REVISE'}" class="badge bg-danger" th:text="#{ticket.history.status.revise}">Revise</span>
-                            <span th:if="${statusName == 'RESOLVED'}" class="badge bg-success" th:text="#{ticket.history.status.resolved}">Resolved</span>
-                            <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary" th:text="#{ticket.history.status.cancel}">Cancel</span>
-                            <span th:if="${statusName == null}" class="badge bg-light text-dark">-</span>
-                        </p>
-                    </div>
-                    <div class="col-md-6">
-                        <h5 class="text-muted" th:text="#{ticket.history.amount}">Amount</h5>
-                        <p class="fw-bold" th:text="${ticket != null && ticket.amount != null ? 'Rp ' + #numbers.formatDecimal(ticket.amount, 1, 'POINT', 0, 'COMMA') : '-'}">-</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h5 class="text-muted" th:text="#{ticket.history.subtotal}">Subtotal</h5>
-                        <p class="fw-bold" th:text="${ticket != null && ticket.subtotal != null ? 'Rp ' + #numbers.formatDecimal(ticket.subtotal, 1, 'POINT', 0, 'COMMA') : '-'}">-</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h5 class="text-muted" th:text="#{ticket.history.tax}">Tax</h5>
-                        <p class="fw-bold" th:text="${ticket != null && ticket.tax != null ? 'Rp ' + #numbers.formatDecimal(ticket.tax, 1, 'POINT', 0, 'COMMA') : '-'}">-</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h5 class="text-muted" th:text="#{ticket.history.total}">Total</h5>
-                        <p class="fw-bold" th:text="${ticket != null && ticket.total != null ? 'Rp ' + #numbers.formatDecimal(ticket.total, 1, 'POINT', 0, 'COMMA') : '-'}">-</p>
-                    </div>
-                </div>
-
-                <h2 class="section-title mb-3" th:text="#{ticket.history.approval.trail}">Approval Trail</h2>
-                <div class="table-responsive">
-                    <table class="table align-middle portal-table">
-                        <thead>
-                            <tr>
-                                <th th:text="#{ticket.history.table.status}">Status</th>
-                                <th th:text="#{ticket.history.table.date}">Date</th>
-                                <th th:text="#{ticket.history.table.comment}">Comment</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <tr th:if="${history == null or #lists.isEmpty(history)}" class="table-empty-row">
-                            <td colspan="3">
-                                <div class="empty-state">
-                                    <i class="bi bi-inbox"></i>
-                                    <p th:text="#{ticket.history.no.history}">No history available.</p>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr th:if="${history != null and !#lists.isEmpty(history)}" th:each="record : ${history}" th:with="recordStatus=${record.status != null ? record.status.name() : null}">
-                            <td>
-                                <span th:if="${recordStatus == 'OPEN'}" class="badge bg-dark" th:text="#{ticket.history.status.open}">Open</span>
-                                <span th:if="${recordStatus == 'IN_PROGRESS'}" class="badge bg-primary" th:text="#{ticket.history.status.in_progress}">In Progress</span>
-                                <span th:if="${recordStatus == 'REVISE'}" class="badge bg-danger" th:text="#{ticket.history.status.revise}">Revise</span>
-                                <span th:if="${recordStatus == 'RESOLVED'}" class="badge bg-success" th:text="#{ticket.history.status.resolved}">Resolved</span>
-                                <span th:if="${recordStatus == 'CANCEL'}" class="badge bg-secondary" th:text="#{ticket.history.status.cancel}">Cancel</span>
-                                <span th:if="${recordStatus == null}" class="badge bg-light text-dark">-</span>
-                            </td>
-                            <td th:text="${#temporals.format(record.changedAt, 'MMM dd, yyyy')}">-</td>
-                            <td th:text="${record.comment != null ? record.comment : '-'}">-</td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="mt-4">
-                    <a href="/vendor-tickets" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> <span th:text="#{common.back}">Back</span>
-                    </a>
+    <div th:replace="fragments/layout :: topbar(#{ticket.history.page.heading})"></div>
+    <div th:replace="fragments/layout :: sidebarMobile('history')"></div>
+    <div class="portal-shell">
+        <div th:replace="fragments/layout :: sidebar('history')"></div>
+        <main class="portal-main">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 gap-2">
+                <div>
+                    <h1 class="portal-heading mb-1" th:text="#{ticket.history.page.heading}">Ticket History</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="/vendor-tickets"
+                                    th:text="#{ticket.history.breadcrumb.tickets}">Vendor Tickets</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Ticket <span
+                                    th:text="${ticket?.ticketNo}">History</span></li>
+                        </ol>
+                    </nav>
                 </div>
             </div>
-        </div>
-    </main>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+            <div class="card portal-card mt-3">
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5 class="text-muted" th:text="#{ticket.history.ticketNo}">Ticket No</h5>
+                            <p class="fw-bold"
+                                th:text="${ticket != null && ticket.ticketNo != null ? ticket.ticketNo : '-'}">-</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-muted" th:text="#{ticket.history.invoiceNo}">Invoice No</h5>
+                            <p class="fw-bold"
+                                th:text="${ticket != null && ticket.invoiceNo != null ? ticket.invoiceNo : '-'}">-</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-muted" th:text="#{ticket.history.currentStatus}">Current Status</h5>
+                            <p class="fw-bold"
+                                th:with="statusName=${ticket != null && ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
+                                <span th:if="${statusName == 'OPEN'}" class="badge bg-dark"
+                                    th:text="#{ticket.history.status.open}">Open</span>
+                                <span th:if="${statusName == 'IN_PROGRESS'}" class="badge bg-primary"
+                                    th:text="#{ticket.history.status.in_progress}">In Progress</span>
+                                <span th:if="${statusName == 'REVISE'}" class="badge bg-danger"
+                                    th:text="#{ticket.history.status.revise}">Revise</span>
+                                <span th:if="${statusName == 'RESOLVED'}" class="badge bg-success"
+                                    th:text="#{ticket.history.status.resolved}">Resolved</span>
+                                <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary"
+                                    th:text="#{ticket.history.status.cancel}">Cancel</span>
+                                <span th:if="${statusName == null}" class="badge bg-light text-dark">-</span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-muted" th:text="#{ticket.history.amount}">Amount</h5>
+                            <p class="fw-bold"
+                                th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket?.amount, ticket?.currency)}">
+                                -</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-muted" th:text="#{ticket.history.subtotal}">Subtotal</h5>
+                            <p class="fw-bold"
+                                th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket?.subtotal, ticket?.currency)}">
+                                -</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-muted" th:text="#{ticket.history.tax}">Tax</h5>
+                            <p class="fw-bold"
+                                th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket?.tax, ticket?.currency)}">
+                                -</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-muted" th:text="#{ticket.history.total}">Total</h5>
+                            <p class="fw-bold"
+                                th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket?.total, ticket?.currency)}">
+                                -</p>
+                        </div>
+                    </div>
+
+                    <h2 class="section-title mb-3" th:text="#{ticket.history.approval.trail}">Approval Trail</h2>
+                    <div class="table-responsive">
+                        <table class="table align-middle portal-table">
+                            <thead>
+                                <tr>
+                                    <th th:text="#{ticket.history.table.status}">Status</th>
+                                    <th th:text="#{ticket.history.table.date}">Date</th>
+                                    <th th:text="#{ticket.history.table.comment}">Comment</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:if="${history == null or #lists.isEmpty(history)}" class="table-empty-row">
+                                    <td colspan="3">
+                                        <div class="empty-state">
+                                            <i class="bi bi-inbox"></i>
+                                            <p th:text="#{ticket.history.no.history}">No history available.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr th:if="${history != null and !#lists.isEmpty(history)}"
+                                    th:each="record : ${history}"
+                                    th:with="recordStatus=${record.status != null ? record.status.name() : null}">
+                                    <td>
+                                        <span th:if="${recordStatus == 'OPEN'}" class="badge bg-dark"
+                                            th:text="#{ticket.history.status.open}">Open</span>
+                                        <span th:if="${recordStatus == 'IN_PROGRESS'}" class="badge bg-primary"
+                                            th:text="#{ticket.history.status.in_progress}">In Progress</span>
+                                        <span th:if="${recordStatus == 'REVISE'}" class="badge bg-danger"
+                                            th:text="#{ticket.history.status.revise}">Revise</span>
+                                        <span th:if="${recordStatus == 'RESOLVED'}" class="badge bg-success"
+                                            th:text="#{ticket.history.status.resolved}">Resolved</span>
+                                        <span th:if="${recordStatus == 'CANCEL'}" class="badge bg-secondary"
+                                            th:text="#{ticket.history.status.cancel}">Cancel</span>
+                                        <span th:if="${recordStatus == null}" class="badge bg-light text-dark">-</span>
+                                    </td>
+                                    <td th:text="${#temporals.format(record.changedAt, 'MMM dd, yyyy')}">-</td>
+                                    <td th:text="${record.comment != null ? record.comment : '-'}">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-4">
+                        <a href="/vendor-tickets" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> <span th:text="#{common.back}">Back</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

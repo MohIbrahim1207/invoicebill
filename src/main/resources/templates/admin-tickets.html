@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,203 +9,212 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/portal.css}">
 </head>
+
 <body class="portal-bg">
-<div th:replace="fragments/layout :: topbar('Admin Tickets')"></div>
-<div th:replace="fragments/layout :: sidebarMobile('admin-tickets')"></div>
-<div class="portal-shell">
-    <div th:replace="fragments/layout :: sidebar('admin-tickets')"></div>
-    <main class="portal-main">
-        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 gap-2">
-            <div>
-                <h1 class="portal-heading mb-1">All Vendor Tickets</h1>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="/admin/dashboard">Admin Panel</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">All Tickets</li>
-                    </ol>
-                </nav>
+    <div th:replace="fragments/layout :: topbar('Admin Tickets')"></div>
+    <div th:replace="fragments/layout :: sidebarMobile('admin-tickets')"></div>
+    <div class="portal-shell">
+        <div th:replace="fragments/layout :: sidebar('admin-tickets')"></div>
+        <main class="portal-main">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 gap-2">
+                <div>
+                    <h1 class="portal-heading mb-1">All Vendor Tickets</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="/admin/dashboard">Admin Panel</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">All Tickets</li>
+                        </ol>
+                    </nav>
+                </div>
             </div>
-        </div>
 
-        <div class="card portal-card">
-            <div class="card-body">
-                <div class="alert alert-success" th:if="${message}" th:text="${message}"></div>
-                <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
+            <div class="card portal-card">
+                <div class="card-body">
+                    <div class="alert alert-success" th:if="${message}" th:text="${message}"></div>
+                    <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
 
-                <form method="get" action="/admin/vendor-tickets" class="row g-3 mb-3">
-                    <div class="col-md-3">
-                        <label class="form-label">Ticket No</label>
-                        <input type="text" name="ticketNo" class="form-control" th:value="${ticketNo}" placeholder="Search ticket">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Invoice No</label>
-                        <input type="text" name="invoiceNo" class="form-control" th:value="${invoiceNo}" placeholder="Search invoice">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Year</label>
-                        <select name="year" class="form-select">
-                            <option value="">All</option>
-                            <option th:each="availableYear : ${availableYears}"
-                                    th:value="${availableYear}"
-                                    th:text="${availableYear}"
-                                    th:selected="${year != null and year == availableYear}"></option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Status</label>
-                        <select name="status" class="form-select">
-                            <option value="ALL" th:selected="${status == null or status == 'ALL'}">ALL</option>
-                            <option th:each="option : ${statusOptions}"
-                                    th:value="${option.name()}"
+                    <form method="get" action="/admin/vendor-tickets" class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Ticket No</label>
+                            <input type="text" name="ticketNo" class="form-control" th:value="${ticketNo}"
+                                placeholder="Search ticket">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Invoice No</label>
+                            <input type="text" name="invoiceNo" class="form-control" th:value="${invoiceNo}"
+                                placeholder="Search invoice">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Year</label>
+                            <select name="year" class="form-select">
+                                <option value="">All</option>
+                                <option th:each="availableYear : ${availableYears}" th:value="${availableYear}"
+                                    th:text="${availableYear}" th:selected="${year != null and year == availableYear}">
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="ALL" th:selected="${status == null or status == 'ALL'}">ALL</option>
+                                <option th:each="option : ${statusOptions}" th:value="${option.name()}"
                                     th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(option.name(), '_', ' ')))}"
                                     th:selected="${status == option.name()}"></option>
-                        </select>
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-search"></i> Search
-                        </button>
-                    </div>
-                </form>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search"></i> Search
+                            </button>
+                        </div>
+                    </form>
 
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>No</th>
-                            <th>Ticket No</th>
-                            <th>Invoice No</th>
-                            <th>Vendor</th>
-                            <th>Amount</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:if="${tickets == null or #lists.isEmpty(tickets)}" class="table-empty-row">
-                            <td colspan="8">
-                                <div class="empty-state">
-                                    <i class="bi bi-ticket-perforated"></i>
-                                    <p>No vendor tickets found.</p>
-                                </div>
-                            </td>
-                        </tr>
-                        <th:block th:if="${tickets != null and !#lists.isEmpty(tickets)}" th:each="ticket, row : ${tickets}">
+                    <table class="table table-hover align-middle">
+                        <thead>
                             <tr>
-                                <td th:text="${row.index + 1}"></td>
-                                <td th:text="${ticket.ticketNo}"></td>
-                                <td th:text="${ticket.invoiceNo}"></td>
-                                <td th:text="${ticket.vendor != null ? ticket.vendor.username : '-'}"></td>
-                                <td th:text="${ticket.amount != null ? 'Rp ' + #numbers.formatDecimal(ticket.amount, 1, 'POINT', 0, 'COMMA') : '-'}"></td>
-                                <td th:text="${ticket.invoiceDate}"></td>
-                                <td th:with="statusName=${ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
-                                    <span th:if="${statusName == 'OPEN'}" class="badge bg-dark">Open</span>
-                                    <span th:if="${statusName == 'IN_PROGRESS'}" class="badge bg-primary">In Progress</span>
-                                    <span th:if="${statusName == 'REVISE'}" class="badge bg-danger">Revise</span>
-                                    <span th:if="${statusName == 'RESOLVED'}" class="badge bg-success">Resolved</span>
-                                    <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
-                                    <span th:if="${statusName == null}" class="text-muted">-</span>
-                                </td>
-                                <td>
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-secondary me-1 js-ticket-history-btn"
-                                            th:attr="data-history-url=@{/admin/tickets/{id}/manage(id=${ticket.id})},data-ticket-no=${ticket.ticketNo},data-invoice-no=${ticket.invoiceNo},data-vendor=${ticket.vendor != null ? ticket.vendor.username : '-'}">
-                                        <i class="bi bi-clock-history"></i> History
-                                    </button>
-                                    <a th:href="@{/admin/tickets/{id}/manage(id=${ticket.id})}" class="btn btn-sm btn-outline-primary">
-                                        <i class="bi bi-pencil"></i> Update Status
-                                    </a>
+                                <th>No</th>
+                                <th>Ticket No</th>
+                                <th>Invoice No</th>
+                                <th>Vendor</th>
+                                <th>Amount</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${tickets == null or #lists.isEmpty(tickets)}" class="table-empty-row">
+                                <td colspan="8">
+                                    <div class="empty-state">
+                                        <i class="bi bi-ticket-perforated"></i>
+                                        <p>No vendor tickets found.</p>
+                                    </div>
                                 </td>
                             </tr>
-                        </th:block>
-        D            </tbody>
-                </table>
-            </div>
-        </div>
-    </main>
-</div>
-
-<div class="modal fade" id="ticketHistoryModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div>
-                    <h5 class="modal-title mb-1">Ticket History</h5>
-                    <small class="text-muted" id="ticketHistoryModalMeta">Loading...</small>
+                            <th:block th:if="${tickets != null and !#lists.isEmpty(tickets)}"
+                                th:each="ticket, row : ${tickets}">
+                                <tr>
+                                    <td th:text="${row.index + 1}"></td>
+                                    <td th:text="${ticket.ticketNo}"></td>
+                                    <td th:text="${ticket.invoiceNo}"></td>
+                                    <td th:text="${ticket.vendor != null ? ticket.vendor.username : '-'}"></td>
+                                    <td
+                                        th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.amount, ticket.currency)}">
+                                    </td>
+                                    <td th:text="${ticket.invoiceDate}"></td>
+                                    <td
+                                        th:with="statusName=${ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
+                                        <span th:if="${statusName == 'OPEN'}" class="badge bg-dark">Open</span>
+                                        <span th:if="${statusName == 'IN_PROGRESS'}" class="badge bg-primary">In
+                                            Progress</span>
+                                        <span th:if="${statusName == 'REVISE'}" class="badge bg-danger">Revise</span>
+                                        <span th:if="${statusName == 'RESOLVED'}"
+                                            class="badge bg-success">Resolved</span>
+                                        <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
+                                        <span th:if="${statusName == null}" class="text-muted">-</span>
+                                    </td>
+                                    <td>
+                                        <button type="button"
+                                            class="btn btn-sm btn-outline-secondary me-1 js-ticket-history-btn"
+                                            th:attr="data-history-url=@{/admin/tickets/{id}/manage(id=${ticket.id})},data-ticket-no=${ticket.ticketNo},data-invoice-no=${ticket.invoiceNo},data-vendor=${ticket.vendor != null ? ticket.vendor.username : '-'}">
+                                            <i class="bi bi-clock-history"></i> History
+                                        </button>
+                                        <a th:href="@{/admin/tickets/{id}/manage(id=${ticket.id})}"
+                                            class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-pencil"></i> Update Status
+                                        </a>
+                                    </td>
+                                </tr>
+                            </th:block>
+                            D
+                        </tbody>
+                    </table>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body" id="ticketHistoryModalBody">
-                <div class="text-center py-5 text-muted">
-                    <div class="spinner-border text-primary mb-3" role="status"></div>
-                    <p class="mb-0">Open a ticket history entry to view it here.</p>
+        </main>
+    </div>
+
+    <div class="modal fade" id="ticketHistoryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-1">Ticket History</h5>
+                        <small class="text-muted" id="ticketHistoryModalMeta">Loading...</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="ticketHistoryModalBody">
+                    <div class="text-center py-5 text-muted">
+                        <div class="spinner-border text-primary mb-3" role="status"></div>
+                        <p class="mb-0">Open a ticket history entry to view it here.</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        if (!window.bootstrap) return;
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!window.bootstrap) return;
 
-        const modalEl = document.getElementById('ticketHistoryModal');
-        const modalBody = document.getElementById('ticketHistoryModalBody');
-        const modalMeta = document.getElementById('ticketHistoryModalMeta');
-        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            const modalEl = document.getElementById('ticketHistoryModal');
+            const modalBody = document.getElementById('ticketHistoryModalBody');
+            const modalMeta = document.getElementById('ticketHistoryModalMeta');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
 
-        document.querySelectorAll('.js-ticket-history-btn').forEach(function (btn) {
-            btn.addEventListener('click', async function () {
-                const historyUrl = btn.getAttribute('data-history-url');
-                const ticketNo = btn.getAttribute('data-ticket-no') || '-';
-                const invoiceNo = btn.getAttribute('data-invoice-no') || '-';
-                const vendor = btn.getAttribute('data-vendor') || '-';
+            document.querySelectorAll('.js-ticket-history-btn').forEach(function (btn) {
+                btn.addEventListener('click', async function () {
+                    const historyUrl = btn.getAttribute('data-history-url');
+                    const ticketNo = btn.getAttribute('data-ticket-no') || '-';
+                    const invoiceNo = btn.getAttribute('data-invoice-no') || '-';
+                    const vendor = btn.getAttribute('data-vendor') || '-';
 
-                if (modalMeta) {
-                    modalMeta.textContent = `Ticket ${ticketNo} | Invoice ${invoiceNo} | Vendor: ${vendor}`;
-                }
-                if (modalBody) {
-                    modalBody.innerHTML = `
+                    if (modalMeta) {
+                        modalMeta.textContent = `Ticket ${ticketNo} | Invoice ${invoiceNo} | Vendor: ${vendor}`;
+                    }
+                    if (modalBody) {
+                        modalBody.innerHTML = `
                         <div class="text-center py-5 text-muted">
                             <div class="spinner-border text-primary mb-3" role="status"></div>
                             <p class="mb-0">Loading ticket history...</p>
                         </div>`;
-                }
-
-                modal.show();
-
-                try {
-                    const response = await fetch(historyUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                    if (!response.ok) {
-                        throw new Error('Unable to load ticket details.');
                     }
 
-                    const html = await response.text();
-                    const doc = new DOMParser().parseFromString(html, 'text/html');
-                    const historyCard = Array.from(doc.querySelectorAll('.card.portal-card')).find(function (card) {
-                        return Array.from(card.querySelectorAll('h2.section-title')).some(function (title) {
-                            return title.textContent.trim() === 'Status History';
+                    modal.show();
+
+                    try {
+                        const response = await fetch(historyUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                        if (!response.ok) {
+                            throw new Error('Unable to load ticket details.');
+                        }
+
+                        const html = await response.text();
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        const historyCard = Array.from(doc.querySelectorAll('.card.portal-card')).find(function (card) {
+                            return Array.from(card.querySelectorAll('h2.section-title')).some(function (title) {
+                                return title.textContent.trim() === 'Status History';
+                            });
                         });
-                    });
 
-                    if (!historyCard) {
-                        throw new Error('History section not found.');
-                    }
+                        if (!historyCard) {
+                            throw new Error('History section not found.');
+                        }
 
-                    const cardBody = historyCard.querySelector('.card-body');
-                    modalBody.innerHTML = cardBody ? cardBody.innerHTML : historyCard.innerHTML;
-                } catch (error) {
-                    modalBody.innerHTML = `
+                        const cardBody = historyCard.querySelector('.card-body');
+                        modalBody.innerHTML = cardBody ? cardBody.innerHTML : historyCard.innerHTML;
+                    } catch (error) {
+                        modalBody.innerHTML = `
                         <div class="alert alert-danger mb-0">
                             <i class="bi bi-exclamation-triangle me-2"></i>
                             Failed to load ticket history.
                         </div>`;
-                }
+                    }
+                });
             });
         });
-    });
-</script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html>
 
+</html>

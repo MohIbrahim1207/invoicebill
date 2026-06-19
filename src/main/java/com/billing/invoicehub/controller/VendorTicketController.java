@@ -44,21 +44,29 @@ public class VendorTicketController {
         this.vendorTicketService = vendorTicketService;
     }
 
-    @GetMapping(value = {"/vendor/tickets", "/vendor-tickets"})
-    public String vendorTickets(@RequestParam(value="ticketNo", required=false) String ticketNo, @RequestParam(value="invoiceNo", required=false) String invoiceNo, @RequestParam(value="year", required=false) Integer year, @RequestParam(value="status", required=false, defaultValue="ALL") String status, @RequestParam(value="historyTicketId", required=false) Long historyTicketId, Authentication authentication, Model model, RedirectAttributes redirectAttributes) {
+    @GetMapping(value = { "/vendor/tickets", "/vendor-tickets" })
+    public String vendorTickets(@RequestParam(value = "ticketNo", required = false) String ticketNo,
+            @RequestParam(value = "invoiceNo", required = false) String invoiceNo,
+            @RequestParam(value = "year", required = false) Integer year,
+            @RequestParam(value = "status", required = false, defaultValue = "ALL") String status,
+            @RequestParam(value = "historyTicketId", required = false) Long historyTicketId,
+            Authentication authentication, Model model, RedirectAttributes redirectAttributes) {
         Optional<AppUser> currentUser = this.currentUser(authentication);
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
             return "redirect:/login";
         }
 
-        logger.debug("Vendor ticket list requested by '{}' with ticketNo='{}', invoiceNo='{}', year={}, status='{}', historyTicketId={}",
-                authentication != null ? authentication.getName() : null, ticketNo, invoiceNo, year, status, historyTicketId);
+        logger.debug(
+                "Vendor ticket list requested by '{}' with ticketNo='{}', invoiceNo='{}', year={}, status='{}', historyTicketId={}",
+                authentication != null ? authentication.getName() : null, ticketNo, invoiceNo, year, status,
+                historyTicketId);
 
         boolean admin = this.isAdmin(currentUser.get());
         List<VendorTicket> tickets = admin
                 ? this.vendorTicketService.searchTickets(ticketNo, invoiceNo, year, status)
-                : this.vendorTicketService.searchTicketsForOwner(currentUser.get().getId(), ticketNo, invoiceNo, year, status);
+                : this.vendorTicketService.searchTicketsForOwner(currentUser.get().getId(), ticketNo, invoiceNo, year,
+                        status);
 
         model.addAttribute("tickets", tickets);
         model.addAttribute("availableYears", admin
@@ -71,9 +79,11 @@ public class VendorTicketController {
         model.addAttribute("status", status == null ? "ALL" : status);
         if (historyTicketId != null) {
             logger.debug("History requested for ticketId={} by user='{}'", historyTicketId, authentication.getName());
-            Optional<VendorTicket> ticket = this.vendorTicketService.getAccessibleTicket(historyTicketId, authentication.getName());
+            Optional<VendorTicket> ticket = this.vendorTicketService.getAccessibleTicket(historyTicketId,
+                    authentication.getName());
             if (ticket.isEmpty()) {
-                logger.debug("Ticket {} not found or not accessible for user '{}'", historyTicketId, authentication.getName());
+                logger.debug("Ticket {} not found or not accessible for user '{}'", historyTicketId,
+                        authentication.getName());
                 redirectAttributes.addFlashAttribute("error", "Ticket not found or access denied.");
                 return "redirect:/vendor/tickets";
             }
@@ -87,8 +97,9 @@ public class VendorTicketController {
         return "vendor-tickets";
     }
 
-    @PostMapping(value = {"/vendor/tickets/{id}/cancel", "/vendor-tickets/{id}/cancel"})
-    public String cancelTicket(@PathVariable Long id, Authentication authentication, RedirectAttributes redirectAttributes) {
+    @PostMapping(value = { "/vendor/tickets/{id}/cancel", "/vendor-tickets/{id}/cancel" })
+    public String cancelTicket(@PathVariable Long id, Authentication authentication,
+            RedirectAttributes redirectAttributes) {
         Optional<AppUser> currentUser = this.currentUser(authentication);
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
@@ -104,8 +115,9 @@ public class VendorTicketController {
         return "redirect:/vendor/tickets";
     }
 
-    @GetMapping(value = {"/vendor/tickets/{id}/history", "/vendor-tickets/{id}/history"})
-    public String ticketHistory(@PathVariable Long id, Authentication authentication, Model model, RedirectAttributes redirectAttributes) {
+    @GetMapping(value = { "/vendor/tickets/{id}/history", "/vendor-tickets/{id}/history" })
+    public String ticketHistory(@PathVariable Long id, Authentication authentication, Model model,
+            RedirectAttributes redirectAttributes) {
         Optional<AppUser> currentUser = this.currentUser(authentication);
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
@@ -124,8 +136,9 @@ public class VendorTicketController {
         return "ticket-history";
     }
 
-    @GetMapping(value = {"/vendor-tickets/new"})
-    public String newTicketStep2(Authentication authentication, HttpSession session, Model model, RedirectAttributes redirectAttributes) {
+    @GetMapping(value = { "/vendor-tickets/new" })
+    public String newTicketStep2(Authentication authentication, HttpSession session, Model model,
+            RedirectAttributes redirectAttributes) {
         Optional<AppUser> currentUser = this.currentUser(authentication);
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
@@ -144,8 +157,9 @@ public class VendorTicketController {
         return "vendor-ticket-new-step2";
     }
 
-    @PostMapping(value = {"/vendor-tickets/new/step3"})
-    public String saveStep2(@Valid @ModelAttribute VendorTicketWizardState wizardState, BindingResult bindingResult, Authentication authentication, HttpSession session, Model model, RedirectAttributes redirectAttributes) {
+    @PostMapping(value = { "/vendor-tickets/new/step3" })
+    public String saveStep2(@Valid @ModelAttribute VendorTicketWizardState wizardState, BindingResult bindingResult,
+            Authentication authentication, HttpSession session, Model model, RedirectAttributes redirectAttributes) {
         Optional<AppUser> currentUser = this.currentUser(authentication);
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
@@ -153,7 +167,8 @@ public class VendorTicketController {
         }
 
         if (bindingResult.hasErrors()) {
-            logger.warn("Vendor ticket step 2 validation failed for user '{}' with {} error(s)", authentication.getName(), bindingResult.getErrorCount());
+            logger.warn("Vendor ticket step 2 validation failed for user '{}' with {} error(s)",
+                    authentication.getName(), bindingResult.getErrorCount());
             model.addAttribute("vendor", currentUser.get());
             model.addAttribute("wizardState", wizardState);
             return "vendor-ticket-new-step2";
@@ -164,8 +179,9 @@ public class VendorTicketController {
         return "redirect:/vendor-tickets/new/step3";
     }
 
-    @GetMapping(value = {"/vendor-tickets/new/step3"})
-    public String newTicketStep3(Authentication authentication, HttpSession session, Model model, RedirectAttributes redirectAttributes) {
+    @GetMapping(value = { "/vendor-tickets/new/step3" })
+    public String newTicketStep3(Authentication authentication, HttpSession session, Model model,
+            RedirectAttributes redirectAttributes) {
         Optional<AppUser> currentUser = this.currentUser(authentication);
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
@@ -183,19 +199,31 @@ public class VendorTicketController {
         return "vendor-ticket-new-step3";
     }
 
-    @PostMapping(value = {"/vendor-tickets/new/step4"})
-    public String saveStep3(@RequestParam(value="invoiceFile") MultipartFile invoiceFile,
-                           @RequestParam(value="taxDocument", required=false) MultipartFile taxDocument,
-                           @RequestParam(value="poCopy", required=false) MultipartFile poCopy,
-                           @RequestParam(value="deliveryNote", required=false) MultipartFile deliveryNote,
-                           @RequestParam(value="otherDocument", required=false) MultipartFile otherDocument,
-                           @RequestParam(value="supportingDocument", required=false) MultipartFile supportingDocument,
-                           Authentication authentication, HttpSession session,
-                           RedirectAttributes redirectAttributes) {
+    @PostMapping(value = { "/vendor-tickets/new/step4" })
+    public String saveStep3(@RequestParam(value = "invoiceFile") MultipartFile invoiceFile,
+            @RequestParam(value = "taxDocument", required = false) MultipartFile taxDocument,
+            @RequestParam(value = "poCopy", required = false) MultipartFile poCopy,
+            @RequestParam(value = "deliveryNote", required = false) MultipartFile deliveryNote,
+            @RequestParam(value = "otherDocument", required = false) MultipartFile otherDocument,
+            @RequestParam(value = "supportingDocument", required = false) MultipartFile supportingDocument,
+            Authentication authentication, HttpSession session,
+            RedirectAttributes redirectAttributes) {
         Optional<AppUser> currentUser = this.currentUser(authentication);
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
             return "redirect:/login";
+        }
+
+        long maxSizeBytes = 10 * 1024 * 1024;
+        String sizeError = "File size exceeds the maximum allowed limit of 10 MB. Please upload a smaller file.";
+        if ((invoiceFile != null && invoiceFile.getSize() > maxSizeBytes) ||
+            (taxDocument != null && taxDocument.getSize() > maxSizeBytes) ||
+            (poCopy != null && poCopy.getSize() > maxSizeBytes) ||
+            (deliveryNote != null && deliveryNote.getSize() > maxSizeBytes) ||
+            (otherDocument != null && otherDocument.getSize() > maxSizeBytes) ||
+            (supportingDocument != null && supportingDocument.getSize() > maxSizeBytes)) {
+            redirectAttributes.addFlashAttribute("error", sizeError);
+            return "redirect:/vendor-tickets/new/step3";
         }
 
         VendorTicketWizardState wizardState = this.wizardState(session);
@@ -219,7 +247,8 @@ public class VendorTicketController {
         }
 
         if (fileStorageService == null) {
-            redirectAttributes.addFlashAttribute("error", "File upload service is not configured. Please configure Firebase credentials.");
+            redirectAttributes.addFlashAttribute("error",
+                    "File upload service is not configured. Please configure Firebase credentials.");
             return "redirect:/vendor-tickets/new/step3";
         }
 
@@ -233,7 +262,6 @@ public class VendorTicketController {
             String invoiceFileUrl = fileStorageService.storeInvoiceFile(invoiceFile);
             wizardState.setInvoiceFileOriginalName(this.cleanFilename(invoiceFile.getOriginalFilename()));
             wizardState.setInvoiceFileUrl(invoiceFileUrl);
-
 
             if (wizardState.getTicketNo() == null) {
                 wizardState.setTicketNo(this.vendorTicketService.generateTicketNo());
@@ -278,7 +306,8 @@ public class VendorTicketController {
             if (supportingDocument != null && !supportingDocument.isEmpty()) {
                 try {
                     String supportingDocumentUrl = fileStorageService.storeSupportingDocument(supportingDocument);
-                    wizardState.setSupportingDocumentOriginalName(this.cleanFilename(supportingDocument.getOriginalFilename()));
+                    wizardState.setSupportingDocumentOriginalName(
+                            this.cleanFilename(supportingDocument.getOriginalFilename()));
                     wizardState.setSupportingDocumentUrl(supportingDocumentUrl);
                 } catch (IOException e) {
                     logger.warn("Failed to upload supporting document: {}", e.getMessage());
@@ -302,8 +331,9 @@ public class VendorTicketController {
         }
     }
 
-    @GetMapping(value = {"/vendor-tickets/new/step4"})
-    public String newTicketStep4(Authentication authentication, HttpSession session, Model model, RedirectAttributes redirectAttributes) {
+    @GetMapping(value = { "/vendor-tickets/new/step4" })
+    public String newTicketStep4(Authentication authentication, HttpSession session, Model model,
+            RedirectAttributes redirectAttributes) {
         Optional<AppUser> currentUser = this.currentUser(authentication);
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
@@ -319,8 +349,9 @@ public class VendorTicketController {
         return "vendor-ticket-new-step4";
     }
 
-    @PostMapping(value = {"/vendor-tickets/save"})
-    public String saveVendorTicket(Authentication authentication, HttpSession session, RedirectAttributes redirectAttributes) {
+    @PostMapping(value = { "/vendor-tickets/save" })
+    public String saveVendorTicket(Authentication authentication, HttpSession session,
+            RedirectAttributes redirectAttributes) {
         Optional<AppUser> currentUser = this.currentUser(authentication);
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
@@ -336,15 +367,15 @@ public class VendorTicketController {
             session.removeAttribute(WIZARD_SESSION_KEY);
             session.setAttribute(SUCCESS_TICKET_NO_KEY, saved.getTicketNo());
             return "redirect:/vendor-tickets/new/step5";
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
             return "redirect:/vendor-tickets/new/step4";
         }
     }
 
-    @GetMapping(value = {"/vendor-tickets/new/step5"})
-    public String newTicketStep5(Authentication authentication, HttpSession session, Model model, RedirectAttributes redirectAttributes) {
+    @GetMapping(value = { "/vendor-tickets/new/step5" })
+    public String newTicketStep5(Authentication authentication, HttpSession session, Model model,
+            RedirectAttributes redirectAttributes) {
         Optional<AppUser> currentUser = this.currentUser(authentication);
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
@@ -358,21 +389,22 @@ public class VendorTicketController {
         return "vendor-ticket-new-step5";
     }
 
-    @PostMapping(value = {"/vendor-tickets/new"})
-    public String legacyCreateVendorTicket(@ModelAttribute VendorTicket vendorTicket, @RequestParam Long clientId, Authentication authentication, RedirectAttributes redirectAttributes) {
+    @PostMapping(value = { "/vendor-tickets/new" })
+    public String legacyCreateVendorTicket(@ModelAttribute VendorTicket vendorTicket, @RequestParam Long clientId,
+            Authentication authentication, RedirectAttributes redirectAttributes) {
         try {
             this.vendorTicketService.createVendorTicket(vendorTicket, clientId, authentication.getName());
             redirectAttributes.addFlashAttribute("message", "Vendor ticket created successfully.");
             return "redirect:/vendor-tickets";
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Error creating vendor ticket: " + e.getMessage());
             return "redirect:/vendor-tickets/new";
         }
     }
 
     private boolean isAdmin(AppUser user) {
-        return user.getRoles().stream().anyMatch(role -> role.getName() != null && role.getName().equalsIgnoreCase("ROLE_ADMIN"));
+        return user.getRoles().stream()
+                .anyMatch(role -> role.getName() != null && role.getName().equalsIgnoreCase("ROLE_ADMIN"));
     }
 
     private Optional<AppUser> currentUser(Authentication authentication) {
@@ -397,4 +429,3 @@ public class VendorTicketController {
         return value.trim();
     }
 }
-

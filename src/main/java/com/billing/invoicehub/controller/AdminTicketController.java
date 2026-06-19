@@ -20,6 +20,7 @@ package com.billing.invoicehub.controller;
 
 import com.billing.invoicehub.entity.TicketStatus;
 import com.billing.invoicehub.entity.VendorTicket;
+import com.billing.invoicehub.entity.VendorTicketHistory;
 import com.billing.invoicehub.service.VendorTicketService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +49,7 @@ public class AdminTicketController {
 
     @GetMapping
     public String adminTickets(@RequestParam(value="ticketNo", required=false) String ticketNo, @RequestParam(value="invoiceNo", required=false) String invoiceNo, @RequestParam(value="year", required=false) Integer year, @RequestParam(value="status", required=false, defaultValue="ALL") String status, Model model) {
-        List tickets = this.vendorTicketService.searchTickets(ticketNo, invoiceNo, year, status);
+        List<VendorTicket> tickets = this.vendorTicketService.searchTickets(ticketNo, invoiceNo, year, status);
         model.addAttribute("tickets", (Object)tickets);
         model.addAttribute("availableYears", (Object)this.vendorTicketService.availableYears());
         model.addAttribute("statusOptions", (Object)TicketStatus.values());
@@ -62,15 +63,15 @@ public class AdminTicketController {
     @GetMapping(value={"/{id}/manage"})
     public String manageTicket(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         log.info("Loading ticket {} for management", id);
-        Optional ticket = this.vendorTicketService.getTicketById(id);
+        Optional<VendorTicket> ticket = this.vendorTicketService.getTicketById(id);
         if (ticket.isEmpty()) {
             log.warn("Ticket {} not found", id);
             redirectAttributes.addFlashAttribute("error", (Object)"Ticket not found.");
             return "redirect:/admin/tickets";
         }
         
-        VendorTicket vendorTicket = (VendorTicket) ticket.get();
-        List history = this.vendorTicketService.getTicketHistory(id);
+        VendorTicket vendorTicket = ticket.get();
+        List<VendorTicketHistory> history = this.vendorTicketService.getTicketHistory(id);
         
         // Build document information map for template
         Map<String, Map<String, String>> documents = buildDocumentMap(vendorTicket);
@@ -85,7 +86,7 @@ public class AdminTicketController {
 
     @PostMapping(value={"/{id}/update-status"})
     public String updateTicketStatus(@PathVariable Long id, @RequestParam TicketStatus newStatus, @RequestParam(required=false) String comment, RedirectAttributes redirectAttributes) {
-        Optional ticket = this.vendorTicketService.getTicketById(id);
+        Optional<VendorTicket> ticket = this.vendorTicketService.getTicketById(id);
         if (ticket.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", (Object)"Ticket not found.");
             return "redirect:/admin/tickets";
@@ -94,7 +95,7 @@ public class AdminTicketController {
             redirectAttributes.addFlashAttribute("error", (Object)("Comment is required for " + newStatus.name() + " status."));
             return "redirect:/admin/tickets/" + id + "/manage";
         }
-        VendorTicket vendorTicket = (VendorTicket)ticket.get();
+        VendorTicket vendorTicket = ticket.get();
         this.vendorTicketService.updateTicketStatusAndNotify(vendorTicket, newStatus, comment);
         redirectAttributes.addFlashAttribute("message", (Object)"Ticket status updated successfully.");
         return "redirect:/admin/tickets/" + id + "/manage";
