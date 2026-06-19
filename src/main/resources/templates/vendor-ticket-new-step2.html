@@ -348,6 +348,7 @@
             const toastMessage = document.getElementById("toastMessage");
             const toast = new bootstrap.Toast(toastEl);
             const currencySelect = document.querySelector('select[name="currency"]');
+            const amountInput = document.querySelector('input[name="amount"]');
 
             const msgFill = /*[[#{ticket.new.toast.fill}]]*/ '\uD83D\uDCDD Please fill in all required fields';
             const msgSubtotalErr = /*[[#{ticket.new.toast.subtotal.error}]]*/ '\u274C Subtotal must be greater than 0';
@@ -376,53 +377,26 @@
                 totalDisplay.placeholder = placeholder;
             }
 
-            function formatNumber(valText, currency) {
-                let clean = valText.toString().replace(/[^0-9.]/g, "");
-                if (currency !== "IDR") {
-                    const parts = clean.split(".");
-                    if (parts.length > 2) {
-                        clean = parts[0] + "." + parts.slice(1).join("");
-                    }
-                } else {
-                    clean = clean.replace(/\./g, "");
-                }
-                
-                if (!clean) return "";
-                const num = parseFloat(clean);
+            function formatCurrencyValue(num, currency) {
                 if (isNaN(num)) return "";
-                
                 if (currency === "IDR") {
-                    return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(Math.floor(num));
+                    return new Intl.NumberFormat("id-ID", {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    }).format(Math.floor(num));
                 } else {
-                    const endsWithDot = clean.endsWith(".");
-                    const hasDecimal = clean.includes(".");
-                    let formatted = new Intl.NumberFormat("en-US", {
+                    return new Intl.NumberFormat("en-US", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2
                     }).format(num);
-                    
-                    if (endsWithDot) {
-                        formatted += ".";
-                    } else if (hasDecimal) {
-                        const decimalPart = clean.split(".")[1];
-                        if (decimalPart === "") {
-                            formatted += ".";
-                        } else {
-                            const formattedMain = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Math.floor(num));
-                            formatted = formattedMain + "." + decimalPart;
-                        }
-                    }
-                    return formatted;
                 }
             }
 
             function parseValue(valText, currency) {
                 if (!valText) return 0;
-                let clean;
+                let clean = valText.toString().replace(/,/g, "");
                 if (currency === "IDR") {
-                    clean = valText.replace(/\./g, "").replace(/,/g, ".");
-                } else {
-                    clean = valText.replace(/,/g, "");
+                    clean = clean.replace(/\./g, "");
                 }
                 const parsed = parseFloat(clean);
                 return isNaN(parsed) ? 0 : parsed;
@@ -430,11 +404,12 @@
 
             function calculateTotal() {
                 const currency = currencySelect.value;
+                const amount = parseFloat(amountInput.value) || 0;
                 const subtotal = parseValue(subtotalInput.value, currency);
                 const tax = taxInput.value ? parseValue(taxInput.value, currency) : 0;
-                const total = subtotal + tax;
+                const total = amount + subtotal + tax;
 
-                totalDisplay.value = formatNumber(total.toFixed(currency === "IDR" ? 0 : 2), currency);
+                totalDisplay.value = formatCurrencyValue(total, currency);
                 subtotalHidden.value = subtotal;
                 taxHidden.value = tax;
                 totalHidden.value = total;
@@ -443,49 +418,65 @@
             function applyFormat(inputElement) {
                 const currency = currencySelect.value;
                 const val = parseValue(inputElement.value, currency);
-                inputElement.value = formatNumber(val.toFixed(currency === "IDR" ? 0 : 2), currency);
+                inputElement.value = formatCurrencyValue(val, currency);
                 calculateTotal();
+            }
+
+            function removeFormat(inputElement) {
+                const currency = currencySelect.value;
+                const val = parseValue(inputElement.value, currency);
+                if (val === 0) {
+                    inputElement.value = "";
+                } else {
+                    inputElement.value = currency === "IDR" ? val.toFixed(0) : val.toFixed(2);
+                }
             }
 
             function handleInput(e) {
                 const currency = currencySelect.value;
-                const cursorPosition = e.target.selectionStart;
-                const originalLength = e.target.value.length;
-                
-                e.target.value = formatNumber(e.target.value, currency);
-                
-                const newLength = e.target.value.length;
-                e.target.setSelectionRange(cursorPosition + (newLength - originalLength), cursorPosition + (newLength - originalLength));
-                
+                let valText = e.target.value;
+                if (currency === "IDR") {
+                    valText = valText.replace(/[^0-9]/g, "");
+                } else {
+                    valText = valText.replace(/[^0-9.]/g, "");
+                    const parts = valText.split(".");
+                    if (parts.length > 2) {
+                        valText = parts[0] + "." + parts.slice(1).join("");
+                    }
+                }
+                e.target.value = valText;
                 calculateTotal();
             }
 
+            amountInput.addEventListener("input", calculateTotal);
             subtotalInput.addEventListener("input", handleInput);
             taxInput.addEventListener("input", handleInput);
             subtotalInput.addEventListener("blur", () => applyFormat(subtotalInput));
             taxInput.addEventListener("blur", () => applyFormat(taxInput));
+            subtotalInput.addEventListener("focus", () => removeFormat(subtotalInput));
+            taxInput.addEventListener("focus", () => removeFormat(taxInput));
 
             currencySelect.addEventListener('change', () => {
                 const currency = currencySelect.value;
                 const subtotalVal = parseFloat(subtotalHidden.value) || 0;
                 const taxVal = parseFloat(taxHidden.value) || 0;
                 
-                subtotalInput.value = formatNumber(subtotalVal.toFixed(currency === "IDR" ? 0 : 2), currency);
-                taxInput.value = formatNumber(taxVal.toFixed(currency === "IDR" ? 0 : 2), currency);
+                subtotalInput.value = formatCurrencyValue(subtotalVal, currency);
+                taxInput.value = formatCurrencyValue(taxVal, currency);
                 
                 updateCurrencyLabels();
                 calculateTotal();
             });
 
-            if (subtotalHidden.value) {
-                subtotalInput.value = formatNumber(parseFloat(subtotalHidden.value).toFixed(currencySelect.value === "IDR" ? 0 : 2), currencySelect.value);
+            if (subtotalHidden.value && parseFloat(subtotalHidden.value) !== 0) {
+                subtotalInput.value = formatCurrencyValue(parseFloat(subtotalHidden.value), currencySelect.value);
             } else {
-                subtotalInput.value = formatNumber((0).toFixed(currencySelect.value === "IDR" ? 0 : 2), currencySelect.value);
+                subtotalInput.value = formatCurrencyValue(0, currencySelect.value);
             }
-            if (taxHidden.value) {
-                taxInput.value = formatNumber(parseFloat(taxHidden.value).toFixed(currencySelect.value === "IDR" ? 0 : 2), currencySelect.value);
+            if (taxHidden.value && parseFloat(taxHidden.value) !== 0) {
+                taxInput.value = formatCurrencyValue(parseFloat(taxHidden.value), currencySelect.value);
             } else {
-                taxInput.value = formatNumber((0).toFixed(currencySelect.value === "IDR" ? 0 : 2), currencySelect.value);
+                taxInput.value = formatCurrencyValue(0, currencySelect.value);
             }
             updateCurrencyLabels();
             calculateTotal();
