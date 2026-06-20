@@ -55,7 +55,16 @@ public class VendorTicketWizardState implements Serializable {
     @Size(max = 2000, message = "Remarks must not exceed 2000 characters")
     private String vendorRemarks;
 
+    private boolean duplicateFlag;
+    private String duplicateReason;
+
     // Getters and Setters
+    public boolean isDuplicateFlag() { return this.duplicateFlag; }
+    public void setDuplicateFlag(boolean duplicateFlag) { this.duplicateFlag = duplicateFlag; }
+
+    public String getDuplicateReason() { return this.duplicateReason; }
+    public void setDuplicateReason(String duplicateReason) { this.duplicateReason = duplicateReason; }
+
     public String getVendorRemarks() { return this.vendorRemarks; }
     public void setVendorRemarks(String vendorRemarks) { this.vendorRemarks = vendorRemarks; }
     public Long getClientId() { return this.clientId; }

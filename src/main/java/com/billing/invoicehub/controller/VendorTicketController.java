@@ -236,10 +236,7 @@ public class VendorTicketController {
             return "redirect:/vendor-tickets/new/step3";
         }
 
-        if (taxDocument == null || taxDocument.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", "Please upload the tax/VAT document.");
-            return "redirect:/vendor-tickets/new/step3";
-        }
+
 
         if (poCopy == null || poCopy.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please upload the PO copy.");
@@ -267,10 +264,15 @@ public class VendorTicketController {
                 wizardState.setTicketNo(this.vendorTicketService.generateTicketNo());
             }
 
-            // Upload required tax document
-            String taxDocumentUrl = fileStorageService.storeVendorDocument(taxDocument);
-            wizardState.setTaxDocumentOriginalName(this.cleanFilename(taxDocument.getOriginalFilename()));
-            wizardState.setTaxDocumentUrl(taxDocumentUrl);
+            // Upload tax document if provided
+            if (taxDocument != null && !taxDocument.isEmpty()) {
+                String taxDocumentUrl = fileStorageService.storeVendorDocument(taxDocument);
+                wizardState.setTaxDocumentOriginalName(this.cleanFilename(taxDocument.getOriginalFilename()));
+                wizardState.setTaxDocumentUrl(taxDocumentUrl);
+            } else {
+                wizardState.setTaxDocumentOriginalName(null);
+                wizardState.setTaxDocumentUrl(null);
+            }
 
             // Upload required PO copy
             String poCopyUrl = fileStorageService.storeVendorDocument(poCopy);
@@ -344,6 +346,21 @@ public class VendorTicketController {
             redirectAttributes.addFlashAttribute("error", "Please complete the previous steps first.");
             return "redirect:/vendor-tickets/new";
         }
+        
+        boolean isDup = this.vendorTicketService.isDuplicate(
+                currentUser.get().getId(),
+                wizardState.getInvoiceNo(),
+                wizardState.getPoNumber(),
+                null
+        );
+        wizardState.setDuplicateFlag(isDup);
+        if (isDup) {
+            wizardState.setDuplicateReason("Possible duplicate invoice detected. Please verify before submitting.");
+        } else {
+            wizardState.setDuplicateReason(null);
+        }
+        session.setAttribute(WIZARD_SESSION_KEY, wizardState);
+
         model.addAttribute("vendor", currentUser.get());
         model.addAttribute("wizardState", wizardState);
         return "vendor-ticket-new-step4";

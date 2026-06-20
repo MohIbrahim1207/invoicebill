@@ -31,6 +31,9 @@ public class VendorTicketService {
 
     private static final Logger log = LoggerFactory.getLogger(VendorTicketService.class);
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private AuditLogService auditLogService;
+
     private final InvoiceRepository invoiceRepository;
     private final VendorTicketRepository vendorTicketRepository;
     private final VendorTicketHistoryRepository vendorTicketHistoryRepository;
@@ -179,7 +182,22 @@ public class VendorTicketService {
         vendorTicket.setOtherDocumentUrl(state.getOtherDocumentUrl());
         vendorTicket.setStatusRequest(TicketStatus.OPEN);
         vendorTicket.setCreatedAt(LocalDateTime.now());
+
+        boolean isDup = this.isDuplicate(
+                vendor.getId(),
+                state.getInvoiceNo(),
+                state.getPoNumber(),
+                null
+        );
+        vendorTicket.setDuplicateFlag(isDup);
+        if (isDup) {
+            vendorTicket.setDuplicateReason("Possible duplicate invoice detected. Please verify before submitting.");
+        } else {
+            vendorTicket.setDuplicateReason(null);
+        }
+
         VendorTicket saved = vendorTicketRepository.save(vendorTicket);
+        auditLogService.log("Ticket Creation", "VendorTicket", saved.getId(), null, saved.getTicketNo());
         vendorTicketHistoryRepository
                 .save(new VendorTicketHistory(saved, TicketStatus.OPEN, LocalDateTime.now(), "Ticket submitted"));
         try {
@@ -255,8 +273,10 @@ public class VendorTicketService {
         if (ticket.isEmpty()) {
             return false;
         }
+        TicketStatus oldStatus = ticket.get().getStatusRequest();
         ticket.get().setStatusRequest(TicketStatus.CANCEL);
         vendorTicketRepository.save(ticket.get());
+        auditLogService.log("Ticket Cancellation", "VendorTicket", ticket.get().getId(), oldStatus != null ? oldStatus.name() : null, "CANCEL");
         vendorTicketHistoryRepository.save(
                 new VendorTicketHistory(ticket.get(), TicketStatus.CANCEL, LocalDateTime.now(), "Ticket cancelled"));
         return true;
@@ -279,8 +299,10 @@ public class VendorTicketService {
             return false;
         }
         VendorTicket t = ticket.get();
+        TicketStatus oldStatus = t.getStatusRequest();
         t.setStatusRequest(TicketStatus.CANCEL);
         vendorTicketRepository.save(t);
+        auditLogService.log("Ticket Cancellation", "VendorTicket", t.getId(), oldStatus != null ? oldStatus.name() : null, "CANCEL");
         vendorTicketHistoryRepository
                 .save(new VendorTicketHistory(t, TicketStatus.CANCEL, LocalDateTime.now(), "Ticket cancelled"));
         String recipientEmail = t.getVendor() != null ? t.getVendor().getEmail() : null;
@@ -298,13 +320,25 @@ public class VendorTicketService {
 
     @Transactional
     public void updateTicket(VendorTicket ticket) {
+        auditLogService.log("Ticket Update", "VendorTicket", ticket.getId(), null, "Updated ticket details");
         vendorTicketRepository.save(ticket);
     }
 
     @Transactional
     public void updateTicketStatusAndNotify(VendorTicket ticket, TicketStatus newStatus, String comment) {
+        TicketStatus oldStatus = ticket.getStatusRequest();
         ticket.setStatusRequest(newStatus);
         vendorTicketRepository.save(ticket);
+        
+        String logAction = "Ticket Update";
+        if (newStatus == TicketStatus.REVISE) {
+            logAction = "Revision Request";
+        } else if (newStatus == TicketStatus.RESOLVED) {
+            logAction = "Approval";
+        } else if (newStatus == TicketStatus.CANCEL) {
+            logAction = "Rejection";
+        }
+        auditLogService.log(logAction, "VendorTicket", ticket.getId(), oldStatus != null ? oldStatus.name() : null, newStatus.name());
         vendorTicketHistoryRepository.save(new VendorTicketHistory(ticket, newStatus, LocalDateTime.now(),
                 comment != null ? comment.trim() : ""));
 
@@ -369,6 +403,16 @@ public class VendorTicketService {
             return false;
         }
         return purchaseOrderService.validatePO(poNumber);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isDuplicate(Long vendorId, String invoiceNo, String poNumber, Long excludeId) {
+        if (vendorId == null || invoiceNo == null || poNumber == null) {
+            return false;
+        }
+        List<VendorTicket> duplicates = vendorTicketRepository.findActiveDuplicatesExcludingId(
+                vendorId, invoiceNo.trim(), poNumber.trim(), excludeId);
+        return !duplicates.isEmpty();
     }
 
     private String formatCurrency(Number n, String currency) {

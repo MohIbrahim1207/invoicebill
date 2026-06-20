@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>InvoiceHub - Audit Log</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/portal.css}">
+</head>
+
+<body class="portal-bg">
+    <div th:replace="fragments/layout :: topbar('Audit Log')"></div>
+    <div th:replace="fragments/layout :: sidebarMobile('audit-logs')"></div>
+    <div class="portal-shell">
+        <div th:replace="fragments/layout :: sidebar('audit-logs')"></div>
+        <main class="portal-main">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-2">
+                <div>
+                    <h1 class="portal-heading mb-1">Audit Log</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="/admin/dashboard">Admin Panel</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Audit Log</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Filter Panel -->
+            <div class="card portal-card mb-4">
+                <div class="card-body">
+                    <form method="get" action="/admin/audit-logs" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="usernameInput" class="form-label small fw-semibold text-muted">User</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                <input type="text" id="usernameInput" name="username" th:value="${username}" class="form-control" placeholder="Search user...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="actionSelect" class="form-label small fw-semibold text-muted">Action</label>
+                            <select id="actionSelect" name="action" class="form-select">
+                                <option value="">All Actions</option>
+                                <option value="Login" th:selected="${action == 'Login'}">Login</option>
+                                <option value="Logout" th:selected="${action == 'Logout'}">Logout</option>
+                                <option value="Vendor Registration" th:selected="${action == 'Vendor Registration'}">Vendor Registration</option>
+                                <option value="Ticket Creation" th:selected="${action == 'Ticket Creation'}">Ticket Creation</option>
+                                <option value="Ticket Update" th:selected="${action == 'Ticket Update'}">Ticket Update</option>
+                                <option value="Ticket Cancellation" th:selected="${action == 'Ticket Cancellation'}">Ticket Cancellation</option>
+                                <option value="Revision Request" th:selected="${action == 'Revision Request'}">Revision Request</option>
+                                <option value="Approval" th:selected="${action == 'Approval'}">Approval</option>
+                                <option value="Rejection" th:selected="${action == 'Rejection'}">Rejection</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="startDateInput" class="form-label small fw-semibold text-muted">Start Date</label>
+                            <input type="date" id="startDateInput" name="startDate" th:value="${startDate}" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="endDateInput" class="form-label small fw-semibold text-muted">End Date</label>
+                            <input type="date" id="endDateInput" name="endDate" th:value="${endDate}" class="form-control">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="w-100 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-funnel"></i> Filter</button>
+                                <a href="/admin/audit-logs" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Table Card -->
+            <div class="card portal-card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table portal-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-3" style="width: 80px;">ID</th>
+                                    <th style="width: 180px;">Timestamp</th>
+                                    <th>User</th>
+                                    <th>Role</th>
+                                    <th>Action</th>
+                                    <th>Entity</th>
+                                    <th style="width: 140px;">IP Address</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:if="${logs == null or #lists.isEmpty(logs)}">
+                                    <td colspan="8" class="text-center py-4 text-muted">
+                                        <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+                                        No audit log entries found.
+                                    </td>
+                                </tr>
+                                <tr th:each="logEntry : ${logs}">
+                                    <td class="ps-3 fw-semibold text-muted" th:text="${logEntry.id}"></td>
+                                    <td th:text="${#temporals.format(logEntry.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                                    <td>
+                                        <span class="fw-bold" th:text="${logEntry.username}"></span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border" th:text="${logEntry.role}"></span>
+                                    </td>
+                                    <td>
+                                        <span class="badge" th:classappend="${
+                                            logEntry.action == 'Login' ? 'bg-success' :
+                                            (logEntry.action == 'Logout' ? 'bg-secondary' :
+                                            (logEntry.action == 'Vendor Registration' ? 'bg-info text-dark' :
+                                            (logEntry.action == 'Ticket Creation' ? 'bg-primary' :
+                                            (logEntry.action == 'Ticket Update' ? 'bg-warning text-dark' :
+                                            (logEntry.action == 'Ticket Cancellation' ? 'bg-danger' :
+                                            (logEntry.action == 'Revision Request' ? 'bg-dark' :
+                                            (logEntry.action == 'Approval' ? 'bg-success' : 'bg-danger')))))))
+                                        }" th:text="${logEntry.action}"></span>
+                                    </td>
+                                    <td>
+                                        <span th:if="${logEntry.entityType}" class="small text-muted">
+                                            <span th:text="${logEntry.entityType}"></span>
+                                            <span th:if="${logEntry.entityId}" th:text="'(#' + ${logEntry.entityId} + ')'"></span>
+                                        </span>
+                                        <span th:if="${logEntry.entityType == null}">-</span>
+                                    </td>
+                                    <td class="text-monospace small" th:text="${logEntry.ipAddress}"></td>
+                                    <td>
+                                        <div class="small">
+                                            <div th:if="${logEntry.oldValue}" class="text-danger">
+                                                <i class="bi bi-dash-circle"></i> <span th:text="${logEntry.oldValue}"></span>
+                                            </div>
+                                            <div th:if="${logEntry.newValue}" class="text-success">
+                                                <i class="bi bi-plus-circle"></i> <span th:text="${logEntry.newValue}"></span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

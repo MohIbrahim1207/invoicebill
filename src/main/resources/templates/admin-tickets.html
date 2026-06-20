@@ -112,6 +112,7 @@
                                             class="badge bg-success">Resolved</span>
                                         <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
                                         <span th:if="${statusName == null}" class="text-muted">-</span>
+                                        <span th:if="${ticket.duplicateFlag}" class="badge bg-warning text-dark ms-1">Possible Duplicate</span>
                                     </td>
                                     <td>
                                         <button type="button"

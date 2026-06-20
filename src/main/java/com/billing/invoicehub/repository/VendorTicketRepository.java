@@ -38,5 +38,8 @@ extends JpaRepository<VendorTicket, Long> {
     public List<Integer> findAvailableYears();
 
     public long countByCreatedAtBetween(LocalDateTime var1, LocalDateTime var2);
+
+    @Query("select t from VendorTicket t where t.vendor.id = :vendorId and t.invoiceNo = :invoiceNo and t.poNumber = :poNumber and t.statusRequest <> 'CANCEL' and (:excludeId is null or t.id <> :excludeId)")
+    public List<VendorTicket> findActiveDuplicatesExcludingId(@Param("vendorId") Long vendorId, @Param("invoiceNo") String invoiceNo, @Param("poNumber") String poNumber, @Param("excludeId") Long excludeId);
 }
 

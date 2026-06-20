@@ -48,6 +48,9 @@ public class VendorRegistrationService {
     private final NotificationService notificationService;
     private final EmailService emailService;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private AuditLogService auditLogService;
+
     public VendorRegistrationService(AppUserRepository userRepository, AppRoleRepository roleRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService, NotificationService notificationService, EmailService emailService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -134,6 +137,7 @@ public class VendorRegistrationService {
         user.setRoles(Set.of(userRole));
         log.debug("Saving user to database: {}", form.getUsername());
         AppUser saved = this.userRepository.save(user);
+        auditLogService.log(saved.getUsername(), "ROLE_USER", "Vendor Registration", "AppUser", saved.getId(), null, "Vendor registered: " + saved.getUsername());
         this.sendRegistrationEmail(saved);
         log.info("Vendor registration received for {}", (Object)saved.getUsername());
         log.info("=== Vendor registration completed successfully for: {} ===", saved.getUsername());
@@ -151,6 +155,7 @@ public class VendorRegistrationService {
         vendor.setRejectionReason(null);
         vendor.setVendorCode(this.generateVendorCode());
         AppUser saved = this.userRepository.save(vendor);
+        auditLogService.log("Approval", "AppUser", saved.getId(), "Pending", "Verified: " + saved.getVendorCode());
         this.sendVerificationEmail(saved);
         log.info("Verified vendor {} with code {}", (Object)saved.getUsername(), (Object)saved.getVendorCode());
         try {
@@ -177,6 +182,7 @@ public class VendorRegistrationService {
         vendor.setVendorCode(null);
         vendor.setRejectionReason(trimmedReason);
         AppUser saved = this.userRepository.save(vendor);
+        auditLogService.log("Rejection", "AppUser", saved.getId(), "Pending", "Rejected: " + trimmedReason);
         this.sendRejectionEmail(saved, trimmedReason);
         log.info("Rejected vendor {}", (Object)saved.getUsername());
         return saved;

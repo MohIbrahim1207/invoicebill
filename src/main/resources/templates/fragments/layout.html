@@ -155,6 +155,9 @@
     <a href="/admin/purchase-orders" class="sidebar-link" th:classappend="${active == 'purchase-orders'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')">
         <i class="bi bi-file-earmark-text"></i> <span th:text="#{sidebar.purchase.orders}">Purchase Orders</span>
     </a>
+    <a href="/admin/audit-logs" class="sidebar-link" th:classappend="${active == 'audit-logs'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')">
+        <i class="bi bi-shield-check"></i> <span>Audit Log</span>
+    </a>
 </aside>
 
 <div th:fragment="sidebarMobile(active)" class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMobile" aria-labelledby="sidebarMobileLabel">
@@ -172,6 +175,7 @@
             <a href="/admin/vendor-tickets" class="sidebar-link" th:classappend="${active == 'admin-tickets'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i class="bi bi-list-task"></i> <span th:text="#{sidebar.admin.tickets}">Vendor Tickets</span></a>
              <a href="/admin/vendors" class="sidebar-link" th:classappend="${active == 'vendors'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i class="bi bi-person-badge"></i> <span th:text="#{sidebar.vendor.verification}">Vendor Verification</span></a>
              <a href="/admin/purchase-orders" class="sidebar-link" th:classappend="${active == 'purchase-orders'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i class="bi bi-file-earmark-text"></i> <span th:text="#{sidebar.purchase.orders}">Purchase Orders</span></a>
+             <a href="/admin/audit-logs" class="sidebar-link" th:classappend="${active == 'audit-logs'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i class="bi bi-shield-check"></i> <span>Audit Log</span></a>
         </div>
     </div>
 </div>

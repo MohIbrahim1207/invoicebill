@@ -161,8 +161,15 @@
 
                     <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
 
-                    <h2 class="section-title mb-1" th:text="#{ticket.new.step4.review.heading}">Please review before
-                        submitting</h2>
+                    <div class="alert alert-warning" th:if="${wizardState.duplicateFlag}">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span>Possible duplicate invoice detected. Please verify before submitting.</span>
+                    </div>
+
+                    <h2 class="section-title mb-1">
+                        <span th:text="#{ticket.new.step4.review.heading}">Please review before submitting</span>
+                        <span th:if="${wizardState.duplicateFlag}" class="badge bg-warning text-dark ms-2">Possible Duplicate</span>
+                    </h2>
                     <p class="text-muted mb-4" th:text="#{ticket.new.step4.review.subtitle}">Check the ticket details
                         below and go back if you need to make changes.</p>
 

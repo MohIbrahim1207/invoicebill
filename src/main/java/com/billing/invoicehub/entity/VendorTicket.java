@@ -60,7 +60,16 @@ public class VendorTicket {
     @jakarta.persistence.Column(length = 2000)
     private String vendorRemarks;
 
+    private boolean duplicateFlag;
+    private String duplicateReason;
+
     // Getters and Setters
+    public boolean isDuplicateFlag() { return duplicateFlag; }
+    public void setDuplicateFlag(boolean duplicateFlag) { this.duplicateFlag = duplicateFlag; }
+
+    public String getDuplicateReason() { return duplicateReason; }
+    public void setDuplicateReason(String duplicateReason) { this.duplicateReason = duplicateReason; }
+
     public String getVendorRemarks() { return vendorRemarks; }
     public void setVendorRemarks(String vendorRemarks) { this.vendorRemarks = vendorRemarks; }
 

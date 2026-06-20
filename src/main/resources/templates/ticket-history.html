@@ -58,6 +58,7 @@
                                 <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary"
                                     th:text="#{ticket.history.status.cancel}">Cancel</span>
                                 <span th:if="${statusName == null}" class="badge bg-light text-dark">-</span>
+                                <span th:if="${ticket != null && ticket.duplicateFlag}" class="badge bg-warning text-dark ms-1">Possible Duplicate</span>
                             </p>
                         </div>
                         <div class="col-md-6">

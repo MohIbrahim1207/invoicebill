@@ -177,7 +177,7 @@
                             <label for="taxDocument" class="form-label form-section-title"
                                 th:text="#{ticket.new.step3.taxDocument}">Tax/VAT Document</label>
                             <input type="file" id="taxDocument" name="taxDocument" class="form-control form-control-lg"
-                                accept=".pdf,image/*" required>
+                                accept=".pdf,image/*">
                             <div class="file-preview" id="taxFilePreview"
                                 th:text="${wizardState.taxDocumentOriginalName != null ? wizardState.taxDocumentOriginalName : #messages.msg('common.no.file.selected')}">
                                 No file selected</div>
