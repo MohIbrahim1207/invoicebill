@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="utf-8">
@@ -11,6 +11,46 @@
 </head>
 
 <body class="portal-bg auth-bg">
+    <!-- Language Switcher container -->
+    <div class="position-absolute top-0 end-0 p-3 z-3">
+        <div class="dropdown shadow-sm" th:with="currentLang=${#locale.language}">
+            <button class="btn btn-light btn-sm dropdown-toggle d-inline-flex align-items-center gap-1"
+                    type="button"
+                    id="languageSelector"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    th:title="#{nav.language}"
+                    th:aria-label="#{nav.language}">
+                <i class="bi bi-globe2" aria-hidden="true"></i>
+                <span th:text="${currentLang == 'id' ? 'Bahasa Indonesia' : 'English'}">English</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="languageSelector">
+                <li>
+                    <a class="dropdown-item d-flex align-items-center gap-2"
+                       href="#"
+                       th:classappend="${currentLang != 'id'} ? ' active' : ''"
+                       data-lang="en"
+                       onclick="changeLanguage('en'); return false;">
+                        <i class="bi bi-check-lg text-primary" th:classappend="${currentLang == 'id'} ? ' invisible' : ''"></i>
+                        <span>English</span>
+                        <span class="text-muted small">(en)</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item d-flex align-items-center gap-2"
+                       href="#"
+                       th:classappend="${currentLang == 'id'} ? ' active' : ''"
+                       data-lang="id"
+                       onclick="changeLanguage('id'); return false;">
+                        <i class="bi bi-check-lg text-primary" th:classappend="${currentLang != 'id'} ? ' invisible' : ''"></i>
+                        <span>Bahasa Indonesia</span>
+                        <span class="text-muted small">(id)</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
     <div class="container py-5">
         <div class="row justify-content-center align-items-center min-vh-100">
             <div class="col-12 col-md-8 col-lg-5">
@@ -32,13 +72,14 @@
                                     fill all required fields correctly.</span>
                                 <span th:if="${err == 'file_type'}" th:text="#{signup.error.file.type}">Only PDF, PNG,
                                     JPG, JPEG and WEBP files are allowed.</span>
+                                <span th:if="${err == 'file_size'}" th:text="#{signup.error.file.size}">File size exceeds the maximum allowed limit of 10 MB. Please upload a smaller file.</span>
                                 <span th:if="${err == 'password_error'}" th:text="#{signup.error.password}">Password
                                     must be at least 6 characters and match the confirmation.</span>
                                 <span th:if="${err == 'registration_failed'}"
                                     th:text="#{signup.error.registration.failed}">Registration could not be completed.
                                     Please try again.</span>
                                 <span
-                                    th:if="${err != 'username_exists' and err != 'invalid_input' and err != 'file_type' and err != 'password_error' and err != 'registration_failed'}"
+                                    th:if="${err != 'username_exists' and err != 'invalid_input' and err != 'file_type' and err != 'file_size' and err != 'password_error' and err != 'registration_failed'}"
                                     th:text="#{signup.error.generic}">An error occurred.</span>
                             </span>
                         </div>
@@ -184,11 +225,17 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+    <script th:inline="javascript">
+        function changeLanguage(lang) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('lang', lang);
+            window.location.assign(url.toString());
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
             const fileInputs = document.querySelectorAll('input[type="file"]');
             const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
-            const sizeErrorMessage = "File size exceeds the maximum allowed limit of 10 MB. Please upload a smaller file.";
+            const sizeErrorMessage = /*[[#{signup.error.file.size}]]*/ "File size exceeds the maximum allowed limit of 10 MB. Please upload a smaller file.";
 
             fileInputs.forEach(input => {
                 input.addEventListener('change', function() {

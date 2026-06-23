@@ -132,6 +132,9 @@ public class AuthController {
         if (normalized.contains("file type")) {
             return "file_type";
         }
+        if (normalized.contains("file size") || normalized.contains("exceeds")) {
+            return "file_size";
+        }
         if (normalized.contains("password")) {
             return "password_error";
         }

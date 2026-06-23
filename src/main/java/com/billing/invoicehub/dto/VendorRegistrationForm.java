@@ -12,43 +12,43 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class VendorRegistrationForm {
-    @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
-    @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "Username may contain only letters, numbers, dots, underscores, and hyphens")
+    @NotBlank(message = "{validation.username.required}")
+    @Size(min = 3, max = 50, message = "{validation.username.size}")
+    @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "{validation.username.pattern}")
     private String username;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, max = 100, message = "Password must be at least 8 characters long")
+    @NotBlank(message = "{validation.password.required}")
+    @Size(min = 8, max = 100, message = "{validation.password.size}")
     private String password;
 
-    @NotBlank(message = "Please confirm your password")
-    @Size(min = 8, max = 100, message = "Confirmation password must be at least 8 characters long")
+    @NotBlank(message = "{validation.confirmPassword.required}")
+    @Size(min = 8, max = 100, message = "{validation.confirmPassword.size}")
     private String confirmPassword;
 
-    @NotBlank(message = "Company name is required")
-    @Size(max = 150, message = "Company name must not exceed 150 characters")
+    @NotBlank(message = "{validation.companyName.required}")
+    @Size(max = 150, message = "{validation.companyName.size}")
     private String companyName;
 
-    @NotBlank(message = "Company address is required")
-    @Size(max = 500, message = "Address must not exceed 500 characters")
+    @NotBlank(message = "{validation.address.required}")
+    @Size(max = 500, message = "{validation.address.size}")
     private String address;
 
-    @NotBlank(message = "Full name is required")
-    @Size(max = 150, message = "Full name must not exceed 150 characters")
+    @NotBlank(message = "{validation.fullName.required}")
+    @Size(max = 150, message = "{validation.fullName.size}")
     private String fullName;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Please provide a valid email address")
-    @Size(max = 150, message = "Email must not exceed 150 characters")
+    @NotBlank(message = "{validation.email.required}")
+    @Email(message = "{validation.email.valid}")
+    @Size(max = 150, message = "{validation.email.size}")
     private String email;
 
-    @NotBlank(message = "Phone number is required")
-    @Size(max = 30, message = "Phone number must not exceed 30 characters")
-    @Pattern(regexp = "^[0-9+()\\-\\s]{7,30}$", message = "Phone number contains invalid characters")
+    @NotBlank(message = "{validation.phone.required}")
+    @Size(max = 30, message = "{validation.phone.size}")
+    @Pattern(regexp = "^[0-9+()\\-\\s]{7,30}$", message = "{validation.phone.pattern}")
     private String phone;
 
-    @NotBlank(message = "GST / VAT number is required")
-    @Size(max = 50, message = "GST / VAT number must not exceed 50 characters")
+    @NotBlank(message = "{validation.gstNumber.required}")
+    @Size(max = 50, message = "{validation.gstNumber.size}")
     private String gstNumber;
 
     public String getUsername() {
