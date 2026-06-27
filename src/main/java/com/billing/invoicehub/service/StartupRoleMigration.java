@@ -31,13 +31,43 @@ public class StartupRoleMigration implements ApplicationRunner {
             // Ensure core roles are present
             try {
                 jdbc.update("INSERT IGNORE INTO app_roles (name) VALUES (?)", "ROLE_ADMIN");
-                jdbc.update("INSERT IGNORE INTO app_roles (name) VALUES (?)", "ROLE_USER");
+                jdbc.update("INSERT IGNORE INTO app_roles (name) VALUES (?)", "ROLE_VENDOR");
             } catch (Exception ex) {
                 // Some drivers don't support INSERT IGNORE; fall back to existence-check insert
                 Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM app_roles WHERE name = ?", Integer.class, "ROLE_ADMIN");
                 if (count == 0) jdbc.update("INSERT INTO app_roles (name) VALUES (?)", "ROLE_ADMIN");
-                count = jdbc.queryForObject("SELECT COUNT(*) FROM app_roles WHERE name = ?", Integer.class, "ROLE_USER");
-                if (count == 0) jdbc.update("INSERT INTO app_roles (name) VALUES (?)", "ROLE_USER");
+                count = jdbc.queryForObject("SELECT COUNT(*) FROM app_roles WHERE name = ?", Integer.class, "ROLE_VENDOR");
+                if (count == 0) jdbc.update("INSERT INTO app_roles (name) VALUES (?)", "ROLE_VENDOR");
+            }
+
+            // Migrate any existing ROLE_USER to ROLE_VENDOR in the database automatically on startup
+            try {
+                Long vendorRoleId = null;
+                Long userRoleId = null;
+                try {
+                    vendorRoleId = jdbc.queryForObject("SELECT id FROM app_roles WHERE name = ?", Long.class, "ROLE_VENDOR");
+                } catch (Exception e) {}
+                try {
+                    userRoleId = jdbc.queryForObject("SELECT id FROM app_roles WHERE name = ?", Long.class, "ROLE_USER");
+                } catch (Exception e) {}
+
+                if (vendorRoleId != null && userRoleId != null) {
+                    log.info("Migrating existing user roles from ROLE_USER (id: {}) to ROLE_VENDOR (id: {})...", userRoleId, vendorRoleId);
+                    List<Map<String, Object>> userRoles = jdbc.queryForList("SELECT user_id FROM app_user_roles WHERE role_id = ?", userRoleId);
+                    for (Map<String, Object> ur : userRoles) {
+                        Long userId = ((Number) ur.get("user_id")).longValue();
+                        Integer hasVendor = jdbc.queryForObject("SELECT COUNT(*) FROM app_user_roles WHERE user_id = ? AND role_id = ?", Integer.class, userId, vendorRoleId);
+                        if (hasVendor == null || hasVendor == 0) {
+                            jdbc.update("UPDATE app_user_roles SET role_id = ? WHERE user_id = ? AND role_id = ?", vendorRoleId, userId, userRoleId);
+                        } else {
+                            jdbc.update("DELETE FROM app_user_roles WHERE user_id = ? AND role_id = ?", userId, userRoleId);
+                        }
+                    }
+                    jdbc.update("DELETE FROM app_roles WHERE id = ?", userRoleId);
+                    log.info("Successfully migrated user roles from ROLE_USER to ROLE_VENDOR.");
+                }
+            } catch (Exception ex) {
+                log.warn("Failed migrating ROLE_USER to ROLE_VENDOR on startup: {}", ex.getMessage());
             }
 
             // Deduplicate app_roles by name: keep the lowest id, remap app_user_roles to it, delete duplicates

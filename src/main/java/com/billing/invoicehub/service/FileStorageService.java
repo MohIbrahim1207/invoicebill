@@ -24,7 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class FileStorageService {
     private static final Logger logger = LoggerFactory.getLogger(FileStorageService.class);
 
-    @Autowired
+    @Autowired(required = false)
     private CloudinaryService cloudinaryService;
 
     public String storeInvoiceFile(MultipartFile file) throws IOException {

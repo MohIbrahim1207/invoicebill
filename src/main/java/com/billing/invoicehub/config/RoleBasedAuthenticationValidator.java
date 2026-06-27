@@ -33,14 +33,24 @@ public class RoleBasedAuthenticationValidator {
         }
     }
 
-    public boolean isRegularUser(String username) {
+    public boolean isVendorUser(String username) {
         try {
             UserDetails user = this.userDetailsService.loadUserByUsername(username);
-            return user.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch("ROLE_USER"::equals);
-        }
-        catch (Exception e) {
+            return user.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch("ROLE_VENDOR"::equals);
+        } catch (Exception e) {
             return false;
         }
+    }
+
+    /**
+     * @deprecated Use {@link #isVendorUser(String)} instead.
+     *             Kept for backward-compatibility only.
+     */
+    @Deprecated
+    public boolean isRegularUser(String username) {
+        return isVendorUser(username);
     }
 }
 

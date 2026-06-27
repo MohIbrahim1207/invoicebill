@@ -1,25 +1,6 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.billing.invoicehub.config.RoleBasedAuthenticationFailureHandler
- *  com.billing.invoicehub.config.RoleBasedAuthenticationValidator
- *  jakarta.servlet.ServletException
- *  jakarta.servlet.ServletRequest
- *  jakarta.servlet.ServletResponse
- *  jakarta.servlet.http.HttpServletRequest
- *  jakarta.servlet.http.HttpServletResponse
- *  org.springframework.security.authentication.DisabledException
- *  org.springframework.security.core.AuthenticationException
- *  org.springframework.security.web.authentication.AuthenticationFailureHandler
- *  org.springframework.stereotype.Component
- */
 package com.billing.invoicehub.config;
 
-import com.billing.invoicehub.config.RoleBasedAuthenticationValidator;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -28,35 +9,67 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
 
+/**
+ * Centralized failure handler for both the Vendor and Admin login portals.
+ *
+ * <p>The portal-role enforcement is done entirely by {@link PortalAwareAuthenticationProvider},
+ * which embeds a specific message in the thrown {@link org.springframework.security.authentication.BadCredentialsException}
+ * when a user attempts to authenticate via the wrong portal.  This handler
+ * inspects that message to choose the correct redirect URL and error parameter.</p>
+ *
+ * <p>Error parameter convention:
+ * <ul>
+ *   <li>{@code ?error=admin_portal}  – admin tried to log in via the Vendor portal</li>
+ *   <li>{@code ?error=vendor_portal} – vendor tried to log in via the Admin portal</li>
+ *   <li>{@code ?error=invalid}       – generic bad credentials / disabled</li>
+ *   <li>{@code ?pendingVerification=true} – account awaiting approval</li>
+ * </ul>
+ * </p>
+ */
 @Component
-public class RoleBasedAuthenticationFailureHandler
-implements AuthenticationFailureHandler {
-    private final RoleBasedAuthenticationValidator roleValidator;
+public class RoleBasedAuthenticationFailureHandler implements AuthenticationFailureHandler {
 
-    public RoleBasedAuthenticationFailureHandler(RoleBasedAuthenticationValidator roleValidator) {
-        this.roleValidator = roleValidator;
-    }
+    /** Injected by {@link PortalAwareAuthenticationProvider} on role mismatch — admin on vendor portal. */
+    public static final String MSG_ADMIN_ON_VENDOR_PORTAL = "PORTAL_ERROR:admin_portal";
+
+    /** Injected by {@link PortalAwareAuthenticationProvider} on role mismatch — vendor on admin portal. */
+    public static final String MSG_VENDOR_ON_ADMIN_PORTAL = "PORTAL_ERROR:vendor_portal";
 
     @Override
-    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
-        String requestPath = request.getRequestURI();
-        String username = request.getParameter("username");
-        String loginUrl = requestPath.contains("/admin/") ? "/admin/login" : "/login";
+    public void onAuthenticationFailure(HttpServletRequest request,
+                                        HttpServletResponse response,
+                                        AuthenticationException exception)
+            throws IOException, ServletException {
+
+        String requestUri = request.getRequestURI();
+        boolean isAdminPortal = requestUri.contains("/admin/");
+
+        // Account pending admin verification
         if (exception instanceof DisabledException) {
-            response.sendRedirect(request.getContextPath() + loginUrl + "?pendingVerification=true");
+            String pendingUrl = isAdminPortal
+                    ? "/admin/login?pendingVerification=true"
+                    : "/login?pendingVerification=true";
+            response.sendRedirect(request.getContextPath() + pendingUrl);
             return;
         }
-        if (requestPath.contains("/admin/login") && username != null && this.roleValidator.isRegularUser(username)) {
-            request.setAttribute("error", (Object)"Invalid credentials");
-            request.getRequestDispatcher("/admin/login?error=invalid").forward((ServletRequest)request, (ServletResponse)response);
+
+        String exceptionMessage = exception.getMessage();
+
+        // Portal-specific role-mismatch errors set by PortalAwareAuthenticationProvider
+        if (MSG_ADMIN_ON_VENDOR_PORTAL.equals(exceptionMessage)) {
+            // Admin tried the Vendor portal
+            response.sendRedirect(request.getContextPath() + "/login?error=admin_portal");
             return;
         }
-        if (requestPath.contains("/login") && !requestPath.contains("/admin/") && username != null && this.roleValidator.isAdminUser(username)) {
-            request.setAttribute("error", (Object)"Invalid credentials");
-            request.getRequestDispatcher("/login?error=invalid").forward((ServletRequest)request, (ServletResponse)response);
+
+        if (MSG_VENDOR_ON_ADMIN_PORTAL.equals(exceptionMessage)) {
+            // Vendor tried the Admin portal
+            response.sendRedirect(request.getContextPath() + "/admin/login?error=vendor_portal");
             return;
         }
-        response.sendRedirect(request.getContextPath() + loginUrl + "?error=invalid");
+
+        // Generic failure — wrong password, unknown user, etc.
+        String genericFailUrl = isAdminPortal ? "/admin/login?error=invalid" : "/login?error=invalid";
+        response.sendRedirect(request.getContextPath() + genericFailUrl);
     }
 }
-

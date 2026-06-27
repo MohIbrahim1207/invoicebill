@@ -62,12 +62,13 @@
                     </div>
 
                     <div th:if="${param.pendingVerification}" class="alert alert-warning" th:text="#{login.pending.verification}">Your account is pending admin verification.</div>
-                    <div th:if="${param.error}" class="alert alert-danger" th:text="#{login.error}">Invalid username or password.</div>
+                    <div th:if="${param.error != null and param.error[0] == 'admin_portal'}" class="alert alert-danger" th:text="#{login.error.admin_portal}">Administrator accounts must use the Admin Portal.</div>
+                    <div th:if="${param.error != null and param.error[0] == 'invalid'}" class="alert alert-danger" th:text="#{login.error}">Invalid username or password.</div>
                     <div th:if="${param.logout}" class="alert alert-success" th:text="#{login.logout}">You have been logged out.</div>
                     <div th:if="${param.access} == 'use_admin'" class="alert alert-warning" th:text="#{login.access.admin}">Access denied. Use the admin login page.</div>
                     <div th:if="${param.denied}" class="alert alert-warning" th:text="#{login.access.denied}">Access denied.</div>
 
-                    <form th:action="@{/login}" method="post" class="vstack gap-3" autocomplete="off">
+                    <form th:action="@{/vendor/authenticate}" method="post" class="vstack gap-3" autocomplete="off">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                         <div>
                             <label class="form-label" th:text="#{login.username}">Username</label>

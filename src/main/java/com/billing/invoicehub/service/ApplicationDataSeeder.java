@@ -33,7 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ApplicationDataSeeder
 implements CommandLineRunner {
     private static final String ROLE_ADMIN = "ROLE_ADMIN";
-    private static final String ROLE_USER = "ROLE_USER";
+    private static final String ROLE_VENDOR = "ROLE_VENDOR";
     private static final Logger log = LoggerFactory.getLogger(ApplicationDataSeeder.class);
     private final AppRoleRepository roleRepository;
     private final AppUserRepository userRepository;
@@ -49,12 +49,12 @@ implements CommandLineRunner {
     public void run(String ... args) {
         try {
             this.ensureRole(ROLE_ADMIN);
-            this.ensureRole(ROLE_USER);
+            this.ensureRole(ROLE_VENDOR);
             // Ensure role rows are committed before writing app_user_roles join rows.
             this.roleRepository.flush();
 
             this.ensureUser("admin", "admin123", Set.of(ROLE_ADMIN), true);
-            this.ensureUser("user", "user123", Set.of(ROLE_USER), true);
+            this.ensureUser("vendor", "vendor123", Set.of(ROLE_VENDOR), true);
             log.info("Default user seeding completed.");
         } catch (RuntimeException ex) {
             // Seeder should never block application startup in non-empty databases.

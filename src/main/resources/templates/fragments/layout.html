@@ -30,8 +30,14 @@
                         <li><a class="dropdown-item text-center small" href="/notifications" th:text="#{nav.view.all.notifications}">View all notifications</a></li>
                     </ul>
                 </div>
-                <button class="btn btn-light btn-sm" type="button" th:title="#{nav.toggle.theme}" th:aria-label="#{nav.toggle.theme}">
-                    <i class="bi bi-moon-stars"></i>
+                <script>
+                    (function() {
+                        var theme = localStorage.getItem('invoicehub-theme') || 'light';
+                        document.documentElement.setAttribute('data-theme', theme);
+                    })();
+                </script>
+                <button id="themeToggle" class="btn btn-light btn-sm" type="button" th:title="#{nav.toggle.theme}" th:aria-label="#{nav.toggle.theme}">
+                    <i id="themeToggleIcon" class="bi bi-moon-stars"></i>
                 </button>
                 <div class="dropdown" th:with="currentLang=${#locale.language}">
                     <button class="btn btn-light btn-sm dropdown-toggle d-inline-flex align-items-center gap-1"
@@ -124,6 +130,34 @@
                 // Load notifications on page load and periodically refresh
                 document.addEventListener('DOMContentLoaded', loadNotifications);
                 setInterval(loadNotifications, 30000); // Refresh every 30 seconds
+
+                // Theme toggle logic
+                document.addEventListener('DOMContentLoaded', function() {
+                    var themeToggle = document.getElementById('themeToggle');
+                    var themeToggleIcon = document.getElementById('themeToggleIcon');
+                    
+                    if (!themeToggle || !themeToggleIcon) return;
+                    
+                    function updateIcon(theme) {
+                        if (theme === 'dark') {
+                            themeToggleIcon.className = 'bi bi-sun';
+                        } else {
+                            themeToggleIcon.className = 'bi bi-moon-stars';
+                        }
+                    }
+                    
+                    var currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                    updateIcon(currentTheme);
+                    
+                    themeToggle.addEventListener('click', function() {
+                        var activeTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                        var newTheme = activeTheme === 'dark' ? 'light' : 'dark';
+                        
+                        document.documentElement.setAttribute('data-theme', newTheme);
+                        localStorage.setItem('invoicehub-theme', newTheme);
+                        updateIcon(newTheme);
+                    });
+                });
             </script>
         </div>
     </nav>
@@ -137,13 +171,13 @@
     <a href="/notifications" class="sidebar-link" th:classappend="${active == 'notifications'} ? ' active' : ''">
         <i class="bi bi-bell"></i> <span th:text="#{sidebar.notifications}">Notifications</span>
     </a>
-    <a href="/help" class="sidebar-link" th:classappend="${active == 'help'} ? ' active' : ''" sec:authorize="hasRole('USER')">
+    <a href="/help" class="sidebar-link" th:classappend="${active == 'help'} ? ' active' : ''" sec:authorize="hasRole('VENDOR')">
         <i class="bi bi-question-circle"></i> <span th:text="#{sidebar.help}">Help</span>
     </a>
     <a href="/clients" class="sidebar-link" th:classappend="${active == 'clients'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')">
         <i class="bi bi-building"></i> <span th:text="#{sidebar.clients}">Client Management</span>
     </a>
-    <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''" sec:authorize="hasRole('USER')">
+    <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''" sec:authorize="hasRole('VENDOR')">
         <i class="bi bi-list-task"></i> <span th:text="#{sidebar.vendor.tickets}">Vendor Tickets</span>
     </a>
     <a href="/admin/vendor-tickets" class="sidebar-link" th:classappend="${active == 'admin-tickets'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')">
@@ -169,9 +203,9 @@
         <div class="d-flex flex-column">
             <a href="/invoice" class="sidebar-link" th:classappend="${active == 'billing'} ? ' active' : ''"><i class="bi bi-receipt-cutoff"></i> <span th:text="#{sidebar.billing}">Billing Intake</span></a>
             <a href="/notifications" class="sidebar-link" th:classappend="${active == 'notifications'} ? ' active' : ''"><i class="bi bi-bell"></i> <span th:text="#{sidebar.notifications}">Notifications</span></a>
-             <a href="/help" class="sidebar-link" th:classappend="${active == 'help'} ? ' active' : ''" sec:authorize="hasRole('USER')"><i class="bi bi-question-circle"></i> <span th:text="#{sidebar.help}">Help</span></a>
+             <a href="/help" class="sidebar-link" th:classappend="${active == 'help'} ? ' active' : ''" sec:authorize="hasRole('VENDOR')"><i class="bi bi-question-circle"></i> <span th:text="#{sidebar.help}">Help</span></a>
               <a href="/clients" class="sidebar-link" th:classappend="${active == 'clients'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i class="bi bi-building"></i> <span th:text="#{sidebar.clients}">Client Management</span></a>
-                <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''" sec:authorize="hasRole('USER')"><i class="bi bi-list-task"></i> <span th:text="#{sidebar.vendor.tickets}">Vendor Tickets</span></a>
+                <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''" sec:authorize="hasRole('VENDOR')"><i class="bi bi-list-task"></i> <span th:text="#{sidebar.vendor.tickets}">Vendor Tickets</span></a>
             <a href="/admin/vendor-tickets" class="sidebar-link" th:classappend="${active == 'admin-tickets'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i class="bi bi-list-task"></i> <span th:text="#{sidebar.admin.tickets}">Vendor Tickets</span></a>
              <a href="/admin/vendors" class="sidebar-link" th:classappend="${active == 'vendors'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i class="bi bi-person-badge"></i> <span th:text="#{sidebar.vendor.verification}">Vendor Verification</span></a>
              <a href="/admin/purchase-orders" class="sidebar-link" th:classappend="${active == 'purchase-orders'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i class="bi bi-file-earmark-text"></i> <span th:text="#{sidebar.purchase.orders}">Purchase Orders</span></a>

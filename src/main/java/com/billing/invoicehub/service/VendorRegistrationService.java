@@ -62,12 +62,12 @@ public class VendorRegistrationService {
 
     @Transactional(readOnly=true)
     public List<AppUser> listVendors() {
-        return this.userRepository.findByRoles_NameOrderByIdDesc("ROLE_USER").stream().filter(arg_0 -> this.looksLikeVendorRegistration(arg_0)).collect(Collectors.toList());
+        return this.userRepository.findByRoles_NameOrderByIdDesc("ROLE_VENDOR").stream().filter(arg_0 -> this.looksLikeVendorRegistration(arg_0)).collect(Collectors.toList());
     }
 
     @Transactional(readOnly=true)
     public Optional<AppUser> getVendor(Long id) {
-        return this.userRepository.findById(id).filter(user -> user.getRoles() != null && user.getRoles().stream().anyMatch(role -> role.getName() != null && role.getName().equals("ROLE_USER"))).filter(arg_0 -> this.looksLikeVendorRegistration(arg_0));
+        return this.userRepository.findById(id).filter(user -> user.getRoles() != null && user.getRoles().stream().anyMatch(role -> role.getName() != null && role.getName().equals("ROLE_VENDOR"))).filter(arg_0 -> this.looksLikeVendorRegistration(arg_0));
     }
 
     @Transactional
@@ -86,7 +86,7 @@ public class VendorRegistrationService {
         if (this.userRepository.findByUsername(form.getUsername()).isPresent()) {
             throw new IllegalArgumentException("Username already exists");
         }
-        AppRole userRole = (AppRole)this.roleRepository.findByName("ROLE_USER").orElseThrow(() -> new IllegalStateException("ROLE_USER not found"));
+        AppRole userRole = (AppRole)this.roleRepository.findByName("ROLE_VENDOR").orElseThrow(() -> new IllegalStateException("ROLE_VENDOR not found"));
         AppUser user = new AppUser();
         user.setUsername(form.getUsername().trim());
         user.setPassword(this.passwordEncoder.encode((CharSequence)form.getPassword()));
@@ -137,7 +137,7 @@ public class VendorRegistrationService {
         user.setRoles(Set.of(userRole));
         log.debug("Saving user to database: {}", form.getUsername());
         AppUser saved = this.userRepository.save(user);
-        auditLogService.log(saved.getUsername(), "ROLE_USER", "Vendor Registration", "AppUser", saved.getId(), null, "Vendor registered: " + saved.getUsername());
+        auditLogService.log(saved.getUsername(), "ROLE_VENDOR", "Vendor Registration", "AppUser", saved.getId(), null, "Vendor registered: " + saved.getUsername());
         this.sendRegistrationEmail(saved);
         log.info("Vendor registration received for {}", (Object)saved.getUsername());
         log.info("=== Vendor registration completed successfully for: {} ===", saved.getUsername());

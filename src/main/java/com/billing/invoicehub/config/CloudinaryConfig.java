@@ -8,7 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import org.springframework.context.annotation.Conditional;
+
 @Configuration
+@Conditional(CloudinaryEnvironmentCondition.class)
 public class CloudinaryConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(CloudinaryConfig.class);

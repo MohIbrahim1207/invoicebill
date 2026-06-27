@@ -245,7 +245,7 @@ public class VendorTicketController {
 
         if (fileStorageService == null) {
             redirectAttributes.addFlashAttribute("error",
-                    "File upload service is not configured. Please configure Firebase credentials.");
+                    "File upload service is not configured. Please configure Cloudinary credentials.");
             return "redirect:/vendor-tickets/new/step3";
         }
 

@@ -145,7 +145,7 @@ public class AdminPurchaseOrderController {
         if (request.getItems() == null || request.getItems().isEmpty()) {
             request.setItems(List.of(new PurchaseOrderItemRequest()));
         }
-        List vendors = this.userRepository.findByRoles_NameOrderByIdDesc("ROLE_USER");
+        List vendors = this.userRepository.findByRoles_NameOrderByIdDesc("ROLE_VENDOR");
         List clients = this.clientRepository.findAll();
         model.addAttribute("vendors", (Object)vendors);
         model.addAttribute("clients", (Object)clients);

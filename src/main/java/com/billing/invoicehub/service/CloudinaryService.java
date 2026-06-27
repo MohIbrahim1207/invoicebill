@@ -12,7 +12,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.context.annotation.Conditional;
+import com.billing.invoicehub.config.CloudinaryEnvironmentCondition;
+
 @Service
+@Conditional(CloudinaryEnvironmentCondition.class)
 public class CloudinaryService {
 
     private static final Logger logger = LoggerFactory.getLogger(CloudinaryService.class);

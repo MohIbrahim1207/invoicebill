@@ -51,7 +51,7 @@ public class RegistrationService {
         newUser.setEmail(email);
         newUser.setPassword(this.passwordEncoder.encode((CharSequence)password));
         newUser.setEnabled(true);
-        Optional userRole = this.roleRepository.findByName("ROLE_USER");
+        Optional userRole = this.roleRepository.findByName("ROLE_VENDOR");
         if (userRole.isPresent()) {
             newUser.setRoles(Set.of((AppRole)userRole.get()));
         }
