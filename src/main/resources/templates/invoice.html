@@ -127,6 +127,7 @@
                                         <tr>
                                             <th th:text="#{invoice.table.id}">ID</th>
                                             <th th:text="#{invoice.table.number}">Invoice Number</th>
+                                            <th th:text="#{invoice.table.poNumber}">PO Number</th>
                                             <th th:text="#{invoice.table.date}">Date</th>
                                             <th th:text="#{invoice.table.amount}">Amount</th>
                                             <th th:text="#{invoice.table.client}">Client</th>
@@ -136,7 +137,7 @@
                                     </thead>
                                     <tbody>
                                         <tr th:if="${#lists.isEmpty(invoices)}" class="table-empty-row">
-                                            <td colspan="7">
+                                            <td colspan="8">
                                                 <div class="empty-state">
                                                     <i class="bi bi-inbox"></i>
                                                     <p th:text="#{invoice.empty}">No uploaded billings yet.</p>
@@ -147,6 +148,7 @@
                                             th:attr="data-search=${invoice.invoiceNumber},data-amount=${invoice.amount != null ? invoice.amount : 0}">
                                             <td th:text="${invoice.id}"></td>
                                             <td th:text="${invoice.invoiceNumber}"></td>
+                                            <td th:text="${invoice.poNumber != null and !invoice.poNumber.isEmpty() ? invoice.poNumber : '-'}"></td>
                                             <td th:text="${invoice.invoiceDate}"></td>
                                             <td th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(invoice.amount, invoice.currency)}">
                                             </td>

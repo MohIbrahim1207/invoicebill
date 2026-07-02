@@ -51,7 +51,9 @@ public class VendorRegistrationService {
     @org.springframework.beans.factory.annotation.Autowired
     private AuditLogService auditLogService;
 
-    public VendorRegistrationService(AppUserRepository userRepository, AppRoleRepository roleRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService, NotificationService notificationService, EmailService emailService) {
+    public VendorRegistrationService(AppUserRepository userRepository, AppRoleRepository roleRepository,
+            PasswordEncoder passwordEncoder, FileStorageService fileStorageService,
+            NotificationService notificationService, EmailService emailService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -60,25 +62,30 @@ public class VendorRegistrationService {
         this.emailService = emailService;
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     public List<AppUser> listVendors() {
-        return this.userRepository.findByRoles_NameOrderByIdDesc("ROLE_VENDOR").stream().filter(arg_0 -> this.looksLikeVendorRegistration(arg_0)).collect(Collectors.toList());
+        return this.userRepository.findByRoles_NameOrderByIdDesc("ROLE_VENDOR").stream()
+                .filter(arg_0 -> this.looksLikeVendorRegistration(arg_0)).collect(Collectors.toList());
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     public Optional<AppUser> getVendor(Long id) {
-        return this.userRepository.findById(id).filter(user -> user.getRoles() != null && user.getRoles().stream().anyMatch(role -> role.getName() != null && role.getName().equals("ROLE_VENDOR"))).filter(arg_0 -> this.looksLikeVendorRegistration(arg_0));
+        return this.userRepository.findById(id)
+                .filter(user -> user.getRoles() != null && user.getRoles().stream()
+                        .anyMatch(role -> role.getName() != null && role.getName().equals("ROLE_VENDOR")))
+                .filter(arg_0 -> this.looksLikeVendorRegistration(arg_0));
     }
 
     @Transactional
-    public AppUser registerVendor(VendorRegistrationForm form, MultipartFile gstDocument, MultipartFile companyDocument, MultipartFile supportingDocument) throws IOException {
+    public AppUser registerVendor(VendorRegistrationForm form, MultipartFile gstDocument, MultipartFile companyDocument,
+            MultipartFile supportingDocument) throws IOException {
         log.info("=== Starting vendor registration for username: {} ===", form.getUsername());
-        
+
         long maxSizeBytes = 10 * 1024 * 1024;
         String sizeError = "File size exceeds the maximum allowed limit of 10 MB. Please upload a smaller file.";
         if ((gstDocument != null && gstDocument.getSize() > maxSizeBytes) ||
-            (companyDocument != null && companyDocument.getSize() > maxSizeBytes) ||
-            (supportingDocument != null && supportingDocument.getSize() > maxSizeBytes)) {
+                (companyDocument != null && companyDocument.getSize() > maxSizeBytes) ||
+                (supportingDocument != null && supportingDocument.getSize() > maxSizeBytes)) {
             throw new IllegalArgumentException(sizeError);
         }
 
@@ -86,10 +93,11 @@ public class VendorRegistrationService {
         if (this.userRepository.findByUsername(form.getUsername()).isPresent()) {
             throw new IllegalArgumentException("Username already exists");
         }
-        AppRole userRole = (AppRole)this.roleRepository.findByName("ROLE_VENDOR").orElseThrow(() -> new IllegalStateException("ROLE_VENDOR not found"));
+        AppRole userRole = (AppRole) this.roleRepository.findByName("ROLE_VENDOR")
+                .orElseThrow(() -> new IllegalStateException("ROLE_VENDOR not found"));
         AppUser user = new AppUser();
         user.setUsername(form.getUsername().trim());
-        user.setPassword(this.passwordEncoder.encode((CharSequence)form.getPassword()));
+        user.setPassword(this.passwordEncoder.encode((CharSequence) form.getPassword()));
         user.setEmail(form.getEmail().trim());
         user.setCompanyName(form.getCompanyName().trim());
         user.setAddress(form.getAddress().trim());
@@ -129,7 +137,8 @@ public class VendorRegistrationService {
                 log.debug("Supporting document uploaded successfully. URL: {}", supportingUrl);
                 user.setSupportingDocumentUrl(supportingUrl);
             } catch (Exception ex) {
-                log.error("Failed to upload supporting document for user {}: {}", form.getUsername(), ex.getMessage(), ex);
+                log.error("Failed to upload supporting document for user {}: {}", form.getUsername(), ex.getMessage(),
+                        ex);
                 throw new IOException("Failed to upload supporting document: " + ex.getMessage(), ex);
             }
         }
@@ -137,16 +146,18 @@ public class VendorRegistrationService {
         user.setRoles(Set.of(userRole));
         log.debug("Saving user to database: {}", form.getUsername());
         AppUser saved = this.userRepository.save(user);
-        auditLogService.log(saved.getUsername(), "ROLE_VENDOR", "Vendor Registration", "AppUser", saved.getId(), null, "Vendor registered: " + saved.getUsername());
+        auditLogService.log(saved.getUsername(), "ROLE_VENDOR", "Vendor Registration", "AppUser", saved.getId(), null,
+                "Vendor registered: " + saved.getUsername());
         this.sendRegistrationEmail(saved);
-        log.info("Vendor registration received for {}", (Object)saved.getUsername());
+        log.info("Vendor registration received for {}", (Object) saved.getUsername());
         log.info("=== Vendor registration completed successfully for: {} ===", saved.getUsername());
         return saved;
     }
 
     @Transactional
     public AppUser verifyVendor(Long vendorId) {
-        AppUser vendor = (AppUser)this.getVendor(vendorId).orElseThrow(() -> new IllegalArgumentException("Vendor not found"));
+        AppUser vendor = (AppUser) this.getVendor(vendorId)
+                .orElseThrow(() -> new IllegalArgumentException("Vendor not found"));
         if (vendor.isVerified() && vendor.getVendorCode() != null && !vendor.getVendorCode().isBlank()) {
             return vendor;
         }
@@ -157,14 +168,16 @@ public class VendorRegistrationService {
         AppUser saved = this.userRepository.save(vendor);
         auditLogService.log("Approval", "AppUser", saved.getId(), "Pending", "Verified: " + saved.getVendorCode());
         this.sendVerificationEmail(saved);
-        log.info("Verified vendor {} with code {}", (Object)saved.getUsername(), (Object)saved.getVendorCode());
+        log.info("Verified vendor {} with code {}", (Object) saved.getUsername(), (Object) saved.getVendorCode());
         try {
             String notifTitle = "Account Verified";
-            String notifMessage = String.format("Hello %s, your account has been verified. Vendor code: %s", this.nullSafe(saved.getFullName()), this.nullSafe(saved.getVendorCode()));
-            this.notificationService.createNotification(notifTitle, notifMessage, NotificationType.VENDOR_APPROVED, saved);
-        }
-        catch (Exception ex) {
-            log.error("Failed to create in-app notification for vendor {}: {}", new Object[]{saved.getUsername(), ex.getMessage(), ex});
+            String notifMessage = String.format("Hello %s, your account has been verified. Vendor code: %s",
+                    this.nullSafe(saved.getFullName()), this.nullSafe(saved.getVendorCode()));
+            this.notificationService.createNotification(notifTitle, notifMessage, NotificationType.VENDOR_APPROVED,
+                    saved);
+        } catch (Exception ex) {
+            log.error("Failed to create in-app notification for vendor {}: {}",
+                    new Object[] { saved.getUsername(), ex.getMessage(), ex });
         }
         return saved;
     }
@@ -172,7 +185,8 @@ public class VendorRegistrationService {
     @Transactional
     public AppUser rejectVendor(Long vendorId, String reason) {
         String trimmedReason;
-        AppUser vendor = (AppUser)this.getVendor(vendorId).orElseThrow(() -> new IllegalArgumentException("Vendor not found"));
+        AppUser vendor = (AppUser) this.getVendor(vendorId)
+                .orElseThrow(() -> new IllegalArgumentException("Vendor not found"));
         String string = trimmedReason = reason == null ? "" : reason.trim();
         if (trimmedReason.isBlank()) {
             throw new IllegalArgumentException("Rejection reason is required");
@@ -184,11 +198,11 @@ public class VendorRegistrationService {
         AppUser saved = this.userRepository.save(vendor);
         auditLogService.log("Rejection", "AppUser", saved.getId(), "Pending", "Rejected: " + trimmedReason);
         this.sendRejectionEmail(saved, trimmedReason);
-        log.info("Rejected vendor {}", (Object)saved.getUsername());
+        log.info("Rejected vendor {}", (Object) saved.getUsername());
         return saved;
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     public String getVendorStatus(AppUser vendor) {
         if (vendor == null) {
             return "Pending";
@@ -202,11 +216,15 @@ public class VendorRegistrationService {
         return "Pending";
     }
 
-    private void validateRegistration(VendorRegistrationForm form, MultipartFile gstDocument, MultipartFile companyDocument) {
+    private void validateRegistration(VendorRegistrationForm form, MultipartFile gstDocument,
+            MultipartFile companyDocument) {
         if (form == null) {
             throw new IllegalArgumentException("Registration form is required");
         }
-        if (this.isBlank(form.getUsername()) || this.isBlank(form.getPassword()) || this.isBlank(form.getConfirmPassword()) || this.isBlank(form.getCompanyName()) || this.isBlank(form.getAddress()) || this.isBlank(form.getFullName()) || this.isBlank(form.getEmail()) || this.isBlank(form.getPhone()) || this.isBlank(form.getGstNumber())) {
+        if (this.isBlank(form.getUsername()) || this.isBlank(form.getPassword())
+                || this.isBlank(form.getConfirmPassword()) || this.isBlank(form.getCompanyName())
+                || this.isBlank(form.getAddress()) || this.isBlank(form.getFullName()) || this.isBlank(form.getEmail())
+                || this.isBlank(form.getPhone()) || this.isBlank(form.getGstNumber())) {
             throw new IllegalArgumentException("Please fill all required fields");
         }
         if (!form.getPassword().equals(form.getConfirmPassword())) {
@@ -235,11 +253,13 @@ public class VendorRegistrationService {
     }
 
     private void sendRegistrationEmail(AppUser vendor) {
-        this.emailService.sendRegistrationReceivedEmail(vendor.getEmail(), this.nullSafe(vendor.getFullName()), this.nullSafe(vendor.getCompanyName()));
+        this.emailService.sendRegistrationReceivedEmail(vendor.getEmail(), this.nullSafe(vendor.getFullName()),
+                this.nullSafe(vendor.getCompanyName()));
     }
 
     private void sendVerificationEmail(AppUser vendor) {
-        this.emailService.sendVendorApprovalEmail(vendor.getEmail(), this.nullSafe(vendor.getFullName()), this.nullSafe(vendor.getVendorCode()));
+        this.emailService.sendVendorApprovalEmail(vendor.getEmail(), this.nullSafe(vendor.getFullName()),
+                this.nullSafe(vendor.getVendorCode()));
     }
 
     private void sendRejectionEmail(AppUser vendor, String reason) {
@@ -251,7 +271,10 @@ public class VendorRegistrationService {
     }
 
     private boolean looksLikeVendorRegistration(AppUser user) {
-        return user != null && (user.getRegistrationDate() != null || !this.isBlank(user.getCompanyName()) || !this.isBlank(user.getGstNumber()) || !this.isBlank(user.getVendorCode()) || !this.isBlank(user.getGstDocumentUrl()) || !this.isBlank(user.getCompanyDocumentUrl()) || !this.isBlank(user.getSupportingDocumentUrl()) || !this.isBlank(user.getRejectionReason()));
+        return user != null && (user.getRegistrationDate() != null || !this.isBlank(user.getCompanyName())
+                || !this.isBlank(user.getGstNumber()) || !this.isBlank(user.getVendorCode())
+                || !this.isBlank(user.getGstDocumentUrl()) || !this.isBlank(user.getCompanyDocumentUrl())
+                || !this.isBlank(user.getSupportingDocumentUrl()) || !this.isBlank(user.getRejectionReason()));
     }
 
     private String nullSafe(String value) {

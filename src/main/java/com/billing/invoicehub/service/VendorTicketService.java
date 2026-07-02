@@ -483,4 +483,92 @@ public class VendorTicketService {
             return null;
         }
     }
+
+    @Transactional(readOnly = true)
+    public com.billing.invoicehub.dto.WeeklyTicketReportDto getWeeklyTicketReport() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime currentStart = LocalDate.now().minusDays(6).atStartOfDay();
+        LocalDateTime currentEnd = now;
+
+        LocalDateTime previousStart = LocalDate.now().minusDays(13).atStartOfDay();
+        LocalDateTime previousEnd = currentStart.minusNanos(1);
+
+        long currentTotal = vendorTicketRepository.countByCreatedAtBetween(currentStart, currentEnd);
+        long currentPending = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.OPEN, currentStart, currentEnd);
+        long currentInProgress = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.IN_PROGRESS, currentStart, currentEnd);
+        long currentPaid = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.RESOLVED, currentStart, currentEnd);
+        long currentRejected = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.REVISE, currentStart, currentEnd);
+        long currentCancelled = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.CANCEL, currentStart, currentEnd);
+
+        long prevTotal = vendorTicketRepository.countByCreatedAtBetween(previousStart, previousEnd);
+        long prevPending = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.OPEN, previousStart, previousEnd);
+        long prevInProgress = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.IN_PROGRESS, previousStart, previousEnd);
+        long prevPaid = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.RESOLVED, previousStart, previousEnd);
+        long prevRejected = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.REVISE, previousStart, previousEnd);
+        long prevCancelled = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.CANCEL, previousStart, previousEnd);
+
+        com.billing.invoicehub.dto.WeeklyTicketReportDto dto = new com.billing.invoicehub.dto.WeeklyTicketReportDto();
+        dto.setTotalCreated(currentTotal);
+        dto.setPending(currentPending);
+        dto.setInProgress(currentInProgress);
+        dto.setPaid(currentPaid);
+        dto.setRejected(currentRejected);
+        dto.setCancelled(currentCancelled);
+
+        dto.setTotalCreatedChange(calculatePercentageChange(currentTotal, prevTotal));
+        dto.setPendingChange(calculatePercentageChange(currentPending, prevPending));
+        dto.setInProgressChange(calculatePercentageChange(currentInProgress, prevInProgress));
+        dto.setPaidChange(calculatePercentageChange(currentPaid, prevPaid));
+        dto.setRejectedChange(calculatePercentageChange(currentRejected, prevRejected));
+        dto.setCancelledChange(calculatePercentageChange(currentCancelled, prevCancelled));
+
+        java.util.List<String> days = new java.util.ArrayList<>();
+        java.util.List<Long> dailyCounts = new java.util.ArrayList<>();
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("EEE", Locale.ENGLISH);
+        for (int i = 6; i >= 0; i--) {
+            LocalDate day = LocalDate.now().minusDays(i);
+            LocalDateTime startOfDay = day.atStartOfDay();
+            LocalDateTime endOfDay = day.atTime(java.time.LocalTime.MAX);
+            long count = vendorTicketRepository.countByCreatedAtBetween(startOfDay, endOfDay);
+            days.add(day.format(formatter));
+            dailyCounts.add(count);
+        }
+        dto.setDays(days);
+        dto.setDailyCounts(dailyCounts);
+
+        return dto;
+    }
+
+    private String calculatePercentageChange(long current, long previous) {
+        if (previous == 0) {
+            return current > 0 ? "+100%" : "0%";
+        }
+        double change = ((double) (current - previous) / previous) * 100.0;
+        if (change > 0) {
+            return String.format("+%.1f%%", change);
+        } else if (change < 0) {
+            return String.format("%.1f%%", change);
+        } else {
+            return "0%";
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public void populatePoNumbers(List<com.billing.invoicehub.entity.Invoice> invoices) {
+        if (invoices == null || invoices.isEmpty()) {
+            return;
+        }
+        List<Object[]> pairs = vendorTicketRepository.findAllInvoiceNoAndPoNumber();
+        java.util.Map<String, String> poMap = new java.util.HashMap<>();
+        for (Object[] pair : pairs) {
+            if (pair[0] != null && pair[1] != null) {
+                poMap.put((String) pair[0], (String) pair[1]);
+            }
+        }
+        for (com.billing.invoicehub.entity.Invoice inv : invoices) {
+            if (inv.getInvoiceNumber() != null) {
+                inv.setPoNumber(poMap.get(inv.getInvoiceNumber()));
+            }
+        }
+    }
 }

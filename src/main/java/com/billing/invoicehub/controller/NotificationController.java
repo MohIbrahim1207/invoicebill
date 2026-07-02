@@ -25,6 +25,7 @@ import com.billing.invoicehub.service.NotificationService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -119,6 +120,12 @@ public class NotificationController {
             resp.put("message", "Unauthorized");
             return ResponseEntity.status((int)401).body(resp);
         }
+        Optional<Notification> notification = this.notificationService.getNotificationById(id);
+        if (notification.isPresent() && !notification.get().getUser().getId().equals(user.getId())) {
+            resp.put("status", "error");
+            resp.put("message", "Forbidden");
+            return ResponseEntity.status((int)403).body(resp);
+        }
         this.notificationService.markAsRead(id);
         resp.put("status", "success");
         return ResponseEntity.ok(resp);
@@ -158,6 +165,12 @@ public class NotificationController {
             resp.put("status", "error");
             resp.put("message", "Unauthorized");
             return ResponseEntity.status((int)401).body(resp);
+        }
+        Optional<Notification> notification = this.notificationService.getNotificationById(id);
+        if (notification.isPresent() && !notification.get().getUser().getId().equals(user.getId())) {
+            resp.put("status", "error");
+            resp.put("message", "Forbidden");
+            return ResponseEntity.status((int)403).body(resp);
         }
         this.notificationService.deleteNotification(id);
         resp.put("status", "success");

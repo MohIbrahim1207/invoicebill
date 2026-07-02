@@ -97,6 +97,7 @@
                                     <th th:text="#{ticket.table.no}">No</th>
                                     <th th:text="#{ticket.table.ticketNo}">Ticket No</th>
                                     <th th:text="#{ticket.table.invoiceNo}">Invoice No</th>
+                                    <th th:text="#{ticket.table.poNumber}">PO Number</th>
                                     <th th:text="#{ticket.table.invoiceDate}">Invoice Date</th>
                                     <th th:text="#{ticket.table.amount}">Amount</th>
                                     <th th:text="#{ticket.table.subtotal}">Subtotal</th>
@@ -110,7 +111,7 @@
                             </thead>
                             <tbody>
                                 <tr th:if="${tickets == null or tickets.empty}" class="table-empty-row">
-                                    <td colspan="12">
+                                    <td colspan="13">
                                         <div class="empty-state">
                                             <i class="bi bi-inbox"></i>
                                             <p th:text="#{ticket.empty}">No vendor tickets found.</p>
@@ -122,6 +123,7 @@
                                     <td th:text="${iterStat.count}">1</td>
                                     <td th:text="${ticket.ticketNo}">-</td>
                                     <td th:text="${ticket.invoiceNo}">-</td>
+                                    <td th:text="${ticket.poNumber != null and !ticket.poNumber.isEmpty() ? ticket.poNumber : '-'}">-</td>
                                     <td th:text="${ticket.invoiceDate}">-</td>
                                     <td
                                         th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.amount, ticket.currency)}">
@@ -144,7 +146,7 @@
                                         <span th:if="${statusName == 'REVISE'}" class="badge bg-danger"
                                             th:text="#{ticket.history.status.revise}">Revise</span>
                                         <span th:if="${statusName == 'RESOLVED'}" class="badge bg-success"
-                                            th:text="#{ticket.history.status.resolved}">Resolved</span>
+                                            th:text="#{ticket.history.status.resolved}">Paid</span>
                                         <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary"
                                             th:text="#{ticket.history.status.cancel}">Cancel</span>
                                         <span th:if="${statusName == null}" class="badge bg-light text-dark">-</span>

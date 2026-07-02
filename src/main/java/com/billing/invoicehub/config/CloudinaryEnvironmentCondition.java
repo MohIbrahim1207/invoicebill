@@ -11,9 +11,9 @@ public class CloudinaryEnvironmentCondition implements Condition {
 
     @Override
     public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-        return isPresent(System.getenv("CLOUDINARY_CLOUD_NAME"))
-                && isPresent(System.getenv("CLOUDINARY_API_KEY"))
-                && isPresent(System.getenv("CLOUDINARY_API_SECRET"));
+        return isPresent(context.getEnvironment().getProperty("CLOUDINARY_CLOUD_NAME"))
+                && isPresent(context.getEnvironment().getProperty("CLOUDINARY_API_KEY"))
+                && isPresent(context.getEnvironment().getProperty("CLOUDINARY_API_SECRET"));
     }
 
     private boolean isPresent(String value) {

@@ -146,8 +146,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/api/purchase-orders/**").authenticated()
                         // Admin-only within the app chain
-                        .requestMatchers("/clients", "/dashboard").hasRole("ADMIN")
-                        .requestMatchers("/saveClient").hasRole("ADMIN")
+                        .requestMatchers("/clients", "/clients/**", "/saveClient", "/updateClient", "/deleteClient/**", "/dashboard").hasRole("ADMIN")
                         // Vendor-only routes — corrected from ROLE_USER to ROLE_VENDOR
                         .requestMatchers("/vendor-tickets", "/vendor-tickets/**").hasRole("VENDOR")
                         .requestMatchers("/invoice", "/invoice/**",

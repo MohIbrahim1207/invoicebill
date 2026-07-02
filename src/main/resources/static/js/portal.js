@@ -91,7 +91,7 @@
             var term = select.value.toLowerCase();
             rows.forEach(function (row) {
                 if (row.classList.contains("table-empty-row")) return;
-                var badge = row.querySelector("td:nth-child(6) .badge, td:nth-child(6) .status-badge");
+                var badge = row.querySelector(".badge, .status-badge");
                 var statusText = badge ? badge.textContent.toLowerCase() : "";
                 row.style.display = !term || statusText === term ? "" : "none";
             });
@@ -183,7 +183,7 @@
 
         rows.forEach(function (row) {
             amount += parseFloat(row.getAttribute("data-amount") || "0");
-            var badge = row.querySelector("td:nth-child(6) .badge, td:nth-child(6) .status-badge");
+            var badge = row.querySelector(".badge, .status-badge");
             var status = badge ? badge.textContent.trim() : "";
             if (status === "Pending") pending += 1;
             if (status === "Approved") approved += 1;

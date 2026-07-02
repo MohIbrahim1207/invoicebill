@@ -25,6 +25,17 @@ public class Invoice {
     @ManyToOne(fetch = FetchType.LAZY)
     private Client client;
 
+    @jakarta.persistence.Transient
+    private String poNumber;
+
+    public String getPoNumber() {
+        return this.poNumber;
+    }
+
+    public void setPoNumber(String poNumber) {
+        this.poNumber = poNumber;
+    }
+
     // Constructors
     public Invoice() {
     }

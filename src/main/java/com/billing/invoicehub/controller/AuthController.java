@@ -21,6 +21,7 @@ package com.billing.invoicehub.controller;
 import com.billing.invoicehub.config.RoleBasedAuthenticationValidator;
 import com.billing.invoicehub.dto.VendorRegistrationForm;
 import com.billing.invoicehub.service.VendorRegistrationService;
+import com.billing.invoicehub.service.VendorTicketService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,11 +42,14 @@ public class AuthController {
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
     private final VendorRegistrationService vendorRegistrationService;
     private final RoleBasedAuthenticationValidator roleValidator;
+    private final VendorTicketService vendorTicketService;
 
     public AuthController(VendorRegistrationService vendorRegistrationService,
-            RoleBasedAuthenticationValidator roleValidator) {
+            RoleBasedAuthenticationValidator roleValidator,
+            VendorTicketService vendorTicketService) {
         this.vendorRegistrationService = vendorRegistrationService;
         this.roleValidator = roleValidator;
+        this.vendorTicketService = vendorTicketService;
     }
 
     @GetMapping(value = { "/login" })
@@ -108,7 +112,7 @@ public class AuthController {
     }
 
     @GetMapping(value = { "/admin/dashboard" })
-    public String adminDashboard() {
+    public String adminDashboard(Model model) {
         return "dashboard";
     }
 

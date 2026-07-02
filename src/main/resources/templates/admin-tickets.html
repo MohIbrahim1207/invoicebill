@@ -58,7 +58,7 @@
                             <select name="status" class="form-select">
                                 <option value="ALL" th:selected="${status == null or status == 'ALL'}">ALL</option>
                                 <option th:each="option : ${statusOptions}" th:value="${option.name()}"
-                                    th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(option.name(), '_', ' ')))}"
+                                    th:text="${option.name() == 'RESOLVED' ? 'Paid' : #strings.capitalize(#strings.toLowerCase(#strings.replace(option.name(), '_', ' ')))}"
                                     th:selected="${status == option.name()}"></option>
                             </select>
                         </div>
@@ -75,6 +75,7 @@
                                 <th>No</th>
                                 <th>Ticket No</th>
                                 <th>Invoice No</th>
+                                <th>PO Number</th>
                                 <th>Vendor</th>
                                 <th>Amount</th>
                                 <th>Date</th>
@@ -84,7 +85,7 @@
                         </thead>
                         <tbody>
                             <tr th:if="${tickets == null or #lists.isEmpty(tickets)}" class="table-empty-row">
-                                <td colspan="8">
+                                <td colspan="9">
                                     <div class="empty-state">
                                         <i class="bi bi-ticket-perforated"></i>
                                         <p>No vendor tickets found.</p>
@@ -97,6 +98,7 @@
                                     <td th:text="${row.index + 1}"></td>
                                     <td th:text="${ticket.ticketNo}"></td>
                                     <td th:text="${ticket.invoiceNo}"></td>
+                                    <td th:text="${ticket.poNumber != null and !ticket.poNumber.isEmpty() ? ticket.poNumber : '-'}"></td>
                                     <td th:text="${ticket.vendor != null ? ticket.vendor.username : '-'}"></td>
                                     <td
                                         th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.amount, ticket.currency)}">
@@ -109,7 +111,7 @@
                                             Progress</span>
                                         <span th:if="${statusName == 'REVISE'}" class="badge bg-danger">Revise</span>
                                         <span th:if="${statusName == 'RESOLVED'}"
-                                            class="badge bg-success">Resolved</span>
+                                            class="badge bg-success">Paid</span>
                                         <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
                                         <span th:if="${statusName == null}" class="text-muted">-</span>
                                         <span th:if="${ticket.duplicateFlag}" class="badge bg-warning text-dark ms-1">Possible Duplicate</span>

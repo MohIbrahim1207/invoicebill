@@ -40,6 +40,9 @@ public class InvoiceController {
     @Autowired(required = false)
     private CloudinaryService cloudinaryService;
 
+    @Autowired
+    private com.billing.invoicehub.service.VendorTicketService vendorTicketService;
+
     // ─── GET /invoice ────────────────────────────────────────────────────────────
 
     @GetMapping("/invoice")
@@ -59,6 +62,8 @@ public class InvoiceController {
         List<Invoice> invoices = isAdmin
                 ? invoiceRepository.findAllWithClientOrderByIdDesc()
                 : invoiceRepository.findByClientOwnerIdWithClientOrderByIdDesc(currentUser.get().getId());
+
+        this.vendorTicketService.populatePoNumbers(invoices);
 
         model.addAttribute("clients", clients);
         model.addAttribute("invoices", invoices);
@@ -139,7 +144,9 @@ public class InvoiceController {
         if (invoice.isEmpty()) {
             return "redirect:/invoice";
         }
-        model.addAttribute("invoice", invoice.get());
+        Invoice inv = invoice.get();
+        this.vendorTicketService.populatePoNumbers(java.util.List.of(inv));
+        model.addAttribute("invoice", inv);
         return "invoice-detail";
     }
 
@@ -151,7 +158,9 @@ public class InvoiceController {
         if (invoice.isEmpty()) {
             return "redirect:/invoice";
         }
-        model.addAttribute("invoice", invoice.get());
+        Invoice inv = invoice.get();
+        this.vendorTicketService.populatePoNumbers(java.util.List.of(inv));
+        model.addAttribute("invoice", inv);
         model.addAttribute("clients", visibleClients());
         return "invoice-edit";
     }

@@ -41,5 +41,31 @@ extends JpaRepository<VendorTicket, Long> {
 
     @Query("select t from VendorTicket t where t.vendor.id = :vendorId and t.invoiceNo = :invoiceNo and t.poNumber = :poNumber and t.statusRequest <> 'CANCEL' and (:excludeId is null or t.id <> :excludeId)")
     public List<VendorTicket> findActiveDuplicatesExcludingId(@Param("vendorId") Long vendorId, @Param("invoiceNo") String invoiceNo, @Param("poNumber") String poNumber, @Param("excludeId") Long excludeId);
+
+    public long countByStatusRequestAndCreatedAtBetween(TicketStatus status, LocalDateTime start, LocalDateTime end);
+
+    @Query(value="select distinct t from VendorTicket t left join fetch t.vendor left join fetch t.client " +
+            "where (:startDate is null or t.createdAt >= :startDate) " +
+            "and (:endDate is null or t.createdAt <= :endDate) " +
+            "and (:status is null or t.statusRequest = :status) " +
+            "and (:vendorId is null or t.vendor.id = :vendorId) " +
+            "and (:clientId is null or t.client.id = :clientId) " +
+            "and (:poNumber is null or lower(t.poNumber) = lower(:poNumber)) " +
+            "and (:search is null or lower(t.ticketNo) like lower(concat('%', :search, '%')) " +
+            "   or lower(t.invoiceNo) like lower(concat('%', :search, '%')) " +
+            "   or lower(t.vendor.username) like lower(concat('%', :search, '%')) " +
+            "   or lower(t.client.companyName) like lower(concat('%', :search, '%'))" +
+            ") order by t.id desc")
+    public List<VendorTicket> searchTicketsAdvanced(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("status") TicketStatus status,
+            @Param("vendorId") Long vendorId,
+            @Param("clientId") Long clientId,
+            @Param("poNumber") String poNumber,
+            @Param("search") String search);
+
+    @Query("select t.invoiceNo, t.poNumber from VendorTicket t")
+    public List<Object[]> findAllInvoiceNoAndPoNumber();
 }
 

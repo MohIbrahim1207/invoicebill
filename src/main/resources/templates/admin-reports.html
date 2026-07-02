@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <link rel="icon" type="image/png" th:href="@{/flow.png}">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,  initial-scale=1">
+    <title>InvoiceHub - Reports</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/portal.css}">
+</head>
+
+<body class="portal-bg">
+    <div th:replace="fragments/layout :: topbar('Reports')"></div>
+    <div th:replace="fragments/layout :: sidebarMobile('reports')"></div>
+    <div class="portal-shell">
+        <div th:replace="fragments/layout :: sidebar('reports')"></div>
+        <main class="portal-main">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h1 class="portal-heading">Reports</h1>
+                    <p class="text-muted mb-0">Weekly ticket analytics and trend data.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1 js-export-btn" data-type="pdf">
+                        <i class="bi bi-file-pdf"></i> Download PDF
+                    </button>
+                    <button class="btn btn-outline-success btn-sm d-flex align-items-center gap-1 js-export-btn" data-type="csv">
+                        <i class="bi bi-filetype-csv"></i> Download CSV
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 js-export-btn" data-type="excel">
+                        <i class="bi bi-file-earmark-excel"></i> Download Excel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="card portal-card mb-4">
+                <div class="card-body">
+                    <form method="get" action="/admin/reports" id="filterForm" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" name="startDate" class="form-control" th:value="${startDate}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" name="endDate" class="form-control" th:value="${endDate}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="ALL" th:selected="${status == 'ALL'}">ALL</option>
+                                <option value="OPEN" th:selected="${status == 'OPEN'}">Open</option>
+                                <option value="IN_PROGRESS" th:selected="${status == 'IN_PROGRESS'}">In Progress</option>
+                                <option value="RESOLVED" th:selected="${status == 'RESOLVED'}">Paid</option>
+                                <option value="REVISE" th:selected="${status == 'REVISE'}">Revise</option>
+                                <option value="CANCEL" th:selected="${status == 'CANCEL'}">Cancel</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Vendor</label>
+                            <select name="vendorId" class="form-select">
+                                <option value="">ALL</option>
+                                <option th:each="v : ${vendors}" th:value="${v.id}" th:text="${v.username}" th:selected="${vendorId == v.id}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Client</label>
+                            <select name="clientId" class="form-select">
+                                <option value="">ALL</option>
+                                <option th:each="c : ${clients}" th:value="${c.id}" th:text="${c.companyName}" th:selected="${clientId == c.id}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">PO Number</label>
+                            <input type="text" name="poNumber" class="form-control" th:value="${poNumber}" placeholder="Purchase Order Number">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Search Query</label>
+                            <input type="text" name="search" class="form-control" th:value="${search}" placeholder="Search Ticket No, Invoice No, Vendor, Client">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-filter"></i> Apply Filters
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Statistics Summary Cards -->
+            <div class="card portal-card" th:if="${weeklyReport != null}">
+                <div class="card-body">
+                    <h2 class="section-title mb-3">Ticket Statistics Summary</h2>
+                    <div class="row g-3">
+                        <div class="col-md-2 col-6">
+                            <div class="card stat-card border-light shadow-sm">
+                                <div class="card-body p-3 text-center">
+                                    <div class="stat-label text-truncate" style="font-size: 0.8rem;">Total Tickets</div>
+                                    <div class="h3 mb-1 text-primary font-weight-bold" th:text="${weeklyReport.totalCreated}">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6">
+                            <div class="card stat-card border-light shadow-sm">
+                                <div class="card-body p-3 text-center">
+                                    <div class="stat-label text-truncate" style="font-size: 0.8rem;">Pending</div>
+                                    <div class="h3 mb-1 text-dark font-weight-bold" th:text="${weeklyReport.pending}">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6">
+                            <div class="card stat-card border-light shadow-sm">
+                                <div class="card-body p-3 text-center">
+                                    <div class="stat-label text-truncate" style="font-size: 0.8rem;">In Progress</div>
+                                    <div class="h3 mb-1 text-info font-weight-bold" th:text="${weeklyReport.inProgress}">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6">
+                            <div class="card stat-card border-light shadow-sm">
+                                <div class="card-body p-3 text-center">
+                                    <div class="stat-label text-truncate" style="font-size: 0.8rem;">Paid</div>
+                                    <div class="h3 mb-1 text-success font-weight-bold" th:text="${weeklyReport.paid}">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6">
+                            <div class="card stat-card border-light shadow-sm">
+                                <div class="card-body p-3 text-center">
+                                    <div class="stat-label text-truncate" style="font-size: 0.8rem;">Rejected</div>
+                                    <div class="h3 mb-1 text-danger font-weight-bold" th:text="${weeklyReport.rejected}">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6">
+                            <div class="card stat-card border-light shadow-sm">
+                                <div class="card-body p-3 text-center">
+                                    <div class="stat-label text-truncate" style="font-size: 0.8rem;">Cancelled</div>
+                                    <div class="h3 mb-1 text-secondary font-weight-bold" th:text="${weeklyReport.cancelled}">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="row mt-4" th:if="${weeklyReport != null}">
+                <div class="col-md-8">
+                    <div class="card portal-card h-100">
+                        <div class="card-body">
+                            <h2 class="section-title mb-3">Daily Tickets (Past 7 Days)</h2>
+                            <div style="height: 250px; position: relative;">
+                                <canvas id="weeklyReportChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card portal-card h-100">
+                        <div class="card-body">
+                            <h2 class="section-title mb-3">Tickets by Status</h2>
+                            <div style="height: 250px; position: relative;">
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Details Table -->
+            <div class="card portal-card mt-4">
+                <div class="card-body">
+                    <h2 class="section-title mb-3">Report Details</h2>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Ticket ID</th>
+                                    <th>Vendor</th>
+                                    <th>Client</th>
+                                    <th>PO Number</th>
+                                    <th>Invoice Number</th>
+                                    <th>Invoice Amount</th>
+                                    <th>Status</th>
+                                    <th>Created Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:if="${#lists.isEmpty(tickets)}" class="table-empty-row">
+                                    <td colspan="8">
+                                        <div class="text-center py-4 text-muted">
+                                            <i class="bi bi-folder-x fs-2"></i>
+                                            <p class="mb-0">No records found matching filters.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr th:each="t : ${tickets}">
+                                    <td th:text="${t.ticketNo}"></td>
+                                    <td th:text="${t.vendor != null ? t.vendor.username : '-'}"></td>
+                                    <td th:text="${t.client != null ? t.client.companyName : '-'}"></td>
+                                    <td th:text="${t.poNumber != null ? t.poNumber : '-'}"></td>
+                                    <td th:text="${t.invoiceNo}"></td>
+                                    <td th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(t.amount, t.currency)}"></td>
+                                    <td>
+                                        <span th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).OPEN}" class="badge bg-dark">Open</span>
+                                        <span th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).IN_PROGRESS}" class="badge bg-primary">In Progress</span>
+                                        <span th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).RESOLVED}" class="badge bg-success">Paid</span>
+                                        <span th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).REVISE}" class="badge bg-danger">Revise</span>
+                                        <span th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).CANCEL}" class="badge bg-secondary">Cancel</span>
+                                    </td>
+                                    <td th:text="${T(com.billing.invoicehub.util.FormatUtils).formatDate(t.createdAt)}"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- UI Overlay for loading feedback -->
+    <div id="loadingOverlay" class="loading-overlay d-none">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Generating Report File...</span>
+        </div>
+    </div>
+
+    <!-- Toast Notification structure -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
+        <div id="toastNotification" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage">Done</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script th:inline="javascript" th:if="${weeklyReport != null}">
+        /*<![CDATA[*/
+        document.addEventListener("DOMContentLoaded", function() {
+            // Theme colors
+            const themeBlue = '#144a7a';
+            const themeOrange = '#fd7e14';
+            const themeTeal = '#005f6d';
+
+            // Daily tickets Chart
+            const days = /*[[${weeklyReport.days}]]*/ [];
+            const dailyCounts = /*[[${weeklyReport.dailyCounts}]]*/ [];
+            const ctxBar = document.getElementById('weeklyReportChart');
+            if (ctxBar) {
+                new Chart(ctxBar, {
+                    type: 'bar',
+                    data: {
+                        labels: days,
+                        datasets: [{
+                            label: 'Tickets Created',
+                            data: dailyCounts,
+                            backgroundColor: themeTeal,
+                            borderColor: themeTeal,
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            // Tickets by status Pie Chart
+            const ctxPie = document.getElementById('statusChart');
+            if (ctxPie) {
+                new Chart(ctxPie, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Pending', 'In Progress', 'Paid', 'Rejected', 'Cancelled'],
+                        datasets: [{
+                            data: [
+                                /*[[${weeklyReport.pending}]]*/ 0,
+                                /*[[${weeklyReport.inProgress}]]*/ 0,
+                                /*[[${weeklyReport.paid}]]*/ 0,
+                                /*[[${weeklyReport.rejected}]]*/ 0,
+                                /*[[${weeklyReport.cancelled}]]*/ 0
+                            ],
+                            backgroundColor: ['#212529', '#0d6efd', '#198754', '#dc3545', '#6c757d']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            }
+
+            // Export Buttons Logic
+            const overlay = document.getElementById('loadingOverlay');
+            const toastEl = document.getElementById('toastNotification');
+            const toastMsg = document.getElementById('toastMessage');
+            const toast = new bootstrap.Toast(toastEl);
+
+            document.querySelectorAll('.js-export-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const exportType = btn.getAttribute('data-type');
+                    
+                    // Disable all buttons and show overlay spinner
+                    document.querySelectorAll('.js-export-btn').forEach(b => b.disabled = true);
+                    overlay.classList.remove('d-none');
+
+                    // Extract filter parameters
+                    const form = document.getElementById('filterForm');
+                    const params = new URLSearchParams(new FormData(form));
+
+                    // Trigger direct file download
+                    const exportUrl = `/admin/reports/${exportType}?` + params.toString();
+                    
+                    fetch(exportUrl)
+                        .then(res => {
+                            if (!res.ok) throw new Error("Server failed to generate the report.");
+                            return res.blob();
+                        })
+                        .then(blob => {
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.style.display = 'none';
+                            a.href = url;
+                            a.download = `report_${new Date().toISOString().slice(0,10)}.${exportType === 'excel' ? 'xlsx' : exportType}`;
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            
+                            // Success toast notification
+                            toastMsg.textContent = `${exportType.toUpperCase()} file downloaded successfully.`;
+                            toast.show();
+                        })
+                        .catch(err => {
+                            toastMsg.textContent = "Error exporting report file.";
+                            toast.show();
+                        })
+                        .finally(() => {
+                            // Re-enable UI
+                            document.querySelectorAll('.js-export-btn').forEach(b => b.disabled = false);
+                            overlay.classList.add('d-none');
+                        });
+                });
+            });
+        });
+        /*]]>*/
+    </script>
+</body>
+
+</html>

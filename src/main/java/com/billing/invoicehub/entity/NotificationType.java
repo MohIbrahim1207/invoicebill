@@ -7,4 +7,3 @@ public enum NotificationType {
     VENDOR_APPROVED,
     VENDOR_REJECTED
 }
-

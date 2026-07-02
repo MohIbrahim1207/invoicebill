@@ -25,6 +25,25 @@ public class StartupRoleMigration implements ApplicationRunner {
         try {
             log.info("Running startup role migration checks...");
 
+            try {
+                jdbc.execute("ALTER TABLE app_user DROP COLUMN reminder24h_sent");
+                log.info("Successfully dropped column reminder24h_sent from app_user");
+            } catch (Exception e) {
+                log.debug("Column reminder24h_sent already dropped or not present");
+            }
+            try {
+                jdbc.execute("ALTER TABLE app_user DROP COLUMN reminder48h_sent");
+                log.info("Successfully dropped column reminder48h_sent from app_user");
+            } catch (Exception e) {
+                log.debug("Column reminder48h_sent already dropped or not present");
+            }
+            try {
+                jdbc.execute("ALTER TABLE app_user DROP COLUMN last_reminder_sent_at");
+                log.info("Successfully dropped column last_reminder_sent_at from app_user");
+            } catch (Exception e) {
+                log.debug("Column last_reminder_sent_at already dropped or not present");
+            }
+
             // Ensure app_roles table exists
             jdbc.execute("CREATE TABLE IF NOT EXISTS app_roles (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL, UNIQUE KEY uq_app_roles_name (name))");
 

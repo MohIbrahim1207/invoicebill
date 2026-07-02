@@ -48,7 +48,7 @@ public class AdminController {
     }
 
     @GetMapping(value={"/dashboard"})
-    public String dashboard() {
+    public String dashboard(Model model) {
         return "dashboard";
     }
 }

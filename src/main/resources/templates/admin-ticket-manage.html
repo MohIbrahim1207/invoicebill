@@ -100,7 +100,7 @@
                                             <span th:if="${statusName == 'REVISE'}"
                                                 class="badge bg-danger">Revise</span>
                                             <span th:if="${statusName == 'RESOLVED'}"
-                                                class="badge bg-success">Resolved</span>
+                                                class="badge bg-success">Paid</span>
                                             <span th:if="${statusName == 'CANCEL'}"
                                                 class="badge bg-secondary">Cancel</span>
                                             <span th:if="${statusName == null}"
@@ -199,7 +199,7 @@
                                         <select name="newStatus" class="form-select form-select-lg" required>
                                             <option value="">Select new status...</option>
                                             <option th:each="status : ${statusOptions}" th:value="${status}"
-                                                th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(status.name(), '_', ' ')))}"
+                                                th:text="${status.name() == 'RESOLVED' ? 'Paid' : #strings.capitalize(#strings.toLowerCase(#strings.replace(status.name(), '_', ' ')))}"
                                                 th:selected="${ticket.statusRequest == status}"></option>
                                         </select>
                                         <small class="text-muted d-block mt-2">Required for all status changes</small>
@@ -264,7 +264,7 @@
                                                 </span>
                                                 <span th:if="${recordStatus == 'RESOLVED'}" class="badge bg-success">
                                                     <i class="bi bi-circle-fill me-1"
-                                                        style="font-size: 0.5rem;"></i>Resolved
+                                                        style="font-size: 0.5rem;"></i>Paid
                                                 </span>
                                                 <span th:if="${recordStatus == 'CANCEL'}" class="badge bg-secondary">
                                                     <i class="bi bi-circle-fill me-1"

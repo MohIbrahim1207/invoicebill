@@ -26,6 +26,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+
 @RestController
 @RequestMapping(value={"/api/purchase-orders"})
 public class PurchaseOrderApiController {
@@ -46,20 +49,30 @@ public class PurchaseOrderApiController {
     }
 
     @GetMapping(value={"/{poNumber}"})
-    public ResponseEntity<Map<String, Object>> getPODetails(@PathVariable String poNumber) {
+    public ResponseEntity<Map<String, Object>> getPODetails(@PathVariable String poNumber, Authentication authentication) {
         HashMap<String, Object> response = new HashMap<String, Object>();
-        Optional po = this.poService.getPOByNumber(poNumber);
+        Optional<PurchaseOrder> po = this.poService.getPOByNumber(poNumber);
         if (po.isPresent()) {
+            PurchaseOrder purchaseOrder = po.get();
+            boolean isAdmin = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch("ROLE_ADMIN"::equals);
+            boolean isOwner = purchaseOrder.getVendor() != null && purchaseOrder.getVendor().getUsername().equals(authentication.getName());
+
+            if (!isAdmin && !isOwner) {
+                return ResponseEntity.status(403).build();
+            }
+
             response.put("found", true);
-            response.put("poNumber", ((PurchaseOrder)po.get()).getPoNumber());
-            response.put("amount", ((PurchaseOrder)po.get()).getAmount());
-            response.put("totalAmount", ((PurchaseOrder)po.get()).getTotalAmount());
-            response.put("paidAmount", ((PurchaseOrder)po.get()).getPaidAmount());
-            response.put("balanceAmount", ((PurchaseOrder)po.get()).getBalanceAmount());
-            response.put("paymentStatus", ((PurchaseOrder)po.get()).getPaymentStatus());
-            response.put("vendor", ((PurchaseOrder)po.get()).getVendor() != null ? ((PurchaseOrder)po.get()).getVendor().getUsername() : null);
-            response.put("active", ((PurchaseOrder)po.get()).isActive());
-            response.put("createdAt", ((PurchaseOrder)po.get()).getCreatedAt());
+            response.put("poNumber", purchaseOrder.getPoNumber());
+            response.put("amount", purchaseOrder.getAmount());
+            response.put("totalAmount", purchaseOrder.getTotalAmount());
+            response.put("paidAmount", purchaseOrder.getPaidAmount());
+            response.put("balanceAmount", purchaseOrder.getBalanceAmount());
+            response.put("paymentStatus", purchaseOrder.getPaymentStatus());
+            response.put("vendor", purchaseOrder.getVendor() != null ? purchaseOrder.getVendor().getUsername() : null);
+            response.put("active", purchaseOrder.isActive());
+            response.put("createdAt", purchaseOrder.getCreatedAt());
         } else {
             response.put("found", false);
             response.put("message", "PO not found");
