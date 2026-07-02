@@ -38,7 +38,7 @@ public class PurchaseOrderPdfService {
     private static final String COMPANY_NAME = "InvoiceHub";
     private static final String COMPANY_ADDRESS = "Procurement Office, Industrial Business District";
     private static final String COMPANY_EMAIL = "procurement@invoicehub.local";
-    private static final String COMPANY_PHONE = "+1-800-123-4567";
+    private static final String COMPANY_PHONE = "+91-8972779588";
 
     public byte[] generatePurchaseOrderPdf(PurchaseOrder purchaseOrder) {
         if (purchaseOrder == null) {
