@@ -191,6 +191,10 @@
             sec:authorize="hasRole('VENDOR')">
             <i class="bi bi-question-circle"></i> <span th:text="#{sidebar.help}">Help</span>
         </a>
+        <a href="/clients" class="sidebar-link" th:classappend="${active == 'clients'} ? ' active' : ''"
+            sec:authorize="hasRole('ADMIN')">
+            <i class="bi bi-building"></i> <span th:text="#{sidebar.clients}">Vendor Management</span>
+        </a>
         <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''"
             sec:authorize="hasRole('VENDOR')">
             <i class="bi bi-list-task"></i> <span th:text="#{sidebar.vendor.tickets}">Vendor Tickets</span>
@@ -232,6 +236,9 @@
                 <a href="/help" class="sidebar-link" th:classappend="${active == 'help'} ? ' active' : ''"
                     sec:authorize="hasRole('VENDOR')"><i class="bi bi-question-circle"></i> <span
                         th:text="#{sidebar.help}">Help</span></a>
+                <a href="/clients" class="sidebar-link" th:classappend="${active == 'clients'} ? ' active' : ''"
+                    sec:authorize="hasRole('ADMIN')"><i class="bi bi-building"></i> <span
+                        th:text="#{sidebar.clients}">Vendor Management</span></a>
                 <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''"
                     sec:authorize="hasRole('VENDOR')"><i class="bi bi-list-task"></i> <span
                         th:text="#{sidebar.vendor.tickets}">Vendor Tickets</span></a>
