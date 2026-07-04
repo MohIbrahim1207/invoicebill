@@ -149,7 +149,14 @@ public class GlobalExceptionHandler {
         response.put("timestamp", LocalDateTime.now());
         response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
         response.put("error", "Internal Server Error");
-        response.put("message", "An unexpected error occurred. Please contact support.");
+        
+        // Expose real error details for diagnosis
+        java.io.StringWriter sw = new java.io.StringWriter();
+        java.io.PrintWriter pw = new java.io.PrintWriter(sw);
+        ex.printStackTrace(pw);
+        response.put("message", ex.getMessage() != null ? ex.getMessage() : ex.toString());
+        response.put("cause", ex.getCause() != null ? ex.getCause().getMessage() : "No cause");
+        response.put("stackTrace", sw.toString());
         response.put("path", request.getDescription(false).replace("uri=", ""));
 
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);

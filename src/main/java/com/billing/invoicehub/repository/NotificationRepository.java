@@ -38,5 +38,17 @@ extends JpaRepository<Notification, Long> {
     public void deleteByRelatedTicketId(Long var1);
 
     public void deleteByRelatedInvoiceId(Long var1);
+
+    @Query("SELECT n FROM Notification n WHERE (n.user.id = :userId OR n.recipientRole IN :roles) AND (:unreadOnly = false OR n.isRead = false)")
+    public org.springframework.data.domain.Page<Notification> findByUserOrRolesFiltered(
+            @Param("userId") Long userId, 
+            @Param("roles") java.util.Collection<String> roles, 
+            @Param("unreadOnly") boolean unreadOnly, 
+            org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT COUNT(n) FROM Notification n WHERE (n.user.id = :userId OR n.recipientRole IN :roles) AND n.isRead = false")
+    public long countUnreadByUserOrRoles(
+            @Param("userId") Long userId, 
+            @Param("roles") java.util.Collection<String> roles);
 }
 

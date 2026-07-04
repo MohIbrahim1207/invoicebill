@@ -94,6 +94,75 @@
                                 class="bi bi-box-arrow-right"></i> <span th:text="#{nav.logout}">Logout</span></button>
                     </form>
                 </div>
+                <!-- SockJS and STOMP CDNs -->
+                <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+                
+                <!-- Custom Premium Toast Styles -->
+                <style>
+                    .custom-toast-container {
+                        position: fixed;
+                        top: 24px;
+                        right: 24px;
+                        z-index: 10000;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 12px;
+                    }
+                    .custom-toast {
+                        background: var(--portal-card-bg, #ffffff);
+                        border-left: 4px solid var(--bs-primary, #0d6efd);
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+                        border-radius: 8px;
+                        padding: 16px 20px;
+                        color: var(--portal-text, #333333);
+                        display: flex;
+                        align-items: flex-start;
+                        gap: 14px;
+                        transform: translateX(120%);
+                        transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+                        width: 360px;
+                        border-top: 1px solid rgba(0,0,0,0.05);
+                        border-bottom: 1px solid rgba(0,0,0,0.05);
+                        border-right: 1px solid rgba(0,0,0,0.05);
+                    }
+                    .custom-toast.show {
+                        transform: translateX(0);
+                    }
+                    .custom-toast-icon {
+                        font-size: 1.35rem;
+                        color: var(--bs-primary, #0d6efd);
+                        margin-top: 2px;
+                    }
+                    .custom-toast-content {
+                        flex-grow: 1;
+                    }
+                    .custom-toast-title {
+                        font-weight: 700;
+                        font-size: 0.92rem;
+                        margin-bottom: 4px;
+                    }
+                    .custom-toast-msg {
+                        font-size: 0.82rem;
+                        color: var(--portal-text-muted, #666666);
+                        line-height: 1.4;
+                    }
+                    .custom-toast-close {
+                        cursor: pointer;
+                        color: #bbb;
+                        font-size: 0.95rem;
+                        background: none;
+                        border: none;
+                        padding: 0;
+                        margin-top: 2px;
+                    }
+                    .custom-toast-close:hover {
+                        color: #555;
+                    }
+                </style>
+                
+                <div class="custom-toast-container" id="toastContainer"></div>
+
                 <script>
                     function changeLanguage(lang) {
                         const url = new URL(window.location.href);
@@ -101,31 +170,133 @@
                         window.location.assign(url.toString());
                     }
 
+                    function escapeHtml(str) {
+                        if (!str) return '';
+                        return str.replace(/&/g, "&amp;")
+                                  .replace(/</g, "&lt;")
+                                  .replace(/>/g, "&gt;")
+                                  .replace(/"/g, "&quot;")
+                                  .replace(/'/g, "&#039;");
+                    }
+
+                    function playChime() {
+                        try {
+                            const AudioContext = window.AudioContext || window.webkitAudioContext;
+                            if (!AudioContext) return;
+                            const ctx = new AudioContext();
+                            const osc1 = ctx.createOscillator();
+                            const osc2 = ctx.createOscillator();
+                            const gainNode = ctx.createGain();
+                            
+                            osc1.type = 'sine';
+                            osc1.frequency.setValueAtTime(880, ctx.currentTime);
+                            
+                            osc2.type = 'sine';
+                            osc2.frequency.setValueAtTime(1320, ctx.currentTime);
+                            
+                            gainNode.gain.setValueAtTime(0, ctx.currentTime);
+                            gainNode.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.05);
+                            gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
+                            
+                            osc1.connect(gainNode);
+                            osc2.connect(gainNode);
+                            gainNode.connect(ctx.destination);
+                            
+                            osc1.start();
+                            osc2.start();
+                            osc1.stop(ctx.currentTime + 0.6);
+                            osc2.stop(ctx.currentTime + 0.6);
+                        } catch (e) {
+                            console.warn('Audio play blocked/failed:', e);
+                        }
+                    }
+
+                    function showCustomToast(title, message) {
+                        const container = document.getElementById('toastContainer');
+                        if (!container) return;
+                        
+                        const toast = document.createElement('div');
+                        toast.className = 'custom-toast';
+                        toast.innerHTML = `
+                            <div class="custom-toast-icon"><i class="bi bi-bell-fill"></i></div>
+                            <div class="custom-toast-content">
+                                <div class="custom-toast-title">${escapeHtml(title)}</div>
+                                <div class="custom-toast-msg">${escapeHtml(message)}</div>
+                            </div>
+                            <button class="custom-toast-close" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button>
+                        `;
+                        
+                        container.appendChild(toast);
+                        setTimeout(() => toast.classList.add('show'), 50);
+                        
+                        // Auto dismiss after 6 seconds
+                        setTimeout(() => {
+                            toast.classList.remove('show');
+                            setTimeout(() => toast.remove(), 400);
+                        }, 6000);
+                    }
+
+                    function markAsReadDropdown(id, button) {
+                        const csrfToken = document.querySelector('input[name="_csrf"]')?.value;
+                        const headers = { 'Content-Type': 'application/json' };
+                        if (csrfToken) headers['X-CSRF-TOKEN'] = csrfToken;
+
+                        fetch(`/api/notifications/${id}/read`, {
+                            method: 'POST',
+                            headers: headers
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                loadNotifications();
+                            }
+                        })
+                        .catch(err => console.error('Error marking read:', err));
+                    }
+
                     function loadNotifications() {
-                        fetch('/notifications/recent')
+                        fetch('/api/notifications?page=0&size=5')
                             .then(response => response.json())
                             .then(data => {
                                 const notificationList = document.getElementById('notificationList');
                                 const unreadBadge = document.getElementById('unreadBadge');
-
-                                if (data && data.length > 0) {
-                                    let html = '<div class="list-group">';
-                                    data.forEach(notif => {
-                                        html += `<a href="/notifications" class="list-group-item list-group-item-action ${notif.read ? '' : 'bg-light'}">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div class="flex-grow-1">
-                                                <h6 class="mb-1">${notif.title}</h6>
-                                                <p class="mb-1 small">${notif.message}</p>
+                                
+                                const list = data.content;
+                                if (list && list.length > 0) {
+                                    let html = '<div class="list-group list-group-flush">';
+                                    list.forEach(notif => {
+                                        html += `
+                                        <div class="list-group-item p-3 border-bottom position-relative ${notif.read ? '' : 'bg-light-subtle'}" style="font-size: 0.85rem;">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1 pe-3">
+                                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                                        <span class="fw-semibold text-dark-emphasis">${escapeHtml(notif.title)}</span>
+                                                        ${notif.read ? '' : '<span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem; padding: 2px 4px;">New</span>'}
+                                                    </div>
+                                                    <p class="mb-1 text-muted text-wrap" style="line-height: 1.3;">${escapeHtml(notif.message)}</p>
+                                                    <span class="text-secondary" style="font-size: 0.75rem;">${notif.relativeTime}</span>
+                                                </div>
+                                                <div class="d-flex gap-1 align-items-center">
+                                                    ${notif.read ? '' : `
+                                                    <button onclick="markAsReadDropdown(${notif.id}, this); event.stopPropagation();" class="btn btn-link p-0 text-primary" title="Mark as Read" style="font-size: 1rem; border: none; background: none;">
+                                                        <i class="bi bi-check-circle"></i>
+                                                    </button>
+                                                    `}
+                                                </div>
                                             </div>
-                                            ${!notif.read ? '<span class="badge bg-primary">New</span>' : ''}
-                                        </div>
-                                    </a>`;
+                                        </div>`;
                                     });
                                     html += '</div>';
                                     notificationList.innerHTML = html;
+                                } else {
+                                    notificationList.innerHTML = `
+                                    <div class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox fs-3"></i>
+                                        <p class="mt-2 mb-0">No new notifications</p>
+                                    </div>`;
                                 }
 
-                                fetch('/notifications/unread-count')
+                                fetch('/api/notifications/unread-count')
                                     .then(r => r.json())
                                     .then(d => {
                                         if (d.unreadCount > 0) {
@@ -139,9 +310,35 @@
                             .catch(error => console.error('Error loading notifications:', error));
                     }
 
-                    // Load notifications on page load and periodically refresh
-                    document.addEventListener('DOMContentLoaded', loadNotifications);
-                    setInterval(loadNotifications, 30000); // Refresh every 30 seconds
+                    function handleIncomingNotification(notif) {
+                        playChime();
+                        showCustomToast(notif.title, notif.message);
+                        loadNotifications();
+                    }
+
+                    document.addEventListener('DOMContentLoaded', function() {
+                        loadNotifications();
+                        
+                        // Subscribe to admin WebSocket if user is ADMIN
+                        const isAdmin = [[${#authorization.expression('hasRole("ROLE_ADMIN")')}]];
+                        if (isAdmin) {
+                            try {
+                                const socket = new SockJS('/ws');
+                                const stompClient = Stomp.over(socket);
+                                stompClient.debug = null;
+                                stompClient.connect({}, function(frame) {
+                                    stompClient.subscribe('/topic/admin-notifications', function(message) {
+                                        const notif = JSON.parse(message.body);
+                                        handleIncomingNotification(notif);
+                                    });
+                                }, function(err) {
+                                    console.warn('STOMP connection failed, retrying in 10s', err);
+                                });
+                            } catch (e) {
+                                console.error('Failed to configure WebSockets:', e);
+                            }
+                        }
+                    });
 
                     // Theme toggle logic
                     document.addEventListener('DOMContentLoaded', function () {

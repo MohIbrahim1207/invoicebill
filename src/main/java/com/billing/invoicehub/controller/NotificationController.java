@@ -1,41 +1,24 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.billing.invoicehub.controller.NotificationController
- *  com.billing.invoicehub.entity.AppUser
- *  com.billing.invoicehub.repository.AppUserRepository
- *  com.billing.invoicehub.service.NotificationService
- *  org.springframework.http.ResponseEntity
- *  org.springframework.security.core.Authentication
- *  org.springframework.stereotype.Controller
- *  org.springframework.ui.Model
- *  org.springframework.web.bind.annotation.DeleteMapping
- *  org.springframework.web.bind.annotation.GetMapping
- *  org.springframework.web.bind.annotation.PathVariable
- *  org.springframework.web.bind.annotation.PostMapping
- *  org.springframework.web.bind.annotation.ResponseBody
- */
 package com.billing.invoicehub.controller;
 
+import com.billing.invoicehub.dto.NotificationDto;
 import com.billing.invoicehub.entity.AppUser;
-import com.billing.invoicehub.entity.Notification;
 import com.billing.invoicehub.repository.AppUserRepository;
 import com.billing.invoicehub.service.NotificationService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 public class NotificationController {
@@ -47,8 +30,13 @@ public class NotificationController {
         this.appUserRepository = appUserRepository;
     }
 
-    @GetMapping(value={"/notifications"})
-    public String notificationsPage(Authentication authentication, Model model) {
+    @GetMapping("/notifications")
+    public String notificationsPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "false") boolean unreadOnly,
+            Authentication authentication, 
+            Model model) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return "redirect:/login";
         }
@@ -56,41 +44,54 @@ public class NotificationController {
         if (user == null) {
             return "redirect:/login";
         }
-        List<Notification> notifications = this.notificationService.getNotificationsByUserId(user.getId());
-        long unreadCount = this.notificationService.getUnreadCount(user.getId());
-        model.addAttribute("notifications", (Object)notifications);
-        model.addAttribute("unreadCount", (Object)unreadCount);
+
+        List<String> roles = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<NotificationDto> notificationsPage = this.notificationService.getUserNotifications(user.getId(), roles, unreadOnly, pageable);
+        long unreadCount = this.notificationService.getUnreadCount(user.getId(), roles);
+
+        model.addAttribute("notificationsPage", notificationsPage);
+        model.addAttribute("unreadCount", unreadCount);
+        model.addAttribute("unreadOnly", unreadOnly);
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", notificationsPage.getTotalPages());
+        model.addAttribute("totalItems", notificationsPage.getTotalElements());
+
         return "notifications";
     }
 
-    @GetMapping(value={"/notifications/recent"})
+    // --- REST APIs for UI bell dropdown & real-time actions ---
+
+    @GetMapping("/api/notifications")
     @ResponseBody
-    public ResponseEntity<List<Map<String, Object>>> recentNotifications(Authentication authentication) {
+    public ResponseEntity<Page<NotificationDto>> getNotifications(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "false") boolean unreadOnly,
+            Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.ok(List.of());
+            return ResponseEntity.status(401).build();
         }
         AppUser user = this.appUserRepository.findByUsername(authentication.getName()).orElse(null);
         if (user == null) {
-            return ResponseEntity.ok(List.of());
+            return ResponseEntity.status(401).build();
         }
-        List<Notification> recent = this.notificationService.getRecentNotifications(user.getId());
-        List<Map<String, Object>> payload = recent.stream().map(n -> {
-            HashMap<String, Object> m = new HashMap<String, Object>();
-            m.put("id", n.getId());
-            m.put("title", n.getTitle());
-            m.put("message", n.getMessage());
-            m.put("read", n.isRead());
-            m.put("notificationType", n.getNotificationType() != null ? n.getNotificationType().name() : null);
-            m.put("createdAt", n.getCreatedAt());
-            return m;
-        }).collect(Collectors.toList());
-        return ResponseEntity.ok(payload);
+        List<String> roles = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<NotificationDto> notifications = this.notificationService.getUserNotifications(user.getId(), roles, unreadOnly, pageable);
+        return ResponseEntity.ok(notifications);
     }
 
-    @GetMapping(value={"/notifications/unread-count"})
+    @GetMapping("/api/notifications/unread-count")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> unreadCount(Authentication authentication) {
-        HashMap<String, Object> resp = new HashMap<String, Object>();
+        Map<String, Object> resp = new HashMap<>();
         if (authentication == null || !authentication.isAuthenticated()) {
             resp.put("unreadCount", 0);
             return ResponseEntity.ok(resp);
@@ -100,81 +101,94 @@ public class NotificationController {
             resp.put("unreadCount", 0);
             return ResponseEntity.ok(resp);
         }
-        long count = this.notificationService.getUnreadCount(user.getId());
+        List<String> roles = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        long count = this.notificationService.getUnreadCount(user.getId(), roles);
         resp.put("unreadCount", count);
         return ResponseEntity.ok(resp);
     }
 
-    @PostMapping(value={"/notifications/{id}/read"})
+    @PostMapping("/api/notifications/{id}/read")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> markRead(@PathVariable Long id, Authentication authentication) {
-        HashMap<String, Object> resp = new HashMap<String, Object>();
+        Map<String, Object> resp = new HashMap<>();
         if (authentication == null || !authentication.isAuthenticated()) {
             resp.put("status", "error");
             resp.put("message", "Unauthorized");
-            return ResponseEntity.status((int)401).body(resp);
+            return ResponseEntity.status(401).body(resp);
         }
         AppUser user = this.appUserRepository.findByUsername(authentication.getName()).orElse(null);
         if (user == null) {
             resp.put("status", "error");
             resp.put("message", "Unauthorized");
-            return ResponseEntity.status((int)401).body(resp);
+            return ResponseEntity.status(401).body(resp);
         }
-        Optional<Notification> notification = this.notificationService.getNotificationById(id);
-        if (notification.isPresent() && !notification.get().getUser().getId().equals(user.getId())) {
+        List<String> roles = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        boolean success = this.notificationService.markAsRead(id, user.getId(), roles);
+        if (!success) {
             resp.put("status", "error");
-            resp.put("message", "Forbidden");
-            return ResponseEntity.status((int)403).body(resp);
+            resp.put("message", "Not found or forbidden");
+            return ResponseEntity.status(403).body(resp);
         }
-        this.notificationService.markAsRead(id);
         resp.put("status", "success");
         return ResponseEntity.ok(resp);
     }
 
-    @PostMapping(value={"/notifications/read-all"})
+    @PostMapping("/api/notifications/read-all")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> markAllRead(Authentication authentication) {
-        HashMap<String, Object> resp = new HashMap<String, Object>();
+        Map<String, Object> resp = new HashMap<>();
         if (authentication == null || !authentication.isAuthenticated()) {
             resp.put("status", "error");
             resp.put("message", "Unauthorized");
-            return ResponseEntity.status((int)401).body(resp);
+            return ResponseEntity.status(401).body(resp);
         }
         AppUser user = this.appUserRepository.findByUsername(authentication.getName()).orElse(null);
         if (user == null) {
             resp.put("status", "error");
             resp.put("message", "Unauthorized");
-            return ResponseEntity.status((int)401).body(resp);
+            return ResponseEntity.status(401).body(resp);
         }
-        this.notificationService.markAllAsRead(user.getId());
+        List<String> roles = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        this.notificationService.markAllAsRead(user.getId(), roles);
         resp.put("status", "success");
         return ResponseEntity.ok(resp);
     }
 
-    @DeleteMapping(value={"/notifications/{id}"})
+    @DeleteMapping("/api/notifications/{id}")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> deleteNotification(@PathVariable Long id, Authentication authentication) {
-        HashMap<String, Object> resp = new HashMap<String, Object>();
+        Map<String, Object> resp = new HashMap<>();
         if (authentication == null || !authentication.isAuthenticated()) {
             resp.put("status", "error");
             resp.put("message", "Unauthorized");
-            return ResponseEntity.status((int)401).body(resp);
+            return ResponseEntity.status(401).body(resp);
         }
         AppUser user = this.appUserRepository.findByUsername(authentication.getName()).orElse(null);
         if (user == null) {
             resp.put("status", "error");
             resp.put("message", "Unauthorized");
-            return ResponseEntity.status((int)401).body(resp);
+            return ResponseEntity.status(401).body(resp);
         }
-        Optional<Notification> notification = this.notificationService.getNotificationById(id);
-        if (notification.isPresent() && !notification.get().getUser().getId().equals(user.getId())) {
+        List<String> roles = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        boolean success = this.notificationService.deleteNotification(id, user.getId(), roles);
+        if (!success) {
             resp.put("status", "error");
-            resp.put("message", "Forbidden");
-            return ResponseEntity.status((int)403).body(resp);
+            resp.put("message", "Not found or forbidden");
+            return ResponseEntity.status(403).body(resp);
         }
-        this.notificationService.deleteNotification(id);
         resp.put("status", "success");
         return ResponseEntity.ok(resp);
     }
 }
-

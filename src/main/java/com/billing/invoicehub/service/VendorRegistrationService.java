@@ -148,6 +148,19 @@ public class VendorRegistrationService {
         AppUser saved = this.userRepository.save(user);
         auditLogService.log(saved.getUsername(), "ROLE_VENDOR", "Vendor Registration", "AppUser", saved.getId(), null,
                 "Vendor registered: " + saved.getUsername());
+        try {
+            notificationService.createNotification(
+                "New Vendor Registration",
+                String.format("Vendor \"%s\" has registered and is awaiting verification.", saved.getCompanyName()),
+                NotificationType.VENDOR_REGISTRATION,
+                "ROLE_ADMIN",
+                saved.getId(),
+                "VENDOR"
+            );
+            log.info("Created and broadcasted new vendor registration notification for {}", saved.getUsername());
+        } catch (Exception ex) {
+            log.error("Failed to create vendor registration notification: {}", ex.getMessage(), ex);
+        }
         this.sendRegistrationEmail(saved);
         log.info("Vendor registration received for {}", (Object) saved.getUsername());
         log.info("=== Vendor registration completed successfully for: {} ===", saved.getUsername());

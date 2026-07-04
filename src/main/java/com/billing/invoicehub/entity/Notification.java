@@ -23,6 +23,9 @@ public class Notification {
     private AppUser user;
     private Long relatedTicketId;
     private Long relatedInvoiceId;
+    private String recipientRole;
+    private Long referenceId;
+    private String referenceType;
     private boolean isRead;
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -33,6 +36,15 @@ public class Notification {
         this.message = message;
         this.type = type;
         this.user = recipient;
+        this.createdAt = LocalDateTime.now();
+        this.isRead = false;
+    }
+
+    public Notification(String title, String message, NotificationType type, String recipientRole) {
+        this.title = title;
+        this.message = message;
+        this.type = type;
+        this.recipientRole = recipientRole;
         this.createdAt = LocalDateTime.now();
         this.isRead = false;
     }
@@ -55,6 +67,12 @@ public class Notification {
     public void setRelatedTicketId(Long relatedTicketId) { this.relatedTicketId = relatedTicketId; }
     public Long getRelatedInvoiceId() { return relatedInvoiceId; }
     public void setRelatedInvoiceId(Long relatedInvoiceId) { this.relatedInvoiceId = relatedInvoiceId; }
+    public String getRecipientRole() { return recipientRole; }
+    public void setRecipientRole(String recipientRole) { this.recipientRole = recipientRole; }
+    public Long getReferenceId() { return referenceId; }
+    public void setReferenceId(Long referenceId) { this.referenceId = referenceId; }
+    public String getReferenceType() { return referenceType; }
+    public void setReferenceType(String referenceType) { this.referenceType = referenceType; }
     public boolean isRead() { return isRead; }
     public void setRead(boolean read) { this.isRead = read; }
     public LocalDateTime getCreatedAt() { return createdAt; }
