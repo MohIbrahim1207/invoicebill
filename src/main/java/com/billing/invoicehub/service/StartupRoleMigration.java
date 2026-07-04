@@ -26,6 +26,19 @@ public class StartupRoleMigration implements ApplicationRunner {
             log.info("Running startup role migration checks...");
 
             try {
+                jdbc.execute("ALTER TABLE vendor_ticket MODIFY COLUMN status_request ENUM('OPEN', 'IN_PROGRESS', 'REVISE', 'PARTIALLY_PAID', 'RESOLVED', 'CANCEL')");
+                log.info("Successfully updated vendor_ticket.status_request enum values");
+            } catch (Exception e) {
+                log.debug("Could not alter vendor_ticket.status_request (might be non-mysql or column missing): {}", e.getMessage());
+            }
+            try {
+                jdbc.execute("ALTER TABLE vendor_ticket_history MODIFY COLUMN status ENUM('OPEN', 'IN_PROGRESS', 'REVISE', 'PARTIALLY_PAID', 'RESOLVED', 'CANCEL')");
+                log.info("Successfully updated vendor_ticket_history.status enum values");
+            } catch (Exception e) {
+                log.debug("Could not alter vendor_ticket_history.status (might be non-mysql or column missing): {}", e.getMessage());
+            }
+
+            try {
                 jdbc.execute("ALTER TABLE app_user DROP COLUMN reminder24h_sent");
                 log.info("Successfully dropped column reminder24h_sent from app_user");
             } catch (Exception e) {

@@ -53,12 +53,15 @@
                                     th:text="#{ticket.history.status.in_progress}">In Progress</span>
                                 <span th:if="${statusName == 'REVISE'}" class="badge bg-danger"
                                     th:text="#{ticket.history.status.revise}">Revise</span>
+                                <span th:if="${statusName == 'PARTIALLY_PAID'}" class="badge" style="background-color: #FFF3CD; color: #856404;"
+                                    th:text="#{ticket.history.status.partially_paid}">Partially Paid</span>
                                 <span th:if="${statusName == 'RESOLVED'}" class="badge bg-success"
                                     th:text="#{ticket.history.status.resolved}">Paid</span>
                                 <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary"
                                     th:text="#{ticket.history.status.cancel}">Cancel</span>
                                 <span th:if="${statusName == null}" class="badge bg-light text-dark">-</span>
-                                <span th:if="${ticket != null && ticket.duplicateFlag}" class="badge bg-warning text-dark ms-1">Possible Duplicate</span>
+                                <span th:if="${ticket != null && ticket.duplicateFlag}"
+                                    class="badge bg-warning text-dark ms-1">Possible Duplicate</span>
                             </p>
                         </div>
                         <div class="col-md-6">
@@ -89,7 +92,8 @@
 
                     <div class="mb-4" th:if="${ticket?.vendorRemarks != null && !ticket.vendorRemarks.isBlank()}">
                         <h5 class="text-muted">Vendor Remarks</h5>
-                        <p class="border p-3 bg-light rounded" style="white-space: pre-wrap;" th:text="${ticket.vendorRemarks}">-</p>
+                        <p class="border p-3 bg-light rounded" style="white-space: pre-wrap;"
+                            th:text="${ticket.vendorRemarks}">-</p>
                     </div>
 
                     <h2 class="section-title mb-3" th:text="#{ticket.history.approval.trail}">Approval Trail</h2>
@@ -115,16 +119,18 @@
                                     th:each="record : ${history}"
                                     th:with="recordStatus=${record.status != null ? record.status.name() : null}">
                                     <td>
-                                        <span th:if="${recordStatus == 'OPEN'}" class="badge bg-dark"
-                                            th:text="#{ticket.history.status.open}">Open</span>
-                                        <span th:if="${recordStatus == 'IN_PROGRESS'}" class="badge bg-primary"
-                                            th:text="#{ticket.history.status.in_progress}">In Progress</span>
-                                        <span th:if="${recordStatus == 'REVISE'}" class="badge bg-danger"
-                                            th:text="#{ticket.history.status.revise}">Revise</span>
-                                        <span th:if="${recordStatus == 'RESOLVED'}" class="badge bg-success"
-                                            th:text="#{ticket.history.status.resolved}">Paid</span>
-                                        <span th:if="${recordStatus == 'CANCEL'}" class="badge bg-secondary"
-                                            th:text="#{ticket.history.status.cancel}">Cancel</span>
+                                         <span th:if="${recordStatus == 'OPEN'}" class="badge bg-dark"
+                                             th:text="#{ticket.history.status.open}">Open</span>
+                                         <span th:if="${recordStatus == 'IN_PROGRESS'}" class="badge bg-primary"
+                                             th:text="#{ticket.history.status.in_progress}">In Progress</span>
+                                         <span th:if="${recordStatus == 'REVISE'}" class="badge bg-danger"
+                                             th:text="#{ticket.history.status.revise}">Revise</span>
+                                         <span th:if="${recordStatus == 'PARTIALLY_PAID'}" class="badge" style="background-color: #FFF3CD; color: #856404;"
+                                             th:text="#{ticket.history.status.partially_paid}">Partially Paid</span>
+                                         <span th:if="${recordStatus == 'RESOLVED'}" class="badge bg-success"
+                                             th:text="#{ticket.history.status.resolved}">Paid</span>
+                                         <span th:if="${recordStatus == 'CANCEL'}" class="badge bg-secondary"
+                                             th:text="#{ticket.history.status.cancel}">Cancel</span>
                                         <span th:if="${recordStatus == null}" class="badge bg-light text-dark">-</span>
                                     </td>
                                     <td th:text="${#temporals.format(record.changedAt, 'MMM dd, yyyy')}">-</td>

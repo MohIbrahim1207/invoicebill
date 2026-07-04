@@ -98,7 +98,7 @@ public class GlobalExceptionHandler {
     /**
      * Handle resource not found exceptions
      */
-    @ExceptionHandler(value = {ResourceNotFoundException.class})
+    @ExceptionHandler(value = { ResourceNotFoundException.class })
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ResponseEntity<Map<String, Object>> handleResourceNotFoundException(
             ResourceNotFoundException ex,
@@ -155,4 +155,3 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
-

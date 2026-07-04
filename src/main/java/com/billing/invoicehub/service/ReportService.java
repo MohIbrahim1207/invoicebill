@@ -38,7 +38,8 @@ public class ReportService {
         this.vendorTicketRepository = vendorTicketRepository;
     }
 
-    public List<VendorTicket> getFilteredTickets(LocalDateTime start, LocalDateTime end, TicketStatus status, Long vendorId, Long clientId, String poNumber, String search) {
+    public List<VendorTicket> getFilteredTickets(LocalDateTime start, LocalDateTime end, TicketStatus status,
+            Long vendorId, Long clientId, String poNumber, String search) {
         return vendorTicketRepository.searchTicketsAdvanced(start, end, status, vendorId, clientId, poNumber, search);
     }
 
@@ -48,11 +49,12 @@ public class ReportService {
         long open = 0, inProgress = 0, resolved = 0, revise = 0, cancel = 0;
 
         for (VendorTicket t : tickets) {
-            if (t.getStatusRequest() == null) continue;
+            if (t.getStatusRequest() == null)
+                continue;
             switch (t.getStatusRequest()) {
                 case OPEN -> open++;
                 case IN_PROGRESS -> inProgress++;
-                case RESOLVED -> resolved++;
+                case RESOLVED, PARTIALLY_PAID -> resolved++;
                 case REVISE -> revise++;
                 case CANCEL -> cancel++;
             }
@@ -114,7 +116,8 @@ public class ReportService {
     }
 
     private String csvEscape(String val) {
-        if (val == null) return "";
+        if (val == null)
+            return "";
         if (val.contains(",") || val.contains("\"") || val.contains("\n")) {
             return "\"" + val.replace("\"", "\"\"") + "\"";
         }
@@ -127,10 +130,12 @@ public class ReportService {
 
             // Fonts & Styles
             java.awt.Color headerColor = new java.awt.Color(20, 74, 122);
-            org.apache.poi.xssf.usermodel.XSSFColor xssfHeaderColor = new org.apache.poi.xssf.usermodel.XSSFColor(headerColor, null);
+            org.apache.poi.xssf.usermodel.XSSFColor xssfHeaderColor = new org.apache.poi.xssf.usermodel.XSSFColor(
+                    headerColor, null);
 
             CellStyle headerStyle = workbook.createCellStyle();
-            org.apache.poi.xssf.usermodel.XSSFFont headerFont = (org.apache.poi.xssf.usermodel.XSSFFont) workbook.createFont();
+            org.apache.poi.xssf.usermodel.XSSFFont headerFont = (org.apache.poi.xssf.usermodel.XSSFFont) workbook
+                    .createFont();
             headerFont.setBold(true);
             headerFont.setColor(IndexedColors.WHITE.getIndex());
             headerStyle.setFont(headerFont);
@@ -146,7 +151,8 @@ public class ReportService {
 
             // Header row
             Row headerRow = sheet.createRow(0);
-            String[] columns = {"Ticket ID", "Vendor", "Client", "PO Number", "Invoice Number", "Invoice Amount", "Status", "Created Date"};
+            String[] columns = { "Ticket ID", "Vendor", "Client", "PO Number", "Invoice Number", "Invoice Amount",
+                    "Status", "Created Date" };
             for (int i = 0; i < columns.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(columns[i]);
@@ -189,11 +195,12 @@ public class ReportService {
         }
     }
 
-    public byte[] generatePdf(List<VendorTicket> tickets, Map<String, String> appliedFilters, WeeklyTicketReportDto summary) {
+    public byte[] generatePdf(List<VendorTicket> tickets, Map<String, String> appliedFilters,
+            WeeklyTicketReportDto summary) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             Document document = new Document(PageSize.A4.rotate(), 36, 36, 36, 36);
-            
+
             // Colors
             Color themeColor = new Color(20, 74, 122);
             Color textDark = new Color(32, 41, 55);
@@ -216,7 +223,7 @@ public class ReportService {
             document.open();
 
             // Header Banner
-            PdfPTable header = new PdfPTable(new float[]{1.5f, 5.5f});
+            PdfPTable header = new PdfPTable(new float[] { 1.5f, 5.5f });
             header.setWidthPercentage(100);
             header.setSpacingAfter(15);
 
@@ -233,13 +240,17 @@ public class ReportService {
             PdfPCell infoCell = new PdfPCell();
             infoCell.setPadding(8);
             infoCell.setBorder(PdfPCell.NO_BORDER);
-            infoCell.addElement(new Paragraph("InvoiceHub Reports Portal", new Font(Font.HELVETICA, 14, Font.BOLD, themeColor)));
-            infoCell.addElement(new Paragraph("Generated on: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), regularMuted));
+            infoCell.addElement(
+                    new Paragraph("InvoiceHub Reports Portal", new Font(Font.HELVETICA, 14, Font.BOLD, themeColor)));
+            infoCell.addElement(new Paragraph(
+                    "Generated on: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
+                    regularMuted));
             header.addCell(infoCell);
             document.add(header);
 
             // Applied Filters
-            Paragraph filtersTitle = new Paragraph("APPLIED FILTERS", new Font(Font.HELVETICA, 10, Font.BOLD, themeColor));
+            Paragraph filtersTitle = new Paragraph("APPLIED FILTERS",
+                    new Font(Font.HELVETICA, 10, Font.BOLD, themeColor));
             filtersTitle.setSpacingAfter(5);
             document.add(filtersTitle);
 
@@ -252,7 +263,8 @@ public class ReportService {
                 labelCell.setBorderColor(borderGray);
                 labelCell.setPadding(4);
 
-                PdfPCell valueCell = new PdfPCell(new Phrase(entry.getValue() != null && !entry.getValue().isBlank() ? entry.getValue() : "ALL", bodyFont));
+                PdfPCell valueCell = new PdfPCell(new Phrase(
+                        entry.getValue() != null && !entry.getValue().isBlank() ? entry.getValue() : "ALL", bodyFont));
                 valueCell.setBorderColor(borderGray);
                 valueCell.setPadding(4);
 
@@ -262,7 +274,8 @@ public class ReportService {
             document.add(filterTable);
 
             // Summary Stats Card Layout
-            Paragraph summaryTitle = new Paragraph("TICKET STATISTICS SUMMARY", new Font(Font.HELVETICA, 10, Font.BOLD, themeColor));
+            Paragraph summaryTitle = new Paragraph("TICKET STATISTICS SUMMARY",
+                    new Font(Font.HELVETICA, 10, Font.BOLD, themeColor));
             summaryTitle.setSpacingAfter(5);
             document.add(summaryTitle);
 
@@ -270,8 +283,9 @@ public class ReportService {
             summaryTable.setWidthPercentage(100);
             summaryTable.setSpacingAfter(15);
 
-            String[] statLabels = {"Total Tickets", "Pending", "In Progress", "Paid", "Rejected", "Cancelled"};
-            long[] statValues = {summary.getTotalCreated(), summary.getPending(), summary.getInProgress(), summary.getPaid(), summary.getRejected(), summary.getCancelled()};
+            String[] statLabels = { "Total Tickets", "Pending", "In Progress", "Paid", "Rejected", "Cancelled" };
+            long[] statValues = { summary.getTotalCreated(), summary.getPending(), summary.getInProgress(),
+                    summary.getPaid(), summary.getRejected(), summary.getCancelled() };
 
             for (int i = 0; i < 6; i++) {
                 PdfPCell cell = new PdfPCell();
@@ -281,7 +295,8 @@ public class ReportService {
 
                 Paragraph lbl = new Paragraph(statLabels[i], regularMuted);
                 lbl.setAlignment(Element.ALIGN_CENTER);
-                Paragraph val = new Paragraph(String.valueOf(statValues[i]), new Font(Font.HELVETICA, 12, Font.BOLD, themeColor));
+                Paragraph val = new Paragraph(String.valueOf(statValues[i]),
+                        new Font(Font.HELVETICA, 12, Font.BOLD, themeColor));
                 val.setAlignment(Element.ALIGN_CENTER);
 
                 cell.addElement(lbl);
@@ -291,15 +306,17 @@ public class ReportService {
             document.add(summaryTable);
 
             // Detailed Tickets Table
-            Paragraph detailTitle = new Paragraph("DETAILED TICKET REPORT", new Font(Font.HELVETICA, 10, Font.BOLD, themeColor));
+            Paragraph detailTitle = new Paragraph("DETAILED TICKET REPORT",
+                    new Font(Font.HELVETICA, 10, Font.BOLD, themeColor));
             detailTitle.setSpacingAfter(5);
             document.add(detailTitle);
 
-            PdfPTable mainTable = new PdfPTable(new float[]{1.2f, 1.2f, 1.4f, 1.2f, 1.2f, 1.2f, 1.0f, 1.4f});
+            PdfPTable mainTable = new PdfPTable(new float[] { 1.2f, 1.2f, 1.4f, 1.2f, 1.2f, 1.2f, 1.0f, 1.4f });
             mainTable.setWidthPercentage(100);
             mainTable.setSpacingAfter(15);
 
-            String[] headers = {"Ticket ID", "Vendor", "Client", "PO Number", "Invoice Number", "Invoice Amount", "Status", "Created Date"};
+            String[] headers = { "Ticket ID", "Vendor", "Client", "PO Number", "Invoice Number", "Invoice Amount",
+                    "Status", "Created Date" };
             for (String h : headers) {
                 PdfPCell hCell = new PdfPCell(new Phrase(h, new Font(Font.HELVETICA, 8, Font.BOLD, Color.WHITE)));
                 hCell.setBackgroundColor(themeColor);
@@ -321,13 +338,18 @@ public class ReportService {
 
                 for (VendorTicket t : tickets) {
                     mainTable.addCell(createBodyCell(t.getTicketNo(), bodyFont, Element.ALIGN_LEFT, borderGray));
-                    mainTable.addCell(createBodyCell(t.getVendor() != null ? t.getVendor().getUsername() : "", bodyFont, Element.ALIGN_LEFT, borderGray));
-                    mainTable.addCell(createBodyCell(t.getClient() != null ? t.getClient().getCompanyName() : "", bodyFont, Element.ALIGN_LEFT, borderGray));
+                    mainTable.addCell(createBodyCell(t.getVendor() != null ? t.getVendor().getUsername() : "", bodyFont,
+                            Element.ALIGN_LEFT, borderGray));
+                    mainTable.addCell(createBodyCell(t.getClient() != null ? t.getClient().getCompanyName() : "",
+                            bodyFont, Element.ALIGN_LEFT, borderGray));
                     mainTable.addCell(createBodyCell(t.getPoNumber(), bodyFont, Element.ALIGN_CENTER, borderGray));
                     mainTable.addCell(createBodyCell(t.getInvoiceNo(), bodyFont, Element.ALIGN_CENTER, borderGray));
-                    mainTable.addCell(createBodyCell(FormatUtils.formatCurrency(t.getAmount(), t.getCurrency()), bodyFont, Element.ALIGN_RIGHT, borderGray));
-                    mainTable.addCell(createBodyCell(t.getStatusRequest() != null ? t.getStatusRequest().name() : "", bodyFont, Element.ALIGN_CENTER, borderGray));
-                    mainTable.addCell(createBodyCell(t.getCreatedAt() != null ? t.getCreatedAt().format(dateOnly) : "", bodyFont, Element.ALIGN_CENTER, borderGray));
+                    mainTable.addCell(createBodyCell(FormatUtils.formatCurrency(t.getAmount(), t.getCurrency()),
+                            bodyFont, Element.ALIGN_RIGHT, borderGray));
+                    mainTable.addCell(createBodyCell(t.getStatusRequest() != null ? t.getStatusRequest().name() : "",
+                            bodyFont, Element.ALIGN_CENTER, borderGray));
+                    mainTable.addCell(createBodyCell(t.getCreatedAt() != null ? t.getCreatedAt().format(dateOnly) : "",
+                            bodyFont, Element.ALIGN_CENTER, borderGray));
                 }
             }
             document.add(mainTable);

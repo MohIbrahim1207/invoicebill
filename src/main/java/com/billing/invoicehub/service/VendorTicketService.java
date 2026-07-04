@@ -187,8 +187,7 @@ public class VendorTicketService {
                 vendor.getId(),
                 state.getInvoiceNo(),
                 state.getPoNumber(),
-                null
-        );
+                null);
         vendorTicket.setDuplicateFlag(isDup);
         if (isDup) {
             vendorTicket.setDuplicateReason("Possible duplicate invoice detected. Please verify before submitting.");
@@ -207,7 +206,8 @@ public class VendorTicketService {
                 inv.setFileUrl(saved.getInvoiceFileUrl());
                 inv.setInvoiceNumber(saved.getInvoiceNo());
                 inv.setInvoiceDate(saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : null);
-                // Use total as the final payable amount for Billing Intake; fallback to subtotal + tax
+                // Use total as the final payable amount for Billing Intake; fallback to
+                // subtotal + tax
                 // if total is null
                 java.math.BigDecimal billingAmount = saved.getTotal() != null ? saved.getTotal()
                         : (saved.getSubtotal() == null ? java.math.BigDecimal.ZERO : saved.getSubtotal())
@@ -238,7 +238,8 @@ public class VendorTicketService {
                     saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : "-",
                     saved.getClient() != null ? saved.getClient().getCompanyName() : "-",
                     saved.getPoNumber(),
-                    saved.getSubtotal() != null ? formatCurrency(saved.getSubtotal(), saved.getCurrency()) : curr + " 0",
+                    saved.getSubtotal() != null ? formatCurrency(saved.getSubtotal(), saved.getCurrency())
+                            : curr + " 0",
                     saved.getTax() != null ? formatCurrency(saved.getTax(), saved.getCurrency()) : curr + " 0",
                     saved.getTotal() != null ? formatCurrency(saved.getTotal(), saved.getCurrency()) : curr + " 0",
                     appBaseUrl + "/vendor/tickets?historyTicketId=" + saved.getId() + "#ticket-history");
@@ -276,7 +277,8 @@ public class VendorTicketService {
         TicketStatus oldStatus = ticket.get().getStatusRequest();
         ticket.get().setStatusRequest(TicketStatus.CANCEL);
         vendorTicketRepository.save(ticket.get());
-        auditLogService.log("Ticket Cancellation", "VendorTicket", ticket.get().getId(), oldStatus != null ? oldStatus.name() : null, "CANCEL");
+        auditLogService.log("Ticket Cancellation", "VendorTicket", ticket.get().getId(),
+                oldStatus != null ? oldStatus.name() : null, "CANCEL");
         vendorTicketHistoryRepository.save(
                 new VendorTicketHistory(ticket.get(), TicketStatus.CANCEL, LocalDateTime.now(), "Ticket cancelled"));
         return true;
@@ -302,7 +304,8 @@ public class VendorTicketService {
         TicketStatus oldStatus = t.getStatusRequest();
         t.setStatusRequest(TicketStatus.CANCEL);
         vendorTicketRepository.save(t);
-        auditLogService.log("Ticket Cancellation", "VendorTicket", t.getId(), oldStatus != null ? oldStatus.name() : null, "CANCEL");
+        auditLogService.log("Ticket Cancellation", "VendorTicket", t.getId(),
+                oldStatus != null ? oldStatus.name() : null, "CANCEL");
         vendorTicketHistoryRepository
                 .save(new VendorTicketHistory(t, TicketStatus.CANCEL, LocalDateTime.now(), "Ticket cancelled"));
         String recipientEmail = t.getVendor() != null ? t.getVendor().getEmail() : null;
@@ -329,7 +332,7 @@ public class VendorTicketService {
         TicketStatus oldStatus = ticket.getStatusRequest();
         ticket.setStatusRequest(newStatus);
         vendorTicketRepository.save(ticket);
-        
+
         String logAction = "Ticket Update";
         if (newStatus == TicketStatus.REVISE) {
             logAction = "Revision Request";
@@ -338,7 +341,8 @@ public class VendorTicketService {
         } else if (newStatus == TicketStatus.CANCEL) {
             logAction = "Rejection";
         }
-        auditLogService.log(logAction, "VendorTicket", ticket.getId(), oldStatus != null ? oldStatus.name() : null, newStatus.name());
+        auditLogService.log(logAction, "VendorTicket", ticket.getId(), oldStatus != null ? oldStatus.name() : null,
+                newStatus.name());
         vendorTicketHistoryRepository.save(new VendorTicketHistory(ticket, newStatus, LocalDateTime.now(),
                 comment != null ? comment.trim() : ""));
 
@@ -371,7 +375,8 @@ public class VendorTicketService {
         try {
             String invoiceNumber = ticket.getInvoiceNo() != null ? ticket.getInvoiceNo() : "-";
             String vendorName = ticket.getVendor() != null ? ticket.getVendor().getUsername() : "-";
-            String amount = ticket.getAmount() != null ? formatCurrency(ticket.getAmount(), ticket.getCurrency()) : (ticket.getCurrency() != null ? ticket.getCurrency() : "IDR") + " 0";
+            String amount = ticket.getAmount() != null ? formatCurrency(ticket.getAmount(), ticket.getCurrency())
+                    : (ticket.getCurrency() != null ? ticket.getCurrency() : "IDR") + " 0";
             String statusDate = LocalDateTime.now().toString();
             String adminRemarks = comment != null ? comment.trim() : null;
             String viewUrl = appBaseUrl + "/invoice";
@@ -494,18 +499,28 @@ public class VendorTicketService {
         LocalDateTime previousEnd = currentStart.minusNanos(1);
 
         long currentTotal = vendorTicketRepository.countByCreatedAtBetween(currentStart, currentEnd);
-        long currentPending = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.OPEN, currentStart, currentEnd);
-        long currentInProgress = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.IN_PROGRESS, currentStart, currentEnd);
-        long currentPaid = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.RESOLVED, currentStart, currentEnd);
-        long currentRejected = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.REVISE, currentStart, currentEnd);
-        long currentCancelled = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.CANCEL, currentStart, currentEnd);
+        long currentPending = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.OPEN,
+                currentStart, currentEnd);
+        long currentInProgress = vendorTicketRepository
+                .countByStatusRequestAndCreatedAtBetween(TicketStatus.IN_PROGRESS, currentStart, currentEnd);
+        long currentPaid = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.RESOLVED,
+                currentStart, currentEnd);
+        long currentRejected = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.REVISE,
+                currentStart, currentEnd);
+        long currentCancelled = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.CANCEL,
+                currentStart, currentEnd);
 
         long prevTotal = vendorTicketRepository.countByCreatedAtBetween(previousStart, previousEnd);
-        long prevPending = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.OPEN, previousStart, previousEnd);
-        long prevInProgress = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.IN_PROGRESS, previousStart, previousEnd);
-        long prevPaid = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.RESOLVED, previousStart, previousEnd);
-        long prevRejected = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.REVISE, previousStart, previousEnd);
-        long prevCancelled = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.CANCEL, previousStart, previousEnd);
+        long prevPending = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.OPEN,
+                previousStart, previousEnd);
+        long prevInProgress = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.IN_PROGRESS,
+                previousStart, previousEnd);
+        long prevPaid = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.RESOLVED,
+                previousStart, previousEnd);
+        long prevRejected = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.REVISE,
+                previousStart, previousEnd);
+        long prevCancelled = vendorTicketRepository.countByStatusRequestAndCreatedAtBetween(TicketStatus.CANCEL,
+                previousStart, previousEnd);
 
         com.billing.invoicehub.dto.WeeklyTicketReportDto dto = new com.billing.invoicehub.dto.WeeklyTicketReportDto();
         dto.setTotalCreated(currentTotal);
@@ -524,7 +539,8 @@ public class VendorTicketService {
 
         java.util.List<String> days = new java.util.ArrayList<>();
         java.util.List<Long> dailyCounts = new java.util.ArrayList<>();
-        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("EEE", Locale.ENGLISH);
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("EEE",
+                Locale.ENGLISH);
         for (int i = 6; i >= 0; i--) {
             LocalDate day = LocalDate.now().minusDays(i);
             LocalDateTime startOfDay = day.atStartOfDay();

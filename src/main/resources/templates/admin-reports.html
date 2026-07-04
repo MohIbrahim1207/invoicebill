@@ -23,13 +23,16 @@
                     <p class="text-muted mb-0">Weekly ticket analytics and trend data.</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1 js-export-btn" data-type="pdf">
+                    <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1 js-export-btn"
+                        data-type="pdf">
                         <i class="bi bi-file-pdf"></i> Download PDF
                     </button>
-                    <button class="btn btn-outline-success btn-sm d-flex align-items-center gap-1 js-export-btn" data-type="csv">
+                    <button class="btn btn-outline-success btn-sm d-flex align-items-center gap-1 js-export-btn"
+                        data-type="csv">
                         <i class="bi bi-filetype-csv"></i> Download CSV
                     </button>
-                    <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 js-export-btn" data-type="excel">
+                    <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 js-export-btn"
+                        data-type="excel">
                         <i class="bi bi-file-earmark-excel"></i> Download Excel
                     </button>
                 </div>
@@ -52,7 +55,8 @@
                             <select name="status" class="form-select">
                                 <option value="ALL" th:selected="${status == 'ALL'}">ALL</option>
                                 <option value="OPEN" th:selected="${status == 'OPEN'}">Open</option>
-                                <option value="IN_PROGRESS" th:selected="${status == 'IN_PROGRESS'}">In Progress</option>
+                                <option value="IN_PROGRESS" th:selected="${status == 'IN_PROGRESS'}">In Progress
+                                </option>
                                 <option value="RESOLVED" th:selected="${status == 'RESOLVED'}">Paid</option>
                                 <option value="REVISE" th:selected="${status == 'REVISE'}">Revise</option>
                                 <option value="CANCEL" th:selected="${status == 'CANCEL'}">Cancel</option>
@@ -62,16 +66,19 @@
                             <label class="form-label">Vendor</label>
                             <select name="vendorId" class="form-select">
                                 <option value="">ALL</option>
-                                <option th:each="v : ${vendors}" th:value="${v.id}" th:text="${v.username}" th:selected="${vendorId == v.id}"></option>
+                                <option th:each="v : ${vendors}" th:value="${v.id}" th:text="${v.username}"
+                                    th:selected="${vendorId == v.id}"></option>
                             </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">PO Number</label>
-                            <input type="text" name="poNumber" class="form-control" th:value="${poNumber}" placeholder="Purchase Order Number">
+                            <input type="text" name="poNumber" class="form-control" th:value="${poNumber}"
+                                placeholder="Purchase Order Number">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Search Query</label>
-                            <input type="text" name="search" class="form-control" th:value="${search}" placeholder="Search Ticket No, Invoice No, Vendor, Client">
+                            <input type="text" name="search" class="form-control" th:value="${search}"
+                                placeholder="Search Ticket No, Invoice No, Vendor, Client">
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary w-100">
@@ -91,7 +98,8 @@
                             <div class="card stat-card border-light shadow-sm">
                                 <div class="card-body p-3 text-center">
                                     <div class="stat-label text-truncate" style="font-size: 0.8rem;">Total Tickets</div>
-                                    <div class="h3 mb-1 text-primary font-weight-bold" th:text="${weeklyReport.totalCreated}">0</div>
+                                    <div class="h3 mb-1 text-primary font-weight-bold"
+                                        th:text="${weeklyReport.totalCreated}">0</div>
                                 </div>
                             </div>
                         </div>
@@ -99,7 +107,8 @@
                             <div class="card stat-card border-light shadow-sm">
                                 <div class="card-body p-3 text-center">
                                     <div class="stat-label text-truncate" style="font-size: 0.8rem;">Pending</div>
-                                    <div class="h3 mb-1 text-dark font-weight-bold" th:text="${weeklyReport.pending}">0</div>
+                                    <div class="h3 mb-1 text-dark font-weight-bold" th:text="${weeklyReport.pending}">0
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -107,7 +116,8 @@
                             <div class="card stat-card border-light shadow-sm">
                                 <div class="card-body p-3 text-center">
                                     <div class="stat-label text-truncate" style="font-size: 0.8rem;">In Progress</div>
-                                    <div class="h3 mb-1 text-info font-weight-bold" th:text="${weeklyReport.inProgress}">0</div>
+                                    <div class="h3 mb-1 text-info font-weight-bold"
+                                        th:text="${weeklyReport.inProgress}">0</div>
                                 </div>
                             </div>
                         </div>
@@ -115,7 +125,8 @@
                             <div class="card stat-card border-light shadow-sm">
                                 <div class="card-body p-3 text-center">
                                     <div class="stat-label text-truncate" style="font-size: 0.8rem;">Paid</div>
-                                    <div class="h3 mb-1 text-success font-weight-bold" th:text="${weeklyReport.paid}">0</div>
+                                    <div class="h3 mb-1 text-success font-weight-bold" th:text="${weeklyReport.paid}">0
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -123,7 +134,8 @@
                             <div class="card stat-card border-light shadow-sm">
                                 <div class="card-body p-3 text-center">
                                     <div class="stat-label text-truncate" style="font-size: 0.8rem;">Rejected</div>
-                                    <div class="h3 mb-1 text-danger font-weight-bold" th:text="${weeklyReport.rejected}">0</div>
+                                    <div class="h3 mb-1 text-danger font-weight-bold"
+                                        th:text="${weeklyReport.rejected}">0</div>
                                 </div>
                             </div>
                         </div>
@@ -131,7 +143,8 @@
                             <div class="card stat-card border-light shadow-sm">
                                 <div class="card-body p-3 text-center">
                                     <div class="stat-label text-truncate" style="font-size: 0.8rem;">Cancelled</div>
-                                    <div class="h3 mb-1 text-secondary font-weight-bold" th:text="${weeklyReport.cancelled}">0</div>
+                                    <div class="h3 mb-1 text-secondary font-weight-bold"
+                                        th:text="${weeklyReport.cancelled}">0</div>
                                 </div>
                             </div>
                         </div>
@@ -196,15 +209,31 @@
                                     <td th:text="${t.client != null ? t.client.companyName : '-'}"></td>
                                     <td th:text="${t.poNumber != null ? t.poNumber : '-'}"></td>
                                     <td th:text="${t.invoiceNo}"></td>
-                                    <td th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(t.amount, t.currency)}"></td>
-                                    <td>
-                                        <span th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).OPEN}" class="badge bg-dark">Open</span>
-                                        <span th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).IN_PROGRESS}" class="badge bg-primary">In Progress</span>
-                                        <span th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).RESOLVED}" class="badge bg-success">Paid</span>
-                                        <span th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).REVISE}" class="badge bg-danger">Revise</span>
-                                        <span th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).CANCEL}" class="badge bg-secondary">Cancel</span>
+                                    <td
+                                        th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(t.amount, t.currency)}">
                                     </td>
-                                    <td th:text="${T(com.billing.invoicehub.util.FormatUtils).formatDate(t.createdAt)}"></td>
+                                    <td>
+                                         <span
+                                             th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).OPEN}"
+                                             class="badge bg-dark">Open</span>
+                                         <span
+                                             th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).IN_PROGRESS}"
+                                             class="badge bg-primary">In Progress</span>
+                                         <span
+                                             th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).REVISE}"
+                                             class="badge bg-danger">Revise</span>
+                                         <span
+                                             th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).PARTIALLY_PAID}"
+                                             class="badge" style="background-color: #FFF3CD; color: #856404;">Partially Paid</span>
+                                         <span
+                                             th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).RESOLVED}"
+                                             class="badge bg-success">Paid</span>
+                                         <span
+                                             th:if="${t.statusRequest == T(com.billing.invoicehub.entity.TicketStatus).CANCEL}"
+                                             class="badge bg-secondary">Cancel</span>
+                                    </td>
+                                    <td th:text="${T(com.billing.invoicehub.util.FormatUtils).formatDate(t.createdAt)}">
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -223,10 +252,12 @@
 
     <!-- Toast Notification structure -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
-        <div id="toastNotification" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div id="toastNotification" class="toast align-items-center text-bg-primary border-0" role="alert"
+            aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
                 <div class="toast-body" id="toastMessage">Done</div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                    aria-label="Close"></button>
             </div>
         </div>
     </div>
@@ -235,15 +266,15 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script th:inline="javascript" th:if="${weeklyReport != null}">
         /*<![CDATA[*/
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             // Theme colors
             const themeBlue = '#144a7a';
             const themeOrange = '#fd7e14';
             const themeTeal = '#005f6d';
 
             // Daily tickets Chart
-            const days = /*[[${weeklyReport.days}]]*/ [];
-            const dailyCounts = /*[[${weeklyReport.dailyCounts}]]*/ [];
+            const days = /*[[${weeklyReport.days}]]*/[];
+            const dailyCounts = /*[[${weeklyReport.dailyCounts}]]*/[];
             const ctxBar = document.getElementById('weeklyReportChart');
             if (ctxBar) {
                 new Chart(ctxBar, {
@@ -301,10 +332,10 @@
             const toast = new bootstrap.Toast(toastEl);
 
             document.querySelectorAll('.js-export-btn').forEach(btn => {
-                btn.addEventListener('click', function(e) {
+                btn.addEventListener('click', function (e) {
                     e.preventDefault();
                     const exportType = btn.getAttribute('data-type');
-                    
+
                     // Disable all buttons and show overlay spinner
                     document.querySelectorAll('.js-export-btn').forEach(b => b.disabled = true);
                     overlay.classList.remove('d-none');
@@ -315,7 +346,7 @@
 
                     // Trigger direct file download
                     const exportUrl = `/admin/reports/${exportType}?` + params.toString();
-                    
+
                     fetch(exportUrl)
                         .then(res => {
                             if (!res.ok) throw new Error("Server failed to generate the report.");
@@ -326,11 +357,11 @@
                             const a = document.createElement('a');
                             a.style.display = 'none';
                             a.href = url;
-                            a.download = `report_${new Date().toISOString().slice(0,10)}.${exportType === 'excel' ? 'xlsx' : exportType}`;
+                            a.download = `report_${new Date().toISOString().slice(0, 10)}.${exportType === 'excel' ? 'xlsx' : exportType}`;
                             document.body.appendChild(a);
                             a.click();
                             window.URL.revokeObjectURL(url);
-                            
+
                             // Success toast notification
                             toastMsg.textContent = `${exportType.toUpperCase()} file downloaded successfully.`;
                             toast.show();

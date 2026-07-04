@@ -57,9 +57,9 @@
                             <label class="form-label">Status</label>
                             <select name="status" class="form-select">
                                 <option value="ALL" th:selected="${status == null or status == 'ALL'}">ALL</option>
-                                <option th:each="option : ${statusOptions}" th:value="${option.name()}"
-                                    th:text="${option.name() == 'RESOLVED' ? 'Paid' : #strings.capitalize(#strings.toLowerCase(#strings.replace(option.name(), '_', ' ')))}"
-                                    th:selected="${status == option.name()}"></option>
+                                 <option th:each="option : ${statusOptions}" th:value="${option.name()}"
+                                     th:text="${option.name() == 'RESOLVED' ? 'Paid' : (option.name() == 'PARTIALLY_PAID' ? 'Partially Paid' : #strings.capitalize(#strings.toLowerCase(#strings.replace(option.name(), '_', ' '))))}"
+                                     th:selected="${status == option.name()}"></option>
                             </select>
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
@@ -98,7 +98,9 @@
                                     <td th:text="${row.index + 1}"></td>
                                     <td th:text="${ticket.ticketNo}"></td>
                                     <td th:text="${ticket.invoiceNo}"></td>
-                                    <td th:text="${ticket.poNumber != null and !ticket.poNumber.isEmpty() ? ticket.poNumber : '-'}"></td>
+                                    <td
+                                        th:text="${ticket.poNumber != null and !ticket.poNumber.isEmpty() ? ticket.poNumber : '-'}">
+                                    </td>
                                     <td th:text="${ticket.vendor != null ? ticket.vendor.username : '-'}"></td>
                                     <td
                                         th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.amount, ticket.currency)}">
@@ -110,11 +112,12 @@
                                         <span th:if="${statusName == 'IN_PROGRESS'}" class="badge bg-primary">In
                                             Progress</span>
                                         <span th:if="${statusName == 'REVISE'}" class="badge bg-danger">Revise</span>
-                                        <span th:if="${statusName == 'RESOLVED'}"
-                                            class="badge bg-success">Paid</span>
+                                        <span th:if="${statusName == 'PARTIALLY_PAID'}" class="badge" style="background-color: #FFF3CD; color: #856404;">Partially Paid</span>
+                                        <span th:if="${statusName == 'RESOLVED'}" class="badge bg-success">Paid</span>
                                         <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
                                         <span th:if="${statusName == null}" class="text-muted">-</span>
-                                        <span th:if="${ticket.duplicateFlag}" class="badge bg-warning text-dark ms-1">Possible Duplicate</span>
+                                        <span th:if="${ticket.duplicateFlag}"
+                                            class="badge bg-warning text-dark ms-1">Possible Duplicate</span>
                                     </td>
                                     <td>
                                         <button type="button"
