@@ -57,6 +57,25 @@ public class CloudinaryService {
         return uploadFile(file, "invoicehub/vendor-ticket-documents");
     }
 
+    public String uploadQuotePdf(byte[] pdfBytes, String fileName) throws IOException {
+        try {
+            String uniqueFilename = "invoicehub/generated-quotes/" + UUID.randomUUID() + "_" + fileName.replaceAll("[^a-zA-Z0-9.-]", "_");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> result = (Map<String, Object>) cloudinary.uploader().upload(
+                    pdfBytes,
+                    ObjectUtils.asMap(
+                            "public_id", uniqueFilename,
+                            "resource_type", "auto",
+                            "overwrite", false
+                    )
+            );
+            return (String) result.get("secure_url");
+        } catch (IOException e) {
+            logger.error("Failed to upload quote PDF to Cloudinary: {}", e.getMessage(), e);
+            throw new IOException("Failed to upload quote PDF to Cloudinary: " + e.getMessage(), e);
+        }
+    }
+
     private String uploadFile(MultipartFile file, String folder) throws IOException {
         validateFile(file);
 

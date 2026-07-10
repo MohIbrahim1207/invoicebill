@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>InvoiceHub - View Quotation Conversion</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/portal.css}">
+    <style>
+        .detail-row {
+            border-bottom: 1px solid var(--portal-border, #f1f3f5);
+            padding: 10px 0;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: var(--portal-text-muted, #5b6676);
+            font-size: 0.85rem;
+        }
+        .detail-value {
+            color: var(--portal-text, #202937);
+            font-size: 0.9rem;
+        }
+        .audit-log-box {
+            background: var(--portal-card-bg, #f8f9fa);
+            border: 1px solid var(--portal-border, #e9ecef);
+            border-radius: 6px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body class="portal-bg">
+
+<div th:replace="fragments/layout :: topbar('View Quotation Details')"></div>
+<div th:replace="fragments/layout :: sidebarMobile('ai-quote-converter')"></div>
+
+<div class="portal-shell">
+    <div th:replace="fragments/layout :: sidebar('ai-quote-converter')"></div>
+
+    <main class="portal-main">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-2">
+            <div>
+                <h1 class="portal-heading mb-1">Generated Quotation Details</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="/dashboard">Portal</a></li>
+                        <li class="breadcrumb-item"><a href="/admin/ai-quote-converter">AI Quote Converter</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">View Details</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/admin/ai-quote-converter" class="btn btn-light border"><i class="bi bi-arrow-left"></i> Back to History</a>
+                <a th:href="${conversion.generatedQuoteFileUrl}" target="_blank" class="btn btn-success"><i class="bi bi-download"></i> Download Flow Force PDF</a>
+            </div>
+        </div>
+
+        <!-- Success Banner -->
+        <div class="alert alert-success d-flex align-items-center gap-3 p-3 mb-4 rounded border-success-subtle bg-success-subtle text-success-emphasis" role="alert">
+            <i class="bi bi-check-circle-fill fs-3 text-success"></i>
+            <div>
+                <h4 class="alert-heading mb-1 fw-bold">Conversion Completed</h4>
+                <p class="mb-0 small">The supplier quotation has been analyzed, reviewed, and converted into a Flow Force branded quotation PDF.</p>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Left Side: Summary Information -->
+            <div class="col-lg-8">
+                <!-- General Info Card -->
+                <section class="card portal-card mb-4">
+                    <div class="card-body">
+                        <h2 class="section-title mb-3"><i class="bi bi-info-circle me-2 text-primary"></i>Quotation Info</h2>
+                        <div class="row">
+                            <div class="col-md-6 detail-row">
+                                <div class="detail-label">Customer / Recipient</div>
+                                <div class="detail-value" th:text="${quoteData.customerName}">Customer Inc</div>
+                            </div>
+                            <div class="col-md-6 detail-row">
+                                <div class="detail-label">Attention</div>
+                                <div class="detail-value" th:text="${quoteData.attention != null ? quoteData.attention : 'N/A'}">John Doe</div>
+                            </div>
+                            <div class="col-md-6 detail-row">
+                                <div class="detail-label">Date</div>
+                                <div class="detail-value" th:text="${quoteData.date}">2026-07-06</div>
+                            </div>
+                            <div class="col-md-6 detail-row">
+                                <div class="detail-label">Reference</div>
+                                <div class="detail-value" th:text="${quoteData.reference != null ? quoteData.reference : 'N/A'}">REF-FF-2026</div>
+                            </div>
+                            <div class="col-md-12 detail-row">
+                                <div class="detail-label">Subject</div>
+                                <div class="detail-value" th:text="${quoteData.subject != null ? quoteData.subject : 'N/A'}">Subject...</div>
+                            </div>
+                            <div class="col-md-6 detail-row">
+                                <div class="detail-label">Validity</div>
+                                <div class="detail-value" th:text="${quoteData.validity}">30 Days</div>
+                            </div>
+                            <div class="col-md-6 detail-row">
+                                <div class="detail-label">Currency</div>
+                                <div class="detail-value" th:text="${quoteData.currency}">USD</div>
+                            </div>
+                            <div class="col-md-6 detail-row">
+                                <div class="detail-label">Original Supplier (Internal Reference)</div>
+                                <div class="detail-value" th:text="${quoteData.supplierName}">Supplier Corp</div>
+                            </div>
+                            <div class="col-md-6 detail-row">
+                                <div class="detail-label">Supplier Quote Number (Internal Reference)</div>
+                                <div class="detail-value" th:text="${quoteData.quotationNumber}">QT-99120</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Machine Details Card -->
+                <section class="card portal-card mb-4">
+                    <div class="card-body">
+                        <h2 class="section-title mb-3"><i class="bi bi-gear me-2 text-primary"></i>Machine Details</h2>
+                        <div class="row">
+                            <div class="col-md-6 detail-row">
+                                <div class="detail-label">Machine Name</div>
+                                <div class="detail-value fw-semibold" th:text="${quoteData.machineName}">Main Packaging System</div>
+                            </div>
+                            <div class="col-md-6 detail-row">
+                                <div class="detail-label">Machine Model</div>
+                                <div class="detail-value" th:text="${quoteData.machineModel}">Model M10</div>
+                            </div>
+                            <div class="col-md-12 detail-row">
+                                <div class="detail-label">Capacity / Speed</div>
+                                <div class="detail-value" th:text="${quoteData.capacity}">100 units/min</div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4" th:if="${quoteData.technicalSpecifications != null && !quoteData.technicalSpecifications.isBlank()}">
+                            <div class="detail-label mb-2">Technical Specifications</div>
+                            <div class="p-3 border rounded bg-light" style="font-family: monospace; font-size: 0.82rem; white-space: pre-wrap;" th:text="${quoteData.technicalSpecifications}">
+                                Specifications text...
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Line Items Card -->
+                <section class="card portal-card mb-4">
+                    <div class="card-body">
+                        <h2 class="section-title mb-3"><i class="bi bi-list-task me-2 text-primary"></i>Line Items</h2>
+                        <div class="table-responsive">
+                            <table class="table table-bordered align-middle">
+                                <thead>
+                                    <tr class="table-light">
+                                        <th style="width: 5%;" class="text-center">Sl No</th>
+                                        <th style="width: 30%;">Item Name</th>
+                                        <th style="width: 35%;">Description</th>
+                                        <th style="width: 8%;" class="text-center">Qty</th>
+                                        <th style="width: 10%;" class="text-end">Unit Price</th>
+                                        <th style="width: 12%;" class="text-end">Total Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="item, stat : ${quoteData.lineItems}">
+                                        <td class="text-center" th:text="${stat.index + 1}">1</td>
+                                        <td th:text="${item.itemName}" class="fw-semibold">Item</td>
+                                        <td th:text="${item.description}">Description</td>
+                                        <td class="text-center" th:text="${item.quantity}">1</td>
+                                        <td class="text-end" th:text="${#numbers.formatDecimal(item.unitPrice, 1, 2)}">0.00</td>
+                                        <td class="text-end fw-semibold" th:text="${#numbers.formatDecimal(item.totalPrice, 1, 2)}">0.00</td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(quoteData.lineItems)}">
+                                        <td colspan="6" class="text-center text-muted">No line items.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Optional Items Card -->
+                <section class="card portal-card mb-4" th:if="${not #lists.isEmpty(quoteData.optionalItems)}">
+                    <div class="card-body">
+                        <h2 class="section-title mb-3"><i class="bi bi-puzzle me-2 text-primary"></i>Optional Items & Accessories</h2>
+                        <div class="table-responsive">
+                            <table class="table table-bordered align-middle">
+                                <thead>
+                                    <tr class="table-light">
+                                        <th style="width: 5%;" class="text-center">Sl No</th>
+                                        <th style="width: 35%;">Optional Item</th>
+                                        <th style="width: 45%;">Description</th>
+                                        <th style="width: 15%;" class="text-end">Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="item, stat : ${quoteData.optionalItems}">
+                                        <td class="text-center" th:text="${stat.index + 1}">1</td>
+                                        <td th:text="${item.itemName}" class="fw-semibold">Item</td>
+                                        <td th:text="${item.description}">Description</td>
+                                        <td class="text-end" th:text="${#numbers.formatDecimal(item.price, 1, 2)}">0.00</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Side: Commercials, Terms, and Auditing -->
+            <div class="col-lg-4">
+                <!-- Commercial Summary Card -->
+                <section class="card portal-card mb-4">
+                    <div class="card-body">
+                        <h2 class="section-title mb-3"><i class="bi bi-wallet2 me-2 text-primary"></i>Commercial Summary</h2>
+                        <div class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted">Subtotal:</span>
+                            <span class="fw-semibold" th:text="${#numbers.formatDecimal(quoteData.subtotal, 1, 2) + ' ' + quoteData.currency}">0.00 USD</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-2 border-bottom" th:if="${quoteData.discount != null && quoteData.discount > 0}">
+                            <span class="text-muted">Discount:</span>
+                            <span class="text-danger fw-semibold" th:text="${'-' + #numbers.formatDecimal(quoteData.discount, 1, 2) + ' ' + quoteData.currency}">-0.00 USD</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-2 border-bottom" th:if="${quoteData.tax != null && quoteData.tax > 0}">
+                            <span class="text-muted">Tax/GST:</span>
+                            <span class="fw-semibold" th:text="${#numbers.formatDecimal(quoteData.tax, 1, 2) + ' ' + quoteData.currency}">0.00 USD</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-3 fs-5 fw-bold text-primary">
+                            <span>Grand Total:</span>
+                            <span th:text="${#numbers.formatDecimal(quoteData.totalAmount, 1, 2) + ' ' + quoteData.currency}">0.00 USD</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Terms Card -->
+                <section class="card portal-card mb-4">
+                    <div class="card-body">
+                        <h2 class="section-title mb-3"><i class="bi bi-file-earmark-check me-2 text-primary"></i>Commercial Terms</h2>
+                        <div class="detail-row">
+                            <div class="detail-label">Delivery Time</div>
+                            <div class="detail-value" th:text="${quoteData.deliveryTime}">4-6 weeks</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Warranty</div>
+                            <div class="detail-value" th:text="${quoteData.warranty}">12 months</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Payment Terms</div>
+                            <div class="detail-value" th:text="${quoteData.paymentTerms}">50% advance</div>
+                        </div>
+                        <div class="detail-row" th:if="${quoteData.notes != null && !quoteData.notes.isBlank()}">
+                            <div class="detail-label">Remarks / Special Notes</div>
+                            <div class="detail-value small text-muted" th:text="${quoteData.notes}">Notes...</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Files and History -->
+                <section class="card portal-card">
+                    <div class="card-body">
+                        <h2 class="section-title mb-3"><i class="bi bi-clock-history me-2 text-primary"></i>Files & History</h2>
+                        
+                        <div class="mb-3">
+                            <div class="detail-label mb-1">Stored Documents</div>
+                            <div class="d-flex flex-column gap-2">
+                                <a th:href="${conversion.originalFileUrl}" target="_blank" class="btn btn-outline-danger btn-sm text-start"><i class="bi bi-file-pdf me-1"></i> Original Supplier Quote</a>
+                                <a th:href="${conversion.generatedQuoteFileUrl}" target="_blank" class="btn btn-outline-primary btn-sm text-start"><i class="bi bi-file-pdf me-1"></i> Generated Flow Force Quote</a>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="detail-label mb-2">Version History & Change Log</div>
+                            <div class="audit-log-box" th:text="${conversion.versionHistory}">
+                                Version history details...
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

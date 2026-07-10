@@ -15,6 +15,7 @@ package com.billing.invoicehub.controller;
 import com.billing.invoicehub.entity.TicketStatus;
 import com.billing.invoicehub.entity.VendorTicket;
 import com.billing.invoicehub.service.VendorTicketService;
+import com.billing.invoicehub.service.AiQuoteConversionService;
 import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -24,9 +25,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 public class AdminController {
     private final VendorTicketService vendorTicketService;
+    private final AiQuoteConversionService aiQuoteConversionService;
 
-    public AdminController(VendorTicketService vendorTicketService) {
+    public AdminController(VendorTicketService vendorTicketService, AiQuoteConversionService aiQuoteConversionService) {
         this.vendorTicketService = vendorTicketService;
+        this.aiQuoteConversionService = aiQuoteConversionService;
     }
 
     @GetMapping(value={"/ticket-history"})
@@ -49,6 +52,7 @@ public class AdminController {
 
     @GetMapping(value={"/dashboard"})
     public String dashboard(Model model) {
+        model.addAttribute("aiStats", aiQuoteConversionService.getStatistics());
         return "dashboard";
     }
 }

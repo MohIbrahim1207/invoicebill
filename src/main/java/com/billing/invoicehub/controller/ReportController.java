@@ -3,8 +3,8 @@ package com.billing.invoicehub.controller;
 import com.billing.invoicehub.dto.WeeklyTicketReportDto;
 import com.billing.invoicehub.entity.TicketStatus;
 import com.billing.invoicehub.entity.VendorTicket;
-import com.billing.invoicehub.repository.AppUserRepository;
-import com.billing.invoicehub.repository.ClientRepository;
+import com.billing.invoicehub.service.UserService;
+import com.billing.invoicehub.service.ClientService;
 import com.billing.invoicehub.service.ReportService;
 import com.billing.invoicehub.service.VendorTicketService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -29,15 +29,15 @@ public class ReportController {
 
     private final ReportService reportService;
     private final VendorTicketService vendorTicketService;
-    private final AppUserRepository userRepository;
-    private final ClientRepository clientRepository;
+    private final UserService userService;
+    private final ClientService clientService;
 
     public ReportController(ReportService reportService, VendorTicketService vendorTicketService,
-                            AppUserRepository userRepository, ClientRepository clientRepository) {
+                            UserService userService, ClientService clientService) {
         this.reportService = reportService;
         this.vendorTicketService = vendorTicketService;
-        this.userRepository = userRepository;
-        this.clientRepository = clientRepository;
+        this.userService = userService;
+        this.clientService = clientService;
     }
 
     @GetMapping("/admin/reports")
@@ -62,8 +62,8 @@ public class ReportController {
 
         model.addAttribute("tickets", tickets);
         model.addAttribute("weeklyReport", summary);
-        model.addAttribute("vendors", userRepository.findByRoles_NameOrderByIdDesc("ROLE_VENDOR"));
-        model.addAttribute("clients", clientRepository.findAll());
+        model.addAttribute("vendors", userService.findVendors());
+        model.addAttribute("clients", clientService.findAll());
 
         // Retain filters in view model
         model.addAttribute("startDate", startDate);

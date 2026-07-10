@@ -1,31 +1,11 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.billing.invoicehub.controller.AdminPurchaseOrderController
- *  com.billing.invoicehub.dto.PurchaseOrderRequest
- *  com.billing.invoicehub.repository.AppUserRepository
- *  com.billing.invoicehub.repository.ClientRepository
- *  com.billing.invoicehub.service.PurchaseOrderService
- *  jakarta.validation.Valid
- *  org.springframework.stereotype.Controller
- *  org.springframework.ui.Model
- *  org.springframework.validation.BindingResult
- *  org.springframework.web.bind.annotation.GetMapping
- *  org.springframework.web.bind.annotation.ModelAttribute
- *  org.springframework.web.bind.annotation.PathVariable
- *  org.springframework.web.bind.annotation.PostMapping
- *  org.springframework.web.bind.annotation.RequestMapping
- *  org.springframework.web.servlet.mvc.support.RedirectAttributes
- */
 package com.billing.invoicehub.controller;
 
 import com.billing.invoicehub.dto.PurchaseOrderRequest;
 import com.billing.invoicehub.dto.PurchaseOrderItemRequest;
 import com.billing.invoicehub.entity.PurchaseOrder;
 import com.billing.invoicehub.service.PurchaseOrderPaymentService;
-import com.billing.invoicehub.repository.AppUserRepository;
-import com.billing.invoicehub.repository.ClientRepository;
+import com.billing.invoicehub.service.UserService;
+import com.billing.invoicehub.service.ClientService;
 import com.billing.invoicehub.service.PurchaseOrderPdfService;
 import com.billing.invoicehub.service.PurchaseOrderService;
 import jakarta.validation.Valid;
@@ -54,15 +34,15 @@ public class AdminPurchaseOrderController {
     private final PurchaseOrderService poService;
     private final PurchaseOrderPaymentService paymentService;
     private final PurchaseOrderPdfService pdfService;
-    private final AppUserRepository userRepository;
-    private final ClientRepository clientRepository;
+    private final UserService userService;
+    private final ClientService clientService;
 
-    public AdminPurchaseOrderController(PurchaseOrderService poService, PurchaseOrderPaymentService paymentService, PurchaseOrderPdfService pdfService, AppUserRepository userRepository, ClientRepository clientRepository) {
+    public AdminPurchaseOrderController(PurchaseOrderService poService, PurchaseOrderPaymentService paymentService, PurchaseOrderPdfService pdfService, UserService userService, ClientService clientService) {
         this.poService = poService;
         this.paymentService = paymentService;
         this.pdfService = pdfService;
-        this.userRepository = userRepository;
-        this.clientRepository = clientRepository;
+        this.userService = userService;
+        this.clientService = clientService;
     }
 
     @GetMapping
@@ -145,8 +125,8 @@ public class AdminPurchaseOrderController {
         if (request.getItems() == null || request.getItems().isEmpty()) {
             request.setItems(List.of(new PurchaseOrderItemRequest()));
         }
-        List vendors = this.userRepository.findByRoles_NameOrderByIdDesc("ROLE_VENDOR");
-        List clients = this.clientRepository.findAll();
+        List vendors = this.userService.findVendors();
+        List clients = this.clientService.findAll();
         model.addAttribute("vendors", (Object)vendors);
         model.addAttribute("clients", (Object)clients);
         model.addAttribute("purchaseOrderRequest", (Object)request);

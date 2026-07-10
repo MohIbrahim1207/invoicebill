@@ -33,6 +33,14 @@
                     <div class="alert alert-success" th:if="${message}" th:text="${message}"></div>
                     <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
 
+                    <!-- Search Bar Section -->
+                    <div class="d-flex justify-content-end mb-3">
+                        <div class="position-relative w-100" style="max-width: 400px;">
+                            <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+                            <input id="vendorSearchInput" type="text" class="form-control ps-5" placeholder="Search by Company, Vendor Name, Email, GST Number...">
+                        </div>
+                    </div>
+
                     <div class="table-responsive">
                         <table class="table portal-table align-middle">
                             <thead>
@@ -52,6 +60,14 @@
                                         <div class="empty-state">
                                             <i class="bi bi-person-badge"></i>
                                             <p>No vendor registrations found.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr id="noVendorsRow" class="d-none">
+                                    <td colspan="7" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="bi bi-search fs-2 mb-2 d-block"></i>
+                                            <span>No vendors found.</span>
                                         </div>
                                     </td>
                                 </tr>
@@ -147,6 +163,52 @@
                     title.textContent = 'Reject ' + vendorName;
                 }
             });
+
+            // Search Bar filter logic
+            const searchInput = document.getElementById('vendorSearchInput');
+            const tableBody = document.querySelector('.portal-table tbody');
+            const noVendorsRow = document.getElementById('noVendorsRow');
+            const emptyStateRow = document.querySelector('.table-empty-row');
+
+            if (searchInput && tableBody) {
+                // Get all data rows (excluding the empty state row and the no vendors row)
+                const rows = Array.from(tableBody.querySelectorAll('tr')).filter(row => {
+                    return row !== noVendorsRow && row !== emptyStateRow;
+                });
+
+                searchInput.addEventListener('input', function () {
+                    const query = searchInput.value.toLowerCase().trim();
+                    let visibleCount = 0;
+
+                    rows.forEach(row => {
+                        const companyName = row.cells[0]?.textContent.toLowerCase() || '';
+                        const fullName = row.cells[1]?.textContent.toLowerCase() || '';
+                        const email = row.cells[2]?.textContent.toLowerCase() || '';
+                        const gstNumber = row.cells[3]?.textContent.toLowerCase() || '';
+                        const statusText = row.cells[5]?.textContent.toLowerCase() || '';
+
+                        if (companyName.includes(query) || 
+                            fullName.includes(query) || 
+                            email.includes(query) || 
+                            gstNumber.includes(query) || 
+                            statusText.includes(query)) {
+                            row.classList.remove('d-none');
+                            visibleCount++;
+                        } else {
+                            row.classList.add('d-none');
+                        }
+                    });
+
+                    // Handle "No vendors found" row visibility
+                    if (noVendorsRow) {
+                        if (visibleCount === 0 && rows.length > 0) {
+                            noVendorsRow.classList.remove('d-none');
+                        } else {
+                            noVendorsRow.classList.add('d-none');
+                        }
+                    }
+                });
+            }
         })();
     </script>
 </body>

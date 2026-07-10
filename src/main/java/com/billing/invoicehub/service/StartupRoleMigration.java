@@ -57,6 +57,13 @@ public class StartupRoleMigration implements ApplicationRunner {
                 log.debug("Column last_reminder_sent_at already dropped or not present");
             }
 
+            try {
+                jdbc.execute("ALTER TABLE notification MODIFY COLUMN type VARCHAR(50)");
+                log.info("Successfully updated notification.type to VARCHAR(50)");
+            } catch (Exception e) {
+                log.debug("Could not alter notification.type (might be non-mysql or column missing): {}", e.getMessage());
+            }
+
             // Ensure app_roles table exists
             jdbc.execute("CREATE TABLE IF NOT EXISTS app_roles (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL, UNIQUE KEY uq_app_roles_name (name))");
 

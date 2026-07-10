@@ -2,7 +2,7 @@ package com.billing.invoicehub.controller;
 
 import com.billing.invoicehub.dto.NotificationDto;
 import com.billing.invoicehub.entity.AppUser;
-import com.billing.invoicehub.repository.AppUserRepository;
+import com.billing.invoicehub.service.UserService;
 import com.billing.invoicehub.service.NotificationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,11 +23,11 @@ import java.util.stream.Collectors;
 @Controller
 public class NotificationController {
     private final NotificationService notificationService;
-    private final AppUserRepository appUserRepository;
+    private final UserService userService;
 
-    public NotificationController(NotificationService notificationService, AppUserRepository appUserRepository) {
+    public NotificationController(NotificationService notificationService, UserService userService) {
         this.notificationService = notificationService;
-        this.appUserRepository = appUserRepository;
+        this.userService = userService;
     }
 
     @GetMapping("/notifications")
@@ -40,7 +40,7 @@ public class NotificationController {
         if (authentication == null || !authentication.isAuthenticated()) {
             return "redirect:/login";
         }
-        AppUser user = this.appUserRepository.findByUsername(authentication.getName()).orElse(null);
+        AppUser user = this.userService.findByUsername(authentication.getName()).orElse(null);
         if (user == null) {
             return "redirect:/login";
         }
@@ -75,7 +75,7 @@ public class NotificationController {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(401).build();
         }
-        AppUser user = this.appUserRepository.findByUsername(authentication.getName()).orElse(null);
+        AppUser user = this.userService.findByUsername(authentication.getName()).orElse(null);
         if (user == null) {
             return ResponseEntity.status(401).build();
         }
@@ -96,7 +96,7 @@ public class NotificationController {
             resp.put("unreadCount", 0);
             return ResponseEntity.ok(resp);
         }
-        AppUser user = this.appUserRepository.findByUsername(authentication.getName()).orElse(null);
+        AppUser user = this.userService.findByUsername(authentication.getName()).orElse(null);
         if (user == null) {
             resp.put("unreadCount", 0);
             return ResponseEntity.ok(resp);
@@ -119,7 +119,7 @@ public class NotificationController {
             resp.put("message", "Unauthorized");
             return ResponseEntity.status(401).body(resp);
         }
-        AppUser user = this.appUserRepository.findByUsername(authentication.getName()).orElse(null);
+        AppUser user = this.userService.findByUsername(authentication.getName()).orElse(null);
         if (user == null) {
             resp.put("status", "error");
             resp.put("message", "Unauthorized");
@@ -148,7 +148,7 @@ public class NotificationController {
             resp.put("message", "Unauthorized");
             return ResponseEntity.status(401).body(resp);
         }
-        AppUser user = this.appUserRepository.findByUsername(authentication.getName()).orElse(null);
+        AppUser user = this.userService.findByUsername(authentication.getName()).orElse(null);
         if (user == null) {
             resp.put("status", "error");
             resp.put("message", "Unauthorized");
@@ -172,7 +172,7 @@ public class NotificationController {
             resp.put("message", "Unauthorized");
             return ResponseEntity.status(401).body(resp);
         }
-        AppUser user = this.appUserRepository.findByUsername(authentication.getName()).orElse(null);
+        AppUser user = this.userService.findByUsername(authentication.getName()).orElse(null);
         if (user == null) {
             resp.put("status", "error");
             resp.put("message", "Unauthorized");

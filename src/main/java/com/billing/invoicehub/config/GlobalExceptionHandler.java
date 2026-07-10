@@ -1,11 +1,11 @@
 package com.billing.invoicehub.config;
 
+import com.billing.invoicehub.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,39 +16,32 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-/**
- * Global exception handler for the application.
- * Centralized error handling for consistent error responses.
- */
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
-     * Handle validation errors for request body validation
+     * Handle input validation errors (e.g. from @Valid annotations on requests/DTOs)
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<Map<String, Object>> handleValidationException(
+    public ResponseEntity<Map<String, Object>> handleValidationExceptions(
             MethodArgumentNotValidException ex,
             WebRequest request) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
+        log.warn("Validation error: {}", ex.getMessage());
 
-        log.warn("Validation error: {}", errors);
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                errors.put(error.getField(), error.getDefaultMessage())
+        );
 
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("status", HttpStatus.BAD_REQUEST.value());
-        response.put("error", "Validation Failed");
-        response.put("message", "One or more fields contain invalid values");
+        response.put("error", "Bad Request");
+        response.put("message", "Validation failed");
         response.put("details", errors);
         response.put("path", request.getDescription(false).replace("uri=", ""));
 
@@ -56,27 +49,27 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle file upload size exceeded errors
+     * Handle file size limit exceeded exception
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     @ResponseStatus(HttpStatus.PAYLOAD_TOO_LARGE)
-    public ResponseEntity<Map<String, Object>> handleMaxUploadSizeExceededException(
+    public ResponseEntity<Map<String, Object>> handleMaxSizeException(
             MaxUploadSizeExceededException ex,
             WebRequest request) {
-        log.warn("File upload size exceeded: {}", ex.getMessage());
+        log.warn("File upload limit exceeded: {}", ex.getMessage());
 
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("status", HttpStatus.PAYLOAD_TOO_LARGE.value());
-        response.put("error", "File Too Large");
-        response.put("message", "The uploaded file exceeds the maximum allowed size (10 MB)");
+        response.put("error", "Payload Too Large");
+        response.put("message", "The uploaded file exceeds the maximum allowed limit");
         response.put("path", request.getDescription(false).replace("uri=", ""));
 
         return new ResponseEntity<>(response, HttpStatus.PAYLOAD_TOO_LARGE);
     }
 
     /**
-     * Handle access denied exceptions
+     * Handle Access Denied (Security) exceptions
      */
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
@@ -98,10 +91,10 @@ public class GlobalExceptionHandler {
     /**
      * Handle resource not found exceptions
      */
-    @ExceptionHandler(value = { ResourceNotFoundException.class })
+    @ExceptionHandler(value = { ResourceNotFoundException.class, jakarta.persistence.EntityNotFoundException.class })
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ResponseEntity<Map<String, Object>> handleResourceNotFoundException(
-            ResourceNotFoundException ex,
+            Exception ex,
             WebRequest request) {
         log.warn("Resource not found: {}", ex.getMessage());
 
@@ -128,7 +121,7 @@ public class GlobalExceptionHandler {
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("status", HttpStatus.BAD_REQUEST.value());
-        response.put("error", "Invalid Request");
+        response.put("error", "Bad Request");
         response.put("message", ex.getMessage());
         response.put("path", request.getDescription(false).replace("uri=", ""));
 
@@ -136,27 +129,20 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle all other unexpected exceptions
+     * Handle all other unhandled exceptions (fallback)
      */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ResponseEntity<Map<String, Object>> handleGenericException(
+    public ResponseEntity<Map<String, Object>> handleGlobalException(
             Exception ex,
             WebRequest request) {
-        log.error("Unexpected error: {}", ex.getMessage(), ex);
+        log.error("An unexpected error occurred: {}", ex.getMessage(), ex);
 
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
         response.put("error", "Internal Server Error");
-        
-        // Expose real error details for diagnosis
-        java.io.StringWriter sw = new java.io.StringWriter();
-        java.io.PrintWriter pw = new java.io.PrintWriter(sw);
-        ex.printStackTrace(pw);
-        response.put("message", ex.getMessage() != null ? ex.getMessage() : ex.toString());
-        response.put("cause", ex.getCause() != null ? ex.getCause().getMessage() : "No cause");
-        response.put("stackTrace", sw.toString());
+        response.put("message", "An unexpected error occurred. Please contact the administrator.");
         response.put("path", request.getDescription(false).replace("uri=", ""));
 
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);

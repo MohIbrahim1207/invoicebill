@@ -408,6 +408,9 @@
             th:classappend="${active == 'purchase-orders'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')">
             <i class="bi bi-file-earmark-text"></i> <span th:text="#{sidebar.purchase.orders}">Purchase Orders</span>
         </a>
+        <a href="/admin/ai-quote-converter" class="sidebar-link" th:classappend="${active == 'ai-quote-converter'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')">
+            <i class="bi bi-cpu"></i> <span>AI Quote Converter</span>
+        </a>
         <a href="/admin/audit-logs" class="sidebar-link" th:classappend="${active == 'audit-logs'} ? ' active' : ''"
             sec:authorize="hasRole('ADMIN')">
             <i class="bi bi-shield-check"></i> <span>Audit Log</span>
@@ -449,6 +452,8 @@
                     th:classappend="${active == 'purchase-orders'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i
                         class="bi bi-file-earmark-text"></i> <span th:text="#{sidebar.purchase.orders}">Purchase
                         Orders</span></a>
+                <a href="/admin/ai-quote-converter" class="sidebar-link" th:classappend="${active == 'ai-quote-converter'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i
+                        class="bi bi-cpu"></i> <span>AI Quote Converter</span></a>
                 <a href="/admin/audit-logs" class="sidebar-link"
                     th:classappend="${active == 'audit-logs'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i
                         class="bi bi-shield-check"></i> <span>Audit Log</span></a>

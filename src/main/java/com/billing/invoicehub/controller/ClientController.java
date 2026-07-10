@@ -1,113 +1,111 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.billing.invoicehub.controller.ClientController
- *  com.billing.invoicehub.entity.Client
- *  com.billing.invoicehub.repository.AppUserRepository
- *  com.billing.invoicehub.repository.ClientRepository
- *  org.springframework.beans.factory.annotation.Autowired
- *  org.springframework.security.core.Authentication
- *  org.springframework.security.core.context.SecurityContextHolder
- *  org.springframework.stereotype.Controller
- *  org.springframework.ui.Model
- *  org.springframework.web.bind.annotation.GetMapping
- *  org.springframework.web.bind.annotation.ModelAttribute
- *  org.springframework.web.bind.annotation.PathVariable
- *  org.springframework.web.bind.annotation.PostMapping
- *  org.springframework.web.servlet.mvc.support.RedirectAttributes
- */
 package com.billing.invoicehub.controller;
 
-import com.billing.invoicehub.entity.Client;
-import com.billing.invoicehub.repository.AppUserRepository;
-import com.billing.invoicehub.repository.ClientRepository;
-import java.util.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.billing.invoicehub.dto.ClientDto;
+import com.billing.invoicehub.entity.AppUser;
+import com.billing.invoicehub.service.ClientService;
+import com.billing.invoicehub.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.Optional;
+
 @Controller
 public class ClientController {
-    @Autowired
-    private ClientRepository clientRepository;
-    @Autowired
-    private AppUserRepository userRepository;
 
-    @GetMapping(value={"/clients"})
+    private final ClientService clientService;
+    private final UserService userService;
+
+    public ClientController(ClientService clientService, UserService userService) {
+        this.clientService = clientService;
+        this.userService = userService;
+    }
+
+    @GetMapping("/clients")
     public String viewClients(Model model) {
-        model.addAttribute("clients", (Object)this.clientRepository.findAll());
+        model.addAttribute("clients", clientService.findAll());
+        model.addAttribute("client", new ClientDto());
         return "clients";
     }
 
-    @PostMapping(value={"/saveClient"})
-    public String saveClient(@ModelAttribute Client client, RedirectAttributes redirectAttributes) {
-        String username = this.currentUsername();
-        if (username != null) {
-            this.userRepository.findByUsername(username).ifPresent(client::setOwner);
+    @PostMapping("/saveClient")
+    public String saveClient(@Valid @ModelAttribute("client") ClientDto clientDto, 
+                             BindingResult bindingResult, 
+                             RedirectAttributes redirectAttributes, 
+                             Model model) {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("clients", clientService.findAll());
+            return "clients";
         }
-        this.clientRepository.save(client);
-        redirectAttributes.addFlashAttribute("message", (Object)"Client saved successfully.");
+        
+        String username = currentUsername();
+        AppUser owner = null;
+        if (username != null) {
+            owner = userService.findByUsername(username).orElse(null);
+        }
+        
+        clientService.save(clientDto, owner);
+        redirectAttributes.addFlashAttribute("message", "Client saved successfully.");
         return "redirect:/clients";
     }
 
-    @GetMapping(value={"/clients/{id}"})
+    @GetMapping("/clients/{id}")
     public String viewClient(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
-        Optional<Client> client = this.clientRepository.findById(id);
+        Optional<ClientDto> client = clientService.findById(id);
         if (client.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", (Object)"Client not found.");
+            redirectAttributes.addFlashAttribute("error", "Client not found.");
             return "redirect:/clients";
         }
         model.addAttribute("client", client.get());
         return "client-detail";
     }
 
-    @GetMapping(value={"/clients/{id}/edit"})
+    @GetMapping("/clients/{id}/edit")
     public String editClient(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
-        Optional<Client> client = this.clientRepository.findById(id);
+        Optional<ClientDto> client = clientService.findById(id);
         if (client.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", (Object)"Client not found.");
+            redirectAttributes.addFlashAttribute("error", "Client not found.");
             return "redirect:/clients";
         }
         model.addAttribute("client", client.get());
         return "client-edit";
     }
 
-    @PostMapping(value={"/updateClient"})
-    public String updateClient(@ModelAttribute Client client, RedirectAttributes redirectAttributes) {
-        Optional<Client> existingClient = this.clientRepository.findById(client.getId());
-        if (existingClient.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", (Object)"Client not found.");
+    @PostMapping("/updateClient")
+    public String updateClient(@Valid @ModelAttribute("client") ClientDto clientDto, 
+                               BindingResult bindingResult, 
+                               RedirectAttributes redirectAttributes, 
+                               Model model) {
+        if (bindingResult.hasErrors()) {
+            return "client-edit";
+        }
+        
+        Optional<ClientDto> updated = clientService.update(clientDto.getId(), clientDto);
+        if (updated.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Client not found.");
             return "redirect:/clients";
         }
-        Client c = existingClient.get();
-        c.setCompanyName(client.getCompanyName());
-        c.setGstNumber(client.getGstNumber());
-        c.setEmail(client.getEmail());
-        c.setPhone(client.getPhone());
-        c.setAddress(client.getAddress());
-        c.setOwner(existingClient.get().getOwner());
-        this.clientRepository.save(c);
-        redirectAttributes.addFlashAttribute("message", (Object)"Client updated successfully.");
+        
+        redirectAttributes.addFlashAttribute("message", "Client updated successfully.");
         return "redirect:/clients";
     }
 
-    @PostMapping(value={"/deleteClient/{id}"})
+    @PostMapping("/deleteClient/{id}")
     public String deleteClient(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        Optional<Client> client = this.clientRepository.findById(id);
-        if (client.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", (Object)"Client not found.");
+        boolean deleted = clientService.delete(id);
+        if (!deleted) {
+            redirectAttributes.addFlashAttribute("error", "Client not found.");
             return "redirect:/clients";
         }
-        this.clientRepository.deleteById(id);
-        redirectAttributes.addFlashAttribute("message", (Object)"Client deleted successfully.");
+        redirectAttributes.addFlashAttribute("message", "Client deleted successfully.");
         return "redirect:/clients";
     }
 
@@ -116,4 +114,3 @@ public class ClientController {
         return authentication != null ? authentication.getName() : null;
     }
 }
-

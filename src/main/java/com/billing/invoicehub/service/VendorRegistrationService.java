@@ -150,13 +150,12 @@ public class VendorRegistrationService {
                 "Vendor registered: " + saved.getUsername());
         try {
             notificationService.createNotification(
-                "New Vendor Registration",
-                String.format("Vendor \"%s\" has registered and is awaiting verification.", saved.getCompanyName()),
-                NotificationType.VENDOR_REGISTRATION,
-                "ROLE_ADMIN",
-                saved.getId(),
-                "VENDOR"
-            );
+                    "New Vendor Registration",
+                    String.format("Vendor \"%s\" has registered and is awaiting verification.", saved.getCompanyName()),
+                    NotificationType.VENDOR_REGISTRATION,
+                    "ROLE_ADMIN",
+                    saved.getId(),
+                    "VENDOR");
             log.info("Created and broadcasted new vendor registration notification for {}", saved.getUsername());
         } catch (Exception ex) {
             log.error("Failed to create vendor registration notification: {}", ex.getMessage(), ex);
