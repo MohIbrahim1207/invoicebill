@@ -22,7 +22,6 @@ import com.billing.invoicehub.config.RoleBasedAuthenticationValidator;
 import com.billing.invoicehub.dto.VendorRegistrationForm;
 import com.billing.invoicehub.service.VendorRegistrationService;
 import com.billing.invoicehub.service.VendorTicketService;
-import com.billing.invoicehub.service.AiQuoteConversionService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,16 +43,13 @@ public class AuthController {
     private final VendorRegistrationService vendorRegistrationService;
     private final RoleBasedAuthenticationValidator roleValidator;
     private final VendorTicketService vendorTicketService;
-    private final AiQuoteConversionService aiQuoteConversionService;
 
     public AuthController(VendorRegistrationService vendorRegistrationService,
             RoleBasedAuthenticationValidator roleValidator,
-            VendorTicketService vendorTicketService,
-            AiQuoteConversionService aiQuoteConversionService) {
+            VendorTicketService vendorTicketService) {
         this.vendorRegistrationService = vendorRegistrationService;
         this.roleValidator = roleValidator;
         this.vendorTicketService = vendorTicketService;
-        this.aiQuoteConversionService = aiQuoteConversionService;
     }
 
     @GetMapping(value = { "/login" })
@@ -117,7 +113,6 @@ public class AuthController {
 
     @GetMapping(value = { "/admin/dashboard" })
     public String adminDashboard(Model model) {
-        model.addAttribute("aiStats", aiQuoteConversionService.getStatistics());
         return "dashboard";
     }
 
