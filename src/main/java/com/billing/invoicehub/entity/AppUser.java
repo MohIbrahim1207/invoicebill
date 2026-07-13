@@ -18,8 +18,10 @@ public class AppUser {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @jakarta.persistence.Column(unique = true)
     private String username;
     private String password;
+    @jakarta.persistence.Column(unique = true)
     private String email;
     private boolean enabled;
     private boolean verified;
@@ -32,6 +34,7 @@ public class AppUser {
     private String fullName;
     private String phone;
 
+    @jakarta.persistence.Column(unique = true)
     private String gstNumber;
     // Changed from Path to URL
     private String gstDocumentUrl;

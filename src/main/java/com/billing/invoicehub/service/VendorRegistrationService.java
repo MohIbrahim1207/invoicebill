@@ -79,6 +79,7 @@ public class VendorRegistrationService {
     @Transactional
     public AppUser registerVendor(VendorRegistrationForm form, MultipartFile gstDocument, MultipartFile companyDocument,
             MultipartFile supportingDocument) throws IOException {
+        log.info("[DEBUG-LOG-SIGNUP] VendorRegistrationService.registerVendor() executed. Username: {}", form.getUsername());
         log.info("=== Starting vendor registration for username: {} ===", form.getUsername());
 
         long maxSizeBytes = 10 * 1024 * 1024;
@@ -90,8 +91,17 @@ public class VendorRegistrationService {
         }
 
         this.validateRegistration(form, gstDocument, companyDocument);
-        if (this.userRepository.findByUsername(form.getUsername()).isPresent()) {
+        if (this.userRepository.findByUsername(form.getUsername().trim()).isPresent()) {
             throw new IllegalArgumentException("Username already exists");
+        }
+        if (this.userRepository.findByEmailIgnoreCase(form.getEmail().trim()).isPresent()) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+        if (this.userRepository.findByCompanyNameIgnoreCase(form.getCompanyName().trim()).isPresent()) {
+            throw new IllegalArgumentException("Company Name already exists");
+        }
+        if (this.userRepository.findByGstNumber(form.getGstNumber().trim()).isPresent()) {
+            throw new IllegalArgumentException("GST Number already exists");
         }
         AppRole userRole = (AppRole) this.roleRepository.findByName("ROLE_VENDOR")
                 .orElseThrow(() -> new IllegalStateException("ROLE_VENDOR not found"));
@@ -145,6 +155,7 @@ public class VendorRegistrationService {
 
         user.setRoles(Set.of(userRole));
         log.debug("Saving user to database: {}", form.getUsername());
+        log.info("[DEBUG-LOG-SIGNUP] appUserRepository.save() called. Username: {}", user.getUsername());
         AppUser saved = this.userRepository.save(user);
         auditLogService.log(saved.getUsername(), "ROLE_VENDOR", "Vendor Registration", "AppUser", saved.getId(), null,
                 "Vendor registered: " + saved.getUsername());
@@ -291,5 +302,23 @@ public class VendorRegistrationService {
 
     private String nullSafe(String value) {
         return value == null ? "-" : value;
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isUsernameAvailable(String username) {
+        if (username == null || username.trim().isEmpty()) return false;
+        return this.userRepository.findByUsername(username.trim()).isEmpty();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isEmailAvailable(String email) {
+        if (email == null || email.trim().isEmpty()) return false;
+        return this.userRepository.findByEmailIgnoreCase(email.trim()).isEmpty();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isGstAvailable(String gstNumber) {
+        if (gstNumber == null || gstNumber.trim().isEmpty()) return false;
+        return this.userRepository.findByGstNumber(gstNumber.trim()).isEmpty();
     }
 }

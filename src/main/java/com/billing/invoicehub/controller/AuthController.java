@@ -36,7 +36,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataIntegrityViolationException;
+import java.util.Map;
+import java.util.HashMap;
 
 @Controller
 public class AuthController {
@@ -82,32 +87,79 @@ public class AuthController {
     }
 
     @PostMapping(value = { "/register" })
-    public String registerUser(@Valid @ModelAttribute("vendorRegistrationForm") VendorRegistrationForm form,
+    @ResponseBody
+    public ResponseEntity<?> registerUser(@Valid @ModelAttribute("vendorRegistrationForm") VendorRegistrationForm form,
             BindingResult bindingResult, Model model,
             @RequestParam(value = "gstDocument", required = false) MultipartFile gstDocument,
             @RequestParam(value = "companyDocument", required = false) MultipartFile companyDocument,
             @RequestParam(value = "supportingDocument", required = false) MultipartFile supportingDocument) {
+        log.info("[DEBUG-LOG-SIGNUP] AuthController.registerUser() called. Username: {}", form.getUsername());
         if (bindingResult.hasErrors()) {
             log.warn("Registration validation failed for username {} with {} error(s)", form.getUsername(),
                     bindingResult.getErrorCount());
-            model.addAttribute("vendorRegistrationForm", form);
-            return "signup";
+            Map<String, String> errors = new HashMap<>();
+            bindingResult.getFieldErrors().forEach(error -> {
+                errors.put(error.getField(), error.getDefaultMessage());
+            });
+            return ResponseEntity.badRequest().body(Map.of("success", false, "errors", errors));
         }
         try {
             log.info("Starting vendor registration for username: {}", form.getUsername());
             this.vendorRegistrationService.registerVendor(form, gstDocument, companyDocument, supportingDocument);
             log.info("Vendor registration successful for: {}", form.getUsername());
-            return "redirect:/login?pendingVerification=true";
+            return ResponseEntity.ok(Map.of("success", true, "redirect", "/login?pendingVerification=true"));
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Database integrity violation during vendor registration for username {}: {}", form.getUsername(), ex.getMessage());
+            Map<String, String> errors = new HashMap<>();
+            errors.put("global", "A registration with this username, email, or GST Number already exists.");
+            return ResponseEntity.badRequest().body(Map.of("success", false, "errors", errors));
         } catch (IllegalArgumentException ex) {
             log.warn("Registration validation error for username {}: {}", form.getUsername(), ex.getMessage());
-            return "redirect:/signup?error=" + this.mapRegistrationError(ex.getMessage());
+            String msg = ex.getMessage();
+            Map<String, String> errors = new HashMap<>();
+            if (msg.contains("Username")) {
+                errors.put("username", msg);
+            } else if (msg.contains("Email")) {
+                errors.put("email", msg);
+            } else if (msg.contains("Company")) {
+                errors.put("companyName", msg);
+            } else if (msg.contains("GST")) {
+                errors.put("gstNumber", msg);
+            } else if (msg.contains("Password")) {
+                errors.put("password", msg);
+            } else {
+                errors.put("global", msg);
+            }
+            return ResponseEntity.badRequest().body(Map.of("success", false, "errors", errors));
         } catch (Exception ex) {
             log.error("Unexpected error during vendor registration for username {}: {}", form.getUsername(),
                     ex.getMessage(), ex);
             ex.printStackTrace();
-            return "redirect:/signup?error=registration_failed";
+            Map<String, String> errors = new HashMap<>();
+            errors.put("global", "Registration failed: " + ex.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("success", false, "errors", errors));
         }
+    }
 
+    @GetMapping("/api/register/check-username")
+    @ResponseBody
+    public ResponseEntity<Map<String, Boolean>> checkUsername(@RequestParam("username") String username) {
+        boolean available = vendorRegistrationService.isUsernameAvailable(username);
+        return ResponseEntity.ok(Map.of("available", available));
+    }
+
+    @GetMapping("/api/register/check-email")
+    @ResponseBody
+    public ResponseEntity<Map<String, Boolean>> checkEmail(@RequestParam("email") String email) {
+        boolean available = vendorRegistrationService.isEmailAvailable(email);
+        return ResponseEntity.ok(Map.of("available", available));
+    }
+
+    @GetMapping("/api/register/check-gst")
+    @ResponseBody
+    public ResponseEntity<Map<String, Boolean>> checkGst(@RequestParam("gstNumber") String gstNumber) {
+        boolean available = vendorRegistrationService.isGstAvailable(gstNumber);
+        return ResponseEntity.ok(Map.of("available", available));
     }
 
     @PostMapping(value = { "/signup" })

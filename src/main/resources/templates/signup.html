@@ -8,6 +8,48 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/portal.css}">
+    <style>
+        /* Wizard Stepper Styling */
+        .step-circle {
+            transition: all 0.3s ease;
+        }
+        .step-item.active .step-circle {
+            background-color: var(--primary) !important;
+            color: #fff !important;
+            box-shadow: 0 0 0 4px var(--primary-soft);
+        }
+        .step-item.completed .step-circle {
+            background-color: #198754 !important;
+            color: #fff !important;
+        }
+        .step-item.completed .small {
+            color: #198754 !important;
+            font-weight: 600;
+        }
+        .step-item.active .small {
+            color: var(--primary) !important;
+            font-weight: 600;
+        }
+        /* Custom Dropzone Layouts */
+        .file-dropzone {
+            transition: all 0.2s ease-in-out;
+        }
+        /* Validation Indicators */
+        .validation-hint {
+            font-size: 0.8rem;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+        .validation-hint.valid {
+            color: #198754;
+        }
+        .validation-hint.invalid {
+            color: #dc3545;
+        }
+        .validation-hint.loading {
+            color: var(--muted);
+        }
+    </style>
 </head>
 
 <body class="portal-bg auth-bg">
@@ -53,177 +95,287 @@
 
     <div class="container py-5">
         <div class="row justify-content-center align-items-center min-vh-100">
-            <div class="col-12 col-md-8 col-lg-5">
+            <div class="col-12 col-md-10 col-lg-7">
                 <div class="card portal-card shadow-lg border-0">
                     <div class="card-body p-4 p-md-5">
                         <div class="text-center mb-4">
                             <div class="brand-badge mx-auto mb-3"><i class="bi bi-person-plus"></i></div>
                             <h1 class="h3 fw-bold mb-2" th:text="#{signup.heading}">Vendor Registration</h1>
-                            <p class="text-muted mb-0" th:text="#{signup.subtitle}">Register your company to submit
-                                invoices for admin verification.</p>
+                            <p class="text-muted mb-0" th:text="#{signup.subtitle}">Register your company to submit invoices for admin verification.</p>
                         </div>
 
-                        <div th:if="${param.error}" class="alert alert-danger">
-                            <span th:with="err=${param.error[0]}">
-                                <span th:if="${err == 'username_exists'}"
-                                    th:text="#{signup.error.username.exists}">Username already exists. Please choose
-                                    another.</span>
-                                <span th:if="${err == 'invalid_input'}" th:text="#{signup.error.invalid.input}">Please
-                                    fill all required fields correctly.</span>
-                                <span th:if="${err == 'file_type'}" th:text="#{signup.error.file.type}">Only PDF, PNG,
-                                    JPG, JPEG and WEBP files are allowed.</span>
-                                <span th:if="${err == 'file_size'}" th:text="#{signup.error.file.size}">File size exceeds the maximum allowed limit of 10 MB. Please upload a smaller file.</span>
-                                <span th:if="${err == 'password_error'}" th:text="#{signup.error.password}">Password
-                                    must be at least 6 characters and match the confirmation.</span>
-                                <span th:if="${err == 'registration_failed'}"
-                                    th:text="#{signup.error.registration.failed}">Registration could not be completed.
-                                    Please try again.</span>
-                                <span
-                                    th:if="${err != 'username_exists' and err != 'invalid_input' and err != 'file_type' and err != 'file_size' and err != 'password_error' and err != 'registration_failed'}"
-                                    th:text="#{signup.error.generic}">An error occurred.</span>
-                            </span>
-                        </div>
-
-                        <form th:action="@{/register}" th:object="${vendorRegistrationForm}" method="post"
-                            enctype="multipart/form-data" class="vstack gap-4">
-                            <div th:if="${#fields.hasAnyErrors()}" class="alert alert-danger">
-                                <ul class="mb-0">
-                                    <li th:each="err : ${#fields.errors('*')}" th:text="${err}">
-                                    </li>
-                                </ul>
+                        <!-- Stepper Progress Header -->
+                        <div class="stepper mb-5 d-flex justify-content-between position-relative">
+                            <div class="step-progress position-absolute top-50 start-0 translate-middle-y w-100 bg-secondary-subtle" style="height: 3px; z-index: 1;">
+                                <div id="stepProgressBar" class="step-progress-bar bg-primary h-100" style="width: 0%; transition: width 0.3s ease;"></div>
                             </div>
+                            <div class="step-item active position-relative z-2 text-center" style="width: 33.33%;">
+                                <div class="step-circle rounded-circle bg-secondary-subtle text-muted d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 38px; height: 38px; font-weight: bold; border: 2px solid var(--border);">1</div>
+                                <span class="small text-muted" th:text="#{signup.section.credentials}">Credentials</span>
+                            </div>
+                            <div class="step-item position-relative z-2 text-center" style="width: 33.33%;">
+                                <div class="step-circle rounded-circle bg-secondary-subtle text-muted d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 38px; height: 38px; font-weight: bold; border: 2px solid var(--border);">2</div>
+                                <span class="small text-muted" th:text="#{signup.section.company}">Company & Contact</span>
+                            </div>
+                            <div class="step-item position-relative z-2 text-center" style="width: 33.33%;">
+                                <div class="step-circle rounded-circle bg-secondary-subtle text-muted d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 38px; height: 38px; font-weight: bold; border: 2px solid var(--border);">3</div>
+                                <span class="small text-muted">Uploads & Review</span>
+                            </div>
+                        </div>
+
+                        <!-- Global Alerts -->
+                        <div id="globalAlert" class="alert alert-danger d-none mb-4"></div>
+
+                        <form id="registrationForm" th:action="@{/register}" th:object="${vendorRegistrationForm}" method="post"
+                            enctype="multipart/form-data" class="needs-validation" novalidate autocomplete="off">
+                            
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
-                            <div class="card border-0 bg-light-subtle">
-                                <div class="card-body">
-                                    <h2 class="h6 fw-bold mb-3" th:text="#{signup.section.credentials}">Login
-                                        Credentials</h2>
-                                    <div class="row g-3">
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label" th:text="#{signup.username}">Username</label>
-                                            <input type="text" name="username" class="form-control form-control-lg"
-                                                th:placeholder="#{signup.username.placeholder}" required>
-                                            <small class="text-muted" th:text="#{signup.username.hint}">3-20 characters,
-                                                letters and numbers only</small>
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label" th:text="#{signup.password}">Password</label>
-                                            <input type="password" name="password" class="form-control form-control-lg"
-                                                th:placeholder="#{signup.password.placeholder}" required>
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label" th:text="#{signup.confirm.password}">Confirm
-                                                Password</label>
-                                            <input type="password" name="confirmPassword"
-                                                class="form-control form-control-lg"
-                                                th:placeholder="#{signup.confirm.password.placeholder}" required>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="card border-0 bg-light-subtle">
-                                <div class="card-body">
-                                    <h2 class="h6 fw-bold mb-3" th:text="#{signup.section.company}">Company Information
-                                    </h2>
-                                    <div class="row g-3">
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label" th:text="#{signup.company.name}">Company
-                                                Name</label>
-                                            <input type="text" name="companyName" class="form-control"
-                                                th:placeholder="#{signup.company.name.placeholder}" required>
-                                        </div>
-                                        <div class="col-12">
-                                            <label class="form-label" th:text="#{signup.company.address}">Company
-                                                Address</label>
-                                            <textarea name="address" class="form-control" rows="3"
-                                                th:placeholder="#{signup.company.address.placeholder}"
-                                                required></textarea>
+                            <!-- STEP 1: Login Credentials -->
+                            <div class="wizard-step" id="step1">
+                                <div class="card border-0 bg-light-subtle mb-4">
+                                    <div class="card-body">
+                                        <h2 class="h6 fw-bold mb-3" th:text="#{signup.section.credentials}">Login Credentials</h2>
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <label class="form-label" th:text="#{signup.username}">Username</label>
+                                                <input type="text" id="username" name="username" class="form-control form-control-lg"
+                                                    th:placeholder="#{signup.username.placeholder}">
+                                                <div id="usernameHint" class="validation-hint" th:text="#{signup.username.hint}">3-20 characters, letters and numbers only</div>
+                                                <div class="invalid-feedback" id="usernameError"></div>
+                                            </div>
+                                            <div class="col-12 col-md-6">
+                                                <label class="form-label" th:text="#{signup.password}">Password</label>
+                                                <input type="password" id="password" name="password" class="form-control form-control-lg"
+                                                    th:placeholder="#{signup.password.placeholder}">
+                                                <!-- Password Strength Meter -->
+                                                <div class="mt-2">
+                                                    <div class="progress" style="height: 5px;">
+                                                        <div id="pwStrengthBar" class="progress-bar" role="progressbar" style="width: 0%;"></div>
+                                                    </div>
+                                                    <small id="pwStrengthText" class="text-muted mt-1 d-block small">Password strength</small>
+                                                </div>
+                                                <div class="invalid-feedback" id="passwordError"></div>
+                                            </div>
+                                            <div class="col-12 col-md-6">
+                                                <label class="form-label" th:text="#{signup.confirm.password}">Confirm Password</label>
+                                                <input type="password" id="confirmPassword" name="confirmPassword"
+                                                    class="form-control form-control-lg"
+                                                    th:placeholder="#{signup.confirm.password.placeholder}">
+                                                <div id="confirmPasswordHint" class="validation-hint"></div>
+                                                <div class="invalid-feedback" id="confirmPasswordError"></div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="card border-0 bg-light-subtle">
-                                <div class="card-body">
-                                    <h2 class="h6 fw-bold mb-3" th:text="#{signup.section.contact}">Contact Details</h2>
-                                    <div class="row g-3">
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label" th:text="#{signup.full.name}">Full Name</label>
-                                            <input type="text" name="fullName" class="form-control"
-                                                th:placeholder="#{signup.full.name.placeholder}" required>
+                            <!-- STEP 2: Company, Contact & Tax Information -->
+                            <div class="wizard-step d-none" id="step2">
+                                <div class="card border-0 bg-light-subtle mb-3">
+                                    <div class="card-body">
+                                        <h2 class="h6 fw-bold mb-3" th:text="#{signup.section.company}">Company Information</h2>
+                                        <div class="row g-3">
+                                            <div class="col-12 col-md-6">
+                                                <label class="form-label" th:text="#{signup.company.name}">Company Name</label>
+                                                <input type="text" id="companyName" name="companyName" class="form-control"
+                                                    th:placeholder="#{signup.company.name.placeholder}">
+                                                <div class="invalid-feedback" id="companyNameError"></div>
+                                            </div>
+                                            <div class="col-12 col-md-6">
+                                                <label class="form-label" th:text="#{signup.gst.number}">GST / VAT Number</label>
+                                                <input type="text" id="gstNumber" name="gstNumber" class="form-control"
+                                                    th:placeholder="#{signup.gst.number.placeholder}">
+                                                <div id="gstNumberHint" class="validation-hint"></div>
+                                                <div class="invalid-feedback" id="gstNumberError"></div>
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label" th:text="#{signup.company.address}">Company Address</label>
+                                                <textarea id="address" name="address" class="form-control" rows="3"
+                                                    th:placeholder="#{signup.company.address.placeholder}"></textarea>
+                                                <div class="invalid-feedback" id="addressError"></div>
+                                            </div>
                                         </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label" th:text="#{signup.email}">Email</label>
-                                            <input type="email" name="email" class="form-control"
-                                                th:placeholder="#{signup.email.placeholder}" required>
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label" th:text="#{signup.phone}">Phone Number</label>
-                                            <input type="text" name="phone" class="form-control"
-                                                th:placeholder="#{signup.phone.placeholder}" required>
+                                    </div>
+                                </div>
+
+                                <div class="card border-0 bg-light-subtle mb-4">
+                                    <div class="card-body">
+                                        <h2 class="h6 fw-bold mb-3" th:text="#{signup.section.contact}">Contact Details</h2>
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <label class="form-label" th:text="#{signup.full.name}">Full Name</label>
+                                                <input type="text" id="fullName" name="fullName" class="form-control"
+                                                    th:placeholder="#{signup.full.name.placeholder}">
+                                                <div class="invalid-feedback" id="fullNameError"></div>
+                                            </div>
+                                            <div class="col-12 col-md-6">
+                                                <label class="form-label" th:text="#{signup.email}">Email</label>
+                                                <input type="email" id="email" name="email" class="form-control"
+                                                    th:placeholder="#{signup.email.placeholder}">
+                                                <div id="emailHint" class="validation-hint"></div>
+                                                <div class="invalid-feedback" id="emailError"></div>
+                                            </div>
+                                            <div class="col-12 col-md-6">
+                                                <label class="form-label" th:text="#{signup.phone}">Phone Number</label>
+                                                <input type="text" id="phone" name="phone" class="form-control"
+                                                    th:placeholder="#{signup.phone.placeholder}">
+                                                <div class="invalid-feedback" id="phoneError"></div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="card border-0 bg-light-subtle">
-                                <div class="card-body">
-                                    <h2 class="h6 fw-bold mb-3" th:text="#{signup.section.tax}">Tax Information</h2>
-                                    <div class="row g-3">
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label" th:text="#{signup.gst.number}">GST / VAT
-                                                Number</label>
-                                            <input type="text" name="gstNumber" class="form-control"
-                                                th:placeholder="#{signup.gst.number.placeholder}" required>
+                            <!-- STEP 3: Upload Documents & Review -->
+                            <div class="wizard-step d-none" id="step3">
+                                <div class="card border-0 bg-light-subtle mb-4">
+                                    <div class="card-body">
+                                        <h2 class="h6 fw-bold mb-3" th:text="#{signup.section.documents}">Document Uploads</h2>
+                                        <div class="row g-3">
+                                            <!-- GST Document Dropzone -->
+                                            <div class="col-12 col-md-6">
+                                                <label class="form-label fw-bold" th:text="#{signup.gst.document}">GST Document</label>
+                                                <div class="file-dropzone" id="gstDropzone">
+                                                    <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                                                    <p class="mb-1 fw-semibold small mt-1">Drag & drop or Click</p>
+                                                    <p class="text-muted small mb-0" style="font-size:0.75rem;">PDF, PNG, JPG (Max 10MB)</p>
+                                                    <input type="file" id="gstDocument" name="gstDocument" class="d-none" accept=".pdf,.png,.jpg,.jpeg,.webp">
+                                                </div>
+                                                <!-- Preview -->
+                                                <div class="file-preview-card d-none mt-2 card border p-2 bg-light-subtle" id="gstPreview">
+                                                    <div class="d-flex align-items-center justify-content-between">
+                                                        <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                                            <i class="bi bi-file-earmark-pdf fs-4 text-danger" id="gstFileIcon"></i>
+                                                            <div class="text-start overflow-hidden">
+                                                                <div class="text-truncate fw-semibold small" id="gstFileName" style="max-width:140px;">-</div>
+                                                                <div class="text-muted small" id="gstFileSize" style="font-size:0.7rem;">0 KB</div>
+                                                            </div>
+                                                        </div>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" id="gstRemoveBtn"><i class="bi bi-trash"></i></button>
+                                                    </div>
+                                                </div>
+                                                <div class="invalid-feedback d-block mt-1" id="gstDocumentError"></div>
+                                            </div>
+
+                                            <!-- Company Document Dropzone -->
+                                            <div class="col-12 col-md-6">
+                                                <label class="form-label fw-bold" th:text="#{signup.company.document}">Company Registration Document</label>
+                                                <div class="file-dropzone" id="companyDropzone">
+                                                    <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                                                    <p class="mb-1 fw-semibold small mt-1">Drag & drop or Click</p>
+                                                    <p class="text-muted small mb-0" style="font-size:0.75rem;">PDF, PNG, JPG (Max 10MB)</p>
+                                                    <input type="file" id="companyDocument" name="companyDocument" class="d-none" accept=".pdf,.png,.jpg,.jpeg,.webp">
+                                                </div>
+                                                <!-- Preview -->
+                                                <div class="file-preview-card d-none mt-2 card border p-2 bg-light-subtle" id="companyPreview">
+                                                    <div class="d-flex align-items-center justify-content-between">
+                                                        <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                                            <i class="bi bi-file-earmark-pdf fs-4 text-danger" id="companyFileIcon"></i>
+                                                            <div class="text-start overflow-hidden">
+                                                                <div class="text-truncate fw-semibold small" id="companyFileName" style="max-width:140px;">-</div>
+                                                                <div class="text-muted small" id="companyFileSize" style="font-size:0.7rem;">0 KB</div>
+                                                            </div>
+                                                        </div>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" id="companyRemoveBtn"><i class="bi bi-trash"></i></button>
+                                                    </div>
+                                                </div>
+                                                <div class="invalid-feedback d-block mt-1" id="companyDocumentError"></div>
+                                            </div>
+
+                                            <!-- Supporting Document Dropzone -->
+                                            <div class="col-12">
+                                                <label class="form-label fw-bold" th:text="#{signup.supporting.document}">Other Supporting Documents</label>
+                                                <div class="file-dropzone" id="supportingDropzone">
+                                                    <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                                                    <p class="mb-1 fw-semibold small mt-1">Drag & drop or Click</p>
+                                                    <p class="text-muted small mb-0" style="font-size:0.75rem;">PDF, PNG, JPG (Max 10MB, Optional)</p>
+                                                    <input type="file" id="supportingDocument" name="supportingDocument" class="d-none" accept=".pdf,.png,.jpg,.jpeg,.webp">
+                                                </div>
+                                                <!-- Preview -->
+                                                <div class="file-preview-card d-none mt-2 card border p-2 bg-light-subtle" id="supportingPreview">
+                                                    <div class="d-flex align-items-center justify-content-between">
+                                                        <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                                            <i class="bi bi-file-earmark-pdf fs-4 text-danger" id="supportingFileIcon"></i>
+                                                            <div class="text-start overflow-hidden">
+                                                                <div class="text-truncate fw-semibold small" id="supportingFileName" style="max-width:300px;">-</div>
+                                                                <div class="text-muted small" id="supportingFileSize" style="font-size:0.7rem;">0 KB</div>
+                                                            </div>
+                                                        </div>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" id="supportingRemoveBtn"><i class="bi bi-trash"></i></button>
+                                                    </div>
+                                                </div>
+                                                <div class="invalid-feedback d-block mt-1" id="supportingDocumentError"></div>
+                                            </div>
                                         </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label" th:text="#{signup.gst.document}">GST
-                                                Document</label>
-                                            <input type="file" name="gstDocument" class="form-control"
-                                                accept=".pdf,.png,.jpg,.jpeg,.webp" required>
+                                    </div>
+                                </div>
+
+                                <!-- Review Information -->
+                                <div class="card border-0 bg-light-subtle mb-4">
+                                    <div class="card-body">
+                                        <h2 class="h6 fw-bold mb-3"><i class="bi bi-card-checklist text-primary me-1"></i> Review Registration Info</h2>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered mb-0">
+                                                <tbody>
+                                                    <tr>
+                                                        <th class="bg-light text-muted small py-2" style="width: 35%;">Username</th>
+                                                        <td id="reviewUsername" class="small fw-semibold py-2">-</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th class="bg-light text-muted small py-2">Company Name</th>
+                                                        <td id="reviewCompanyName" class="small py-2">-</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th class="bg-light text-muted small py-2">GST / VAT Number</th>
+                                                        <td id="reviewGstNumber" class="small py-2">-</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th class="bg-light text-muted small py-2">Full Name</th>
+                                                        <td id="reviewFullName" class="small py-2">-</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th class="bg-light text-muted small py-2">Email Address</th>
+                                                        <td id="reviewEmail" class="small py-2">-</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th class="bg-light text-muted small py-2">Phone Number</th>
+                                                        <td id="reviewPhone" class="small py-2">-</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="card border-0 bg-light-subtle">
-                                <div class="card-body">
-                                    <h2 class="h6 fw-bold mb-3" th:text="#{signup.section.documents}">Document Uploads
-                                    </h2>
-                                    <div class="row g-3">
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label" th:text="#{signup.company.document}">Company
-                                                Registration Document</label>
-                                            <input type="file" name="companyDocument" class="form-control"
-                                                accept=".pdf,.png,.jpg,.jpeg,.webp" required>
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label class="form-label" th:text="#{signup.supporting.document}">Other
-                                                Supporting Documents</label>
-                                            <input type="file" name="supportingDocument" class="form-control"
-                                                accept=".pdf,.png,.jpg,.jpeg,.webp">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary btn-lg w-100">
-                                <i class="bi bi-person-check"></i> <span th:text="#{signup.submit}">Submit
-                                    Registration</span>
-                            </button>
                         </form>
 
+                        <!-- Stepper Actions Button Container (Moved outside form to prevent native browser submit) -->
+                        <div class="d-flex align-items-center gap-3 mt-4">
+                            <button type="button" id="prevBtn" class="btn btn-outline-secondary d-flex align-items-center justify-content-center d-none" style="height: 52px; width: 200px; min-width: 150px;">
+                                <i class="bi bi-arrow-left me-2"></i> Previous
+                            </button>
+                            <button type="button" id="nextBtn" class="btn btn-primary d-flex align-items-center justify-content-center ms-auto" style="height: 52px; width: 200px;">
+                                Next <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                            <button type="button" id="submitBtn" class="btn btn-primary flex-grow-1 d-flex align-items-center justify-content-center d-none" style="height: 52px;">
+                                <span class="spinner-border spinner-border-sm me-2 d-none" id="submitSpinner" role="status" aria-hidden="true"></span>
+                                <span id="submitBtnText" class="d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-send me-2"></i> Submit Registration
+                                </span>
+                            </button>
+                        </div>
+
                         <div class="text-center mt-4">
-                            <small class="text-muted"><span th:text="#{signup.has.account}">Already have an
-                                    account?</span> <a th:href="@{/login}" th:text="#{signup.signin.link}">Sign in
-                                    here</a></small>
+                            <small class="text-muted"><span th:text="#{signup.has.account}">Already have an account?</span> <a th:href="@{/login}" th:text="#{signup.signin.link}">Sign in here</a></small>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script th:inline="javascript">
         function changeLanguage(lang) {
@@ -233,35 +385,679 @@
         }
 
         document.addEventListener("DOMContentLoaded", function() {
-            const fileInputs = document.querySelectorAll('input[type="file"]');
-            const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
-            const sizeErrorMessage = /*[[#{signup.error.file.size}]]*/ "File size exceeds the maximum allowed limit of 10 MB. Please upload a smaller file.";
+            // Stepper and form wizard navigation logic
+            let currentStep = 1;
+            const totalSteps = 3;
+            const wizardSteps = document.querySelectorAll(".wizard-step");
+            const stepItems = document.querySelectorAll(".step-item");
+            const stepProgressBar = document.getElementById("stepProgressBar");
+            const prevBtn = document.getElementById("prevBtn");
+            const nextBtn = document.getElementById("nextBtn");
+            const submitBtn = document.getElementById("submitBtn");
 
-            fileInputs.forEach(input => {
-                input.addEventListener('change', function() {
-                    let errorDiv = document.getElementById(this.name + "-error");
-                    if (!errorDiv) {
-                        errorDiv = document.createElement("div");
-                        errorDiv.id = this.name + "-error";
-                        errorDiv.className = "text-danger mt-1 small fw-medium";
-                        this.parentNode.appendChild(errorDiv);
-                    }
+            // Form references
+            const form = document.getElementById("registrationForm");
+            
+            // Inputs
+            const usernameInput = document.getElementById("username");
+            const passwordInput = document.getElementById("password");
+            const confirmPasswordInput = document.getElementById("confirmPassword");
+            const companyNameInput = document.getElementById("companyName");
+            const gstNumberInput = document.getElementById("gstNumber");
+            const addressInput = document.getElementById("address");
+            const fullNameInput = document.getElementById("fullName");
+            const emailInput = document.getElementById("email");
+            const phoneInput = document.getElementById("phone");
+            
+            // File Inputs & Dropzones
+            const filesData = {
+                gstDocument: { file: null, required: true },
+                companyDocument: { file: null, required: true },
+                supportingDocument: { file: null, required: false }
+            };
 
-                    if (this.files && this.files.length > 0) {
-                        const file = this.files[0];
-                        if (file.size > MAX_SIZE) {
-                            errorDiv.textContent = sizeErrorMessage;
-                            errorDiv.style.display = "block";
-                            this.value = ""; // Clear file
-                        } else {
-                            errorDiv.style.display = "none";
-                            errorDiv.textContent = "";
-                        }
+            const maxSizeBytes = 10 * 1024 * 1024; // 10MB
+            
+            // Validation states
+            let usernameValid = false;
+            let emailValid = false;
+            let gstValid = false;
+            let passwordValid = false;
+            let confirmPasswordValid = false;
+
+            // Stepper progress indicator update
+            function updateStepper() {
+                const progressWidth = ((currentStep - 1) / (totalSteps - 1)) * 100;
+                stepProgressBar.style.width = `${progressWidth}%`;
+
+                stepItems.forEach((item, idx) => {
+                    const stepNum = idx + 1;
+                    if (stepNum < currentStep) {
+                        item.classList.add("completed");
+                        item.classList.remove("active");
+                        const circle = item.querySelector(".step-circle");
+                        circle.innerHTML = '<i class="bi bi-check-lg"></i>';
+                    } else if (stepNum === currentStep) {
+                        item.classList.remove("completed");
+                        item.classList.add("active");
+                        const circle = item.querySelector(".step-circle");
+                        circle.textContent = stepNum;
+                    } else {
+                        item.classList.remove("completed", "active");
+                        const circle = item.querySelector(".step-circle");
+                        circle.textContent = stepNum;
                     }
                 });
+
+                wizardSteps.forEach((step, idx) => {
+                    if (idx + 1 === currentStep) {
+                        step.classList.remove("d-none");
+                    } else {
+                        step.classList.add("d-none");
+                    }
+                });
+
+                if (currentStep === 1) {
+                    prevBtn.classList.add("d-none");
+                    nextBtn.classList.remove("d-none");
+                    submitBtn.classList.add("d-none");
+                } else if (currentStep === 2) {
+                    prevBtn.classList.remove("d-none");
+                    nextBtn.classList.remove("d-none");
+                    submitBtn.classList.add("d-none");
+                } else if (currentStep === 3) {
+                    prevBtn.classList.remove("d-none");
+                    nextBtn.classList.add("d-none");
+                    submitBtn.classList.remove("d-none");
+                    populateReview();
+                }
+            }
+
+            function populateReview() {
+                document.getElementById("reviewUsername").textContent = usernameInput.value.trim();
+                document.getElementById("reviewCompanyName").textContent = companyNameInput.value.trim();
+                document.getElementById("reviewGstNumber").textContent = gstNumberInput.value.trim();
+                document.getElementById("reviewFullName").textContent = fullNameInput.value.trim();
+                document.getElementById("reviewEmail").textContent = emailInput.value.trim();
+                document.getElementById("reviewPhone").textContent = phoneInput.value.trim();
+            }
+
+            function debounce(func, delay = 500) {
+                let timeout;
+                return function(...args) {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, args), delay);
+                };
+            }
+
+            function showHint(elem, isValid, message) {
+                elem.className = `validation-hint ${isValid ? 'valid' : 'invalid'}`;
+                elem.innerHTML = isValid ? `<i class="bi bi-check-circle-fill"></i> ${message}` : `<i class="bi bi-x-circle-fill"></i> ${message}`;
+            }
+
+            function clearHint(elem, defaultText = "") {
+                elem.className = "validation-hint";
+                elem.textContent = defaultText;
+            }
+
+            function showFieldInvalid(inputElem, errorDiv, message) {
+                inputElem.classList.add("is-invalid");
+                inputElem.classList.remove("is-valid");
+                if (errorDiv) errorDiv.textContent = message;
+            }
+
+            function showFieldValid(inputElem) {
+                inputElem.classList.remove("is-invalid");
+                inputElem.classList.add("is-valid");
+            }
+
+            async function checkUsernameAvailabilityDirect(username) {
+                const hint = document.getElementById("usernameHint");
+                try {
+                    const res = await fetch(`/api/register/check-username?username=${encodeURIComponent(username)}`);
+                    const data = await res.json();
+                    if (data.available) {
+                        usernameValid = true;
+                        showHint(hint, true, "Username is available!");
+                        showFieldValid(usernameInput);
+                        return true;
+                    } else {
+                        usernameValid = false;
+                        showHint(hint, false, "Username is already taken");
+                        showFieldInvalid(usernameInput, document.getElementById("usernameError"), "Username already exists");
+                        return false;
+                    }
+                } catch (e) {
+                    usernameValid = true;
+                    clearHint(hint, "3-20 characters, letters and numbers only");
+                    return true;
+                }
+            }
+
+            async function checkEmailAvailabilityDirect(email) {
+                const hint = document.getElementById("emailHint");
+                try {
+                    const res = await fetch(`/api/register/check-email?email=${encodeURIComponent(email)}`);
+                    const data = await res.json();
+                    if (data.available) {
+                        emailValid = true;
+                        showHint(hint, true, "Email is available!");
+                        showFieldValid(emailInput);
+                        return true;
+                    } else {
+                        emailValid = false;
+                        showHint(hint, false, "Email is already registered");
+                        showFieldInvalid(emailInput, document.getElementById("emailError"), "Email already exists");
+                        return false;
+                    }
+                } catch (e) {
+                    emailValid = true;
+                    clearHint(hint);
+                    return true;
+                }
+            }
+
+            async function checkGstAvailabilityDirect(gstNumber) {
+                const hint = document.getElementById("gstNumberHint");
+                try {
+                    const res = await fetch(`/api/register/check-gst?gstNumber=${encodeURIComponent(gstNumber)}`);
+                    const data = await res.json();
+                    if (data.available) {
+                        gstValid = true;
+                        showHint(hint, true, "GST/Tax Number is available!");
+                        showFieldValid(gstNumberInput);
+                        return true;
+                    } else {
+                        gstValid = false;
+                        showHint(hint, false, "GST/Tax Number is already registered");
+                        showFieldInvalid(gstNumberInput, document.getElementById("gstNumberError"), "GST Number already exists");
+                        return false;
+                    }
+                } catch (e) {
+                    gstValid = true;
+                    clearHint(hint);
+                    return true;
+                }
+            }
+
+            const checkUsernameAvailability = debounce((username) => {
+                if (username.length >= 3 && /^[a-zA-Z0-9._-]+$/.test(username)) {
+                    checkUsernameAvailabilityDirect(username);
+                } else {
+                    usernameValid = false;
+                    const hint = document.getElementById("usernameHint");
+                    showHint(hint, false, "Username must be 3-20 characters, alphanumeric");
+                    showFieldInvalid(usernameInput, document.getElementById("usernameError"), "Username must be 3-20 characters, alphanumeric");
+                }
             });
+
+            const checkEmailAvailability = debounce((email) => {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (email && emailRegex.test(email)) {
+                    checkEmailAvailabilityDirect(email);
+                } else {
+                    emailValid = false;
+                    const hint = document.getElementById("emailHint");
+                    showHint(hint, false, "Invalid email format");
+                    showFieldInvalid(emailInput, document.getElementById("emailError"), "Invalid email format");
+                }
+            });
+
+            const checkGstAvailability = debounce((gstNumber) => {
+                if (gstNumber) {
+                    checkGstAvailabilityDirect(gstNumber);
+                } else {
+                    gstValid = false;
+                    const hint = document.getElementById("gstNumberHint");
+                    clearHint(hint);
+                    showFieldInvalid(gstNumberInput, document.getElementById("gstNumberError"), "GST Number is required");
+                }
+            });
+
+            usernameInput.addEventListener("input", (e) => {
+                checkUsernameAvailability(e.target.value.trim());
+            });
+
+            emailInput.addEventListener("input", (e) => {
+                checkEmailAvailability(e.target.value.trim());
+            });
+
+            gstNumberInput.addEventListener("input", (e) => {
+                checkGstAvailability(e.target.value.trim());
+            });
+
+            function evaluatePasswordStrength(password) {
+                const bar = document.getElementById("pwStrengthBar");
+                const text = document.getElementById("pwStrengthText");
+                
+                if (!password) {
+                    passwordValid = false;
+                    bar.style.width = "0%";
+                    text.textContent = "Password strength";
+                    text.className = "text-muted mt-1 d-block small";
+                    showFieldInvalid(passwordInput, document.getElementById("passwordError"), "Password is required");
+                    return;
+                }
+
+                let score = 0;
+                if (password.length >= 8) score += 20;
+                if (/[A-Z]/.test(password)) score += 20;
+                if (/[a-z]/.test(password)) score += 20;
+                if (/[0-9]/.test(password)) score += 20;
+                if (/[^A-Za-z0-9]/.test(password)) score += 20;
+
+                bar.style.width = score + "%";
+
+                if (score >= 60) {
+                    passwordValid = true;
+                    bar.className = "progress-bar bg-success";
+                    text.textContent = score >= 80 ? "Strong password ✓" : "Medium password";
+                    text.className = "text-success mt-1 d-block small fw-medium";
+                    showFieldValid(passwordInput);
+                } else {
+                    passwordValid = false;
+                    bar.className = "progress-bar bg-danger";
+                    text.textContent = "Weak password (must be at least 8 characters with letters, numbers and symbols)";
+                    text.className = "text-danger mt-1 d-block small fw-medium";
+                    showFieldInvalid(passwordInput, document.getElementById("passwordError"), "Password is too weak");
+                }
+                
+                checkPasswordMatch();
+            }
+
+            passwordInput.addEventListener("input", (e) => {
+                evaluatePasswordStrength(e.target.value);
+            });
+
+            function checkPasswordMatch() {
+                const password = passwordInput.value;
+                const confirmPassword = confirmPasswordInput.value;
+                const hint = document.getElementById("confirmPasswordHint");
+                
+                if (!confirmPassword) {
+                    confirmPasswordValid = false;
+                    clearHint(hint);
+                    showFieldInvalid(confirmPasswordInput, document.getElementById("confirmPasswordError"), "Confirm Password is required");
+                    return;
+                }
+
+                if (password === confirmPassword) {
+                    confirmPasswordValid = true;
+                    showHint(hint, true, "Passwords match!");
+                    showFieldValid(confirmPasswordInput);
+                } else {
+                    confirmPasswordValid = false;
+                    showHint(hint, false, "Passwords do not match");
+                    showFieldInvalid(confirmPasswordInput, document.getElementById("confirmPasswordError"), "Passwords must match");
+                }
+            }
+
+            confirmPasswordInput.addEventListener("input", checkPasswordMatch);
+
+            function setupDropzone(prefix, fileKey) {
+                const dropzone = document.getElementById(prefix + "Dropzone");
+                const input = document.getElementById(prefix + "Document");
+                const preview = document.getElementById(prefix + "Preview");
+                const removeBtn = document.getElementById(prefix + "RemoveBtn");
+                const nameLabel = document.getElementById(prefix + "FileName");
+                const sizeLabel = document.getElementById(prefix + "FileSize");
+                const icon = document.getElementById(prefix + "FileIcon");
+                const errorDiv = document.getElementById(prefix + "DocumentError");
+
+                // Safety checks: verify elements exist before attaching listeners
+                if (!dropzone || !input || !preview || !removeBtn || !nameLabel || !sizeLabel || !icon || !errorDiv) {
+                    console.warn(`Dropzone elements for prefix "${prefix}" not fully found in DOM.`);
+                    return;
+                }
+
+                dropzone.addEventListener("click", () => input.click());
+
+                dropzone.addEventListener("dragover", (e) => {
+                    e.preventDefault();
+                    dropzone.classList.add("dragover");
+                });
+
+                ["dragleave", "drop"].forEach(event => {
+                    dropzone.addEventListener(event, () => dropzone.classList.remove("dragover"));
+                });
+
+                dropzone.addEventListener("drop", (e) => {
+                    e.preventDefault();
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        handleFileSelection(e.dataTransfer.files[0]);
+                    }
+                });
+
+                input.addEventListener("change", (e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                        handleFileSelection(e.target.files[0]);
+                    }
+                });
+
+                removeBtn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    if (filesData[fileKey]) {
+                        filesData[fileKey].file = null;
+                    }
+                    input.value = "";
+                    preview.classList.add("d-none");
+                    dropzone.classList.remove("d-none");
+                    errorDiv.textContent = "";
+                });
+
+                function handleFileSelection(file) {
+                    errorDiv.textContent = "";
+                    
+                    const allowedTypes = ['.pdf', '.png', '.jpg', '.jpeg', '.webp'];
+                    const extension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+                    if (!allowedTypes.includes(extension)) {
+                        errorDiv.textContent = "Only PDF, PNG, JPG, JPEG and WEBP files are allowed.";
+                        return;
+                    }
+
+                    if (file.size > maxSizeBytes) {
+                        errorDiv.textContent = "File size exceeds the maximum allowed limit of 10 MB. Please upload a smaller file.";
+                        return;
+                    }
+
+                    if (filesData[fileKey]) {
+                        filesData[fileKey].file = file;
+                    }
+                    nameLabel.textContent = file.name;
+                    
+                    let sizeText = "";
+                    if (file.size < 1024 * 1024) {
+                        sizeText = (file.size / 1024).toFixed(1) + " KB";
+                    } else {
+                        sizeText = (file.size / (1024 * 1024)).toFixed(1) + " MB";
+                    }
+                    sizeLabel.textContent = sizeText;
+
+                    if (extension === '.pdf') {
+                        icon.className = "bi bi-file-earmark-pdf fs-4 text-danger";
+                    } else {
+                        icon.className = "bi bi-file-earmark-image fs-4 text-success";
+                    }
+
+                    preview.classList.remove("d-none");
+                    dropzone.classList.add("d-none");
+                }
+            }
+
+            setupDropzone("gst", "gstDocument");
+            setupDropzone("company", "companyDocument");
+            setupDropzone("supporting", "supportingDocument");
+
+            async function validateStep1() {
+                evaluatePasswordStrength(passwordInput.value);
+                checkPasswordMatch();
+                
+                let valid = true;
+
+                const username = usernameInput.value.trim();
+                if (!username || username.length < 3) {
+                    showFieldInvalid(usernameInput, document.getElementById("usernameError"), "Username must be at least 3 characters");
+                    valid = false;
+                } else if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
+                    showFieldInvalid(usernameInput, document.getElementById("usernameError"), "Username must be alphanumeric (3-20 characters)");
+                    valid = false;
+                } else {
+                    const isAvailable = await checkUsernameAvailabilityDirect(username);
+                    if (!isAvailable) {
+                        valid = false;
+                    }
+                }
+
+                if (!passwordInput.value || !passwordValid) {
+                    showFieldInvalid(passwordInput, document.getElementById("passwordError"), "Password does not meet minimum strength requirements");
+                    valid = false;
+                }
+
+                if (!confirmPasswordInput.value || !confirmPasswordValid) {
+                    showFieldInvalid(confirmPasswordInput, document.getElementById("confirmPasswordError"), "Passwords do not match");
+                    valid = false;
+                }
+
+                return valid;
+            }
+
+            async function validateStep2() {
+                let valid = true;
+
+                if (!companyNameInput.value.trim()) {
+                    showFieldInvalid(companyNameInput, document.getElementById("companyNameError"), "Company name is required");
+                    valid = false;
+                } else {
+                    showFieldValid(companyNameInput);
+                }
+
+                if (!addressInput.value.trim()) {
+                    showFieldInvalid(addressInput, document.getElementById("addressError"), "Address is required");
+                    valid = false;
+                } else {
+                    showFieldValid(addressInput);
+                }
+
+                if (!fullNameInput.value.trim()) {
+                    showFieldInvalid(fullNameInput, document.getElementById("fullNameError"), "Full name is required");
+                    valid = false;
+                } else {
+                    showFieldValid(fullNameInput);
+                }
+
+                const email = emailInput.value.trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!email || !emailRegex.test(email)) {
+                    showFieldInvalid(emailInput, document.getElementById("emailError"), "A valid email is required");
+                    valid = false;
+                } else {
+                    const isAvailable = await checkEmailAvailabilityDirect(email);
+                    if (!isAvailable) {
+                        valid = false;
+                    }
+                }
+
+                const phoneRegex = /^[0-9+()\-/\s]{7,30}$/;
+                if (!phoneInput.value.trim() || !phoneRegex.test(phoneInput.value.trim())) {
+                    showFieldInvalid(phoneInput, document.getElementById("phoneError"), "Invalid phone number (7-30 characters)");
+                    valid = false;
+                } else {
+                    showFieldValid(phoneInput);
+                }
+
+                const gst = gstNumberInput.value.trim();
+                if (!gst) {
+                    showFieldInvalid(gstNumberInput, document.getElementById("gstNumberError"), "GST/Tax Number is required");
+                    valid = false;
+                } else {
+                    const isAvailable = await checkGstAvailabilityDirect(gst);
+                    if (!isAvailable) {
+                        valid = false;
+                    }
+                }
+
+                return valid;
+            }
+
+            // Next Button Click Handler
+            nextBtn.addEventListener("click", async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                nextBtn.disabled = true;
+                const originalText = nextBtn.innerHTML;
+                nextBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Validating...`;
+
+                if (currentStep === 1) {
+                    const isValid = await validateStep1();
+                    if (isValid) {
+                        currentStep = 2;
+                        updateStepper();
+                    }
+                } else if (currentStep === 2) {
+                    const isValid = await validateStep2();
+                    if (isValid) {
+                        currentStep = 3;
+                        updateStepper();
+                    }
+                }
+
+                nextBtn.disabled = false;
+                nextBtn.innerHTML = originalText;
+            });
+
+            // Previous Button Click Handler
+            prevBtn.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (currentStep > 1) {
+                    currentStep--;
+                    updateStepper();
+                }
+            });
+
+            // Prevent Enter key from submitting form, and instead trigger Next or Submit click
+            form.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type !== "submit" && e.target.type !== "textarea") {
+                    e.preventDefault();
+                    if (currentStep === 1 || currentStep === 2) {
+                        nextBtn.click();
+                    } else if (currentStep === 3) {
+                        submitBtn.click();
+                    }
+                }
+            });
+
+            // Intercept form native submit just in case (though buttons are now outside the form)
+            form.addEventListener("submit", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+
+            // Submit Button Click Handler
+            submitBtn.addEventListener("click", async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const globalAlert = document.getElementById("globalAlert");
+                globalAlert.classList.add("d-none");
+                globalAlert.textContent = "";
+
+                // Perform complete validation of all steps
+                const isStep1Valid = await validateStep1();
+                const isStep2Valid = await validateStep2();
+                
+                let isStep3Valid = true;
+                const gstErr = document.getElementById("gstDocumentError");
+                const compErr = document.getElementById("companyDocumentError");
+                gstErr.textContent = "";
+                compErr.textContent = "";
+
+                if (!filesData.gstDocument.file) {
+                    gstErr.textContent = "GST Document is required";
+                    isStep3Valid = false;
+                }
+                if (!filesData.companyDocument.file) {
+                    compErr.textContent = "Company Registration Document is required";
+                    isStep3Valid = false;
+                }
+
+                if (!isStep1Valid || !isStep2Valid || !isStep3Valid) {
+                    if (!isStep1Valid) {
+                        currentStep = 1;
+                    } else if (!isStep2Valid) {
+                        currentStep = 2;
+                    } else {
+                        currentStep = 3;
+                    }
+                    updateStepper();
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                document.getElementById("submitSpinner").classList.remove("d-none");
+                document.getElementById("submitBtnText").textContent = "Registering...";
+                prevBtn.disabled = true;
+
+                const formData = new FormData(form);
+
+                if (filesData.gstDocument.file) {
+                    formData.set("gstDocument", filesData.gstDocument.file);
+                }
+                if (filesData.companyDocument.file) {
+                    formData.set("companyDocument", filesData.companyDocument.file);
+                }
+                if (filesData.supportingDocument.file) {
+                    formData.set("supportingDocument", filesData.supportingDocument.file);
+                }
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        window.location.assign(result.redirect);
+                    } else {
+                        submitBtn.disabled = false;
+                        document.getElementById("submitSpinner").classList.add("d-none");
+                        document.getElementById("submitBtnText").innerHTML = `<i class="bi bi-send me-2"></i> Submit Registration`;
+                        prevBtn.disabled = false;
+
+                        if (result.errors) {
+                            let firstErrorStep = 3;
+                            
+                            Object.keys(result.errors).forEach(field => {
+                                const errMsg = result.errors[field];
+                                
+                                if (field === 'username' || field === 'password' || field === 'confirmPassword') {
+                                    const input = document.getElementById(field);
+                                    const errDiv = document.getElementById(field + "Error");
+                                    showFieldInvalid(input, errDiv, errMsg);
+                                    firstErrorStep = Math.min(firstErrorStep, 1);
+                                } else if (field === 'companyName' || field === 'gstNumber' || field === 'address' || field === 'fullName' || field === 'email' || field === 'phone') {
+                                    const input = document.getElementById(field);
+                                    const errDiv = document.getElementById(field + "Error");
+                                    showFieldInvalid(input, errDiv, errMsg);
+                                    firstErrorStep = Math.min(firstErrorStep, 2);
+                                } else if (field === 'gstDocument' || field === 'companyDocument' || field === 'supportingDocument') {
+                                    const errDiv = document.getElementById(field + "Error");
+                                    if (errDiv) errDiv.textContent = errMsg;
+                                } else {
+                                    globalAlert.classList.remove("d-none");
+                                    globalAlert.textContent = errMsg;
+                                }
+                            });
+
+                            if (firstErrorStep !== currentStep) {
+                                currentStep = firstErrorStep;
+                                updateStepper();
+                            }
+                        } else if (result.message) {
+                            globalAlert.classList.remove("d-none");
+                            globalAlert.textContent = result.message;
+                        } else {
+                            globalAlert.classList.remove("d-none");
+                            globalAlert.textContent = "An error occurred during registration. Please check inputs and try again.";
+                        }
+                    }
+                } catch (error) {
+                    submitBtn.disabled = false;
+                    document.getElementById("submitSpinner").classList.add("d-none");
+                    document.getElementById("submitBtnText").innerHTML = `<i class="bi bi-send me-2"></i> Submit Registration`;
+                    prevBtn.disabled = false;
+
+                    globalAlert.classList.remove("d-none");
+                    globalAlert.textContent = "Network error or server unavailable. Please try again later.";
+                    console.error("Submission error:", error);
+                }
+            });
+
+            updateStepper();
         });
     </script>
 </body>
-
 </html>

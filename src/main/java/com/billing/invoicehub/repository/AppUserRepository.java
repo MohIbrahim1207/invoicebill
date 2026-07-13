@@ -21,4 +21,8 @@ public interface AppUserRepository
 
     // Added for password reset — replaces findAll() scan
     Optional<AppUser> findByEmailIgnoreCase(String email);
+
+    Optional<AppUser> findByCompanyNameIgnoreCase(String companyName);
+
+    Optional<AppUser> findByGstNumber(String gstNumber);
 }

@@ -132,6 +132,7 @@ public class SecurityConfig {
                                 "/vendor/authenticate",
                                 "/signup",
                                 "/register",
+                                "/api/register/**",
                                 "/forgot-password",
                                 "/verify-otp",
                                 "/reset-password",
