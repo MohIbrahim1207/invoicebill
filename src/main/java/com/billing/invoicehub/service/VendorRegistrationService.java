@@ -40,7 +40,6 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class VendorRegistrationService {
     private static final Logger log = LoggerFactory.getLogger(VendorRegistrationService.class);
-    private static final String RESEND_FROM = "onboarding@resend.dev";
     private final AppUserRepository userRepository;
     private final AppRoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;

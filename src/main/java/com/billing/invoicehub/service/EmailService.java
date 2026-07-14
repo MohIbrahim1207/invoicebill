@@ -1,17 +1,16 @@
 package com.billing.invoicehub.service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
+import com.resend.services.emails.model.CreateEmailResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 @Service
@@ -19,18 +18,21 @@ public class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
-    private final JavaMailSender mailSender;
+    private final Resend resend;
     private final SpringTemplateEngine templateEngine;
     private final String fromEmail;
+    private final String replyToEmail;
     private final String adminEmail;
 
-    public EmailService(JavaMailSender mailSender,
+    public EmailService(Resend resend,
             SpringTemplateEngine templateEngine,
-            @Value("${spring.mail.username:}") String fromEmail,
-            @Value("${app.admin.email:admin@invoicehub.com}") String adminEmail) {
-        this.mailSender = mailSender;
+            @Value("${resend.from.email}") String fromEmail,
+            @Value("${resend.reply-to}") String replyToEmail,
+            @Value("${app.admin.email}") String adminEmail) {
+        this.resend = resend;
         this.templateEngine = templateEngine;
         this.fromEmail = fromEmail;
+        this.replyToEmail = replyToEmail;
         this.adminEmail = adminEmail;
     }
 
@@ -74,26 +76,75 @@ public class EmailService {
     }
 
     public void sendHtmlEmail(String to, String subject, String htmlContent) {
+        sendHtmlEmailInternal(to, subject, htmlContent, true);
+    }
+
+    public void sendPlainEmail(String to, String subject, String textContent) {
+        sendHtmlEmailInternal(to, subject, textContent, false);
+    }
+
+    private void sendHtmlEmailInternal(String to, String subject, String content, boolean isHtml) {
         if (to == null || to.isBlank()) {
             log.warn("Skipping email '{}' because recipient address is missing", subject);
             return;
         }
 
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
-            helper.setFrom(fromEmail);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(htmlContent, true);
+        CreateEmailOptions.Builder optionsBuilder = CreateEmailOptions.builder()
+                .from(fromEmail)
+                .to(to)
+                .subject(subject)
+                .replyTo(replyToEmail);
 
-            mailSender.send(message);
-            log.info("Email sent successfully to {} with subject '{}'", to, subject);
-        } catch (MessagingException ex) {
-            log.error("Failed to build email '{}' for {}: {}", subject, to, ex.getMessage(), ex);
-        } catch (Exception ex) {
-            log.error("Failed to send email '{}' to {}: {}", subject, to, ex.getMessage(), ex);
+        if (isHtml) {
+            optionsBuilder.html(content);
+        } else {
+            optionsBuilder.text(content);
         }
+
+        CreateEmailOptions options = optionsBuilder.build();
+
+        int maxAttempts = 2;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                log.info("Sending email to {} with subject '{}' (Attempt {}/{})", to, subject, attempt, maxAttempts);
+                CreateEmailResponse response = resend.emails().send(options);
+                if (response != null && response.getId() != null) {
+                    log.info("Email sent successfully via Resend to {} with subject '{}', ID: {}", to, subject, response.getId());
+                    return;
+                } else {
+                    throw new RuntimeException("Resend API response was empty or ID is null");
+                }
+            } catch (Exception ex) {
+                log.warn("Failed to send email on attempt {}/{}: {}", attempt, maxAttempts, ex.getMessage());
+                if (attempt < maxAttempts && isTransientError(ex)) {
+                    try {
+                        log.info("Retrying transient email sending error in 500ms...");
+                        Thread.sleep(500);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        log.error("Retry delay interrupted: {}", ie.getMessage());
+                        break;
+                    }
+                } else {
+                    log.error("Failed to send email to {} with subject '{}' after {} attempts: {}", to, subject, attempt, ex.getMessage(), ex);
+                    break;
+                }
+            }
+        }
+    }
+
+    private boolean isTransientError(Exception ex) {
+        if (ex instanceof ResendException) {
+            // Usually ResendException or HTTP response errors.
+            // Timeout/Network issues manifest as general IOExceptions or 5xx Status codes.
+            // Validation errors such as invalid email structure/format (400 Bad Request) or authorization (401/403) should not be retried.
+            // For safety, let's look at the exception message/cause.
+            String msg = ex.getMessage().toLowerCase();
+            if (msg.contains("validation") || msg.contains("invalid") || msg.contains("400") || msg.contains("401") || msg.contains("403")) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public void sendTicketSubmittedEmail(String to,
