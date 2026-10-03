@@ -16,6 +16,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PasswordResetTokenRepository
 extends JpaRepository<PasswordResetToken, Long> {
-    public Optional<PasswordResetToken> findFirstByEmailAndUsedFalseOrderByCreatedAtDesc(String var1);
+
+    /**
+     * Finds the most recent unused token for the given email.
+     * Used for normal OTP verification flow.
+     */
+    Optional<PasswordResetToken> findFirstByEmailAndUsedFalseOrderByCreatedAtDesc(String email);
+
+    /**
+     * Finds the most recent token for the given email regardless of used status.
+     * Used by verifyOtp to distinguish a brute-force-locked token (NOT_FOUND vs LOCKED).
+     */
+    Optional<PasswordResetToken> findFirstByEmailOrderByCreatedAtDesc(String email);
 }
 

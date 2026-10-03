@@ -65,15 +65,30 @@ public class ForgotPasswordController {
 
     @PostMapping(value={"/verify-otp"})
     public String verifyOtp(@RequestParam String email, @RequestParam String otp, HttpSession session, Model model, RedirectAttributes redirectAttributes) {
-        boolean verified = this.passwordResetService.verifyOtp(email, otp);
-        if (!verified) {
-            model.addAttribute("email", (Object)email);
-            model.addAttribute("error", (Object)"Invalid or expired OTP. Please try again.");
-            return "verify-otp";
+        PasswordResetService.OtpVerificationResult result = this.passwordResetService.verifyOtp(email, otp);
+
+        switch (result) {
+            case SUCCESS -> {
+                session.setAttribute("resetEmail", (Object)email);
+                redirectAttributes.addFlashAttribute("email", (Object)email);
+                return "redirect:/reset-password";
+            }
+            case LOCKED -> {
+                model.addAttribute("email", (Object)email);
+                model.addAttribute("error", (Object)"Too many failed attempts. Please request a new OTP.");
+                return "verify-otp";
+            }
+            case EXPIRED -> {
+                model.addAttribute("email", (Object)email);
+                model.addAttribute("error", (Object)"OTP has expired. Please request a new one.");
+                return "verify-otp";
+            }
+            default -> {
+                model.addAttribute("email", (Object)email);
+                model.addAttribute("error", (Object)"Invalid OTP. Please try again.");
+                return "verify-otp";
+            }
         }
-        session.setAttribute("resetEmail", (Object)email);
-        redirectAttributes.addFlashAttribute("email", (Object)email);
-        return "redirect:/reset-password";
     }
 
     @GetMapping(value={"/reset-password"})

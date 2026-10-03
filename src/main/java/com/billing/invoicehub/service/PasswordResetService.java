@@ -58,19 +58,67 @@ public class PasswordResetService {
         }
     }
 
+    /** Result codes for OTP verification — avoids ambiguity between wrong OTP and locked token. */
+    public enum OtpVerificationResult {
+        SUCCESS, INVALID, LOCKED, EXPIRED, NOT_FOUND
+    }
+
     @Transactional
-    public boolean verifyOtp(String email, String otp) {
-        Optional<PasswordResetToken> token =
+    public OtpVerificationResult verifyOtp(String email, String otp) {
+        // First: look for an unused (open) token.
+        Optional<PasswordResetToken> unusedToken =
                 this.tokenRepository.findFirstByEmailAndUsedFalseOrderByCreatedAtDesc(email);
-        if (token.isEmpty()) return false;
 
-        PasswordResetToken resetToken = token.get();
-        if (resetToken.isExpired()) return false;
-        if (!resetToken.getOtp().equals(otp)) return false;
+        if (unusedToken.isPresent()) {
+            PasswordResetToken resetToken = unusedToken.get();
 
-        resetToken.setUsed(true);
-        this.tokenRepository.save(resetToken);
-        return true;
+            // SEC-004: Reject if already at the attempt limit (defensive — should not normally occur
+            // since the 5th failure sets used=true, but guards against any concurrent edge case).
+            if (resetToken.getAttemptCount() >= PasswordResetToken.MAX_ATTEMPTS) {
+                resetToken.setUsed(true);
+                this.tokenRepository.save(resetToken);
+                log.warn("OTP token locked for '{}': attempt_count={} with used=false (corrected)", email, resetToken.getAttemptCount());
+                return OtpVerificationResult.LOCKED;
+            }
+
+            if (resetToken.isExpired()) return OtpVerificationResult.EXPIRED;
+
+            if (!resetToken.getOtp().equals(otp)) {
+                // SEC-004: Increment failure counter; lock token if limit reached.
+                int attempts = resetToken.incrementAttempts();
+                if (attempts >= PasswordResetToken.MAX_ATTEMPTS) {
+                    resetToken.setUsed(true);  // Brute-force locked — mark used to invalidate.
+                    log.warn("OTP token brute-force locked for '{}' after {} failed attempts", email, attempts);
+                    this.tokenRepository.save(resetToken);
+                    return OtpVerificationResult.LOCKED;
+                }
+                this.tokenRepository.save(resetToken);
+                return OtpVerificationResult.INVALID;
+            }
+
+            // Correct OTP — mark as used to prevent replay.
+            resetToken.setUsed(true);
+            this.tokenRepository.save(resetToken);
+            return OtpVerificationResult.SUCCESS;
+        }
+
+        // No unused token found. Check whether a locked token exists for this email
+        // so we can return LOCKED instead of NOT_FOUND when the user was brute-force locked.
+        Optional<PasswordResetToken> latestToken =
+                this.tokenRepository.findFirstByEmailOrderByCreatedAtDesc(email);
+
+        if (latestToken.isPresent()) {
+            PasswordResetToken t = latestToken.get();
+            // used=true AND attempt_count >= MAX_ATTEMPTS → brute-force locked
+            if (t.getAttemptCount() >= PasswordResetToken.MAX_ATTEMPTS) {
+                log.warn("OTP verification rejected for '{}': token is brute-force locked (attempts={})", email, t.getAttemptCount());
+                return OtpVerificationResult.LOCKED;
+            }
+            // used=true with attemptCount < MAX_ATTEMPTS → legitimately consumed (successful reset)
+            // Fall through to NOT_FOUND so the user is prompted to request a new OTP.
+        }
+
+        return OtpVerificationResult.NOT_FOUND;
     }
 
     @Transactional
