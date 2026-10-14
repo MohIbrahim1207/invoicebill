@@ -179,10 +179,16 @@
         var approved = 0;
         var revised = 0;
         var released = 0;
-        var amount = 0;
+        var amountsByCurrency = {};
 
         rows.forEach(function (row) {
-            amount += parseFloat(row.getAttribute("data-amount") || "0");
+            var rowAmt = parseFloat(row.getAttribute("data-amount") || "0");
+            var rowCurr = (row.getAttribute("data-currency") || "IDR").trim().toUpperCase();
+            if (!amountsByCurrency[rowCurr]) {
+                amountsByCurrency[rowCurr] = 0;
+            }
+            amountsByCurrency[rowCurr] += rowAmt;
+
             var badge = row.querySelector(".badge, .status-badge");
             var status = badge ? badge.textContent.trim() : "";
             if (status === "Pending") pending += 1;
@@ -195,17 +201,27 @@
         var pendingEl = $("#statPending");
         var approvedEl = $("#statApproved");
         var amountEl = $("#statAmount");
+        var currencyKeys = Object.keys(amountsByCurrency);
+        var formattedTotal;
+        if (currencyKeys.length === 0) {
+            formattedTotal = "IDR 0,00";
+        } else {
+            formattedTotal = currencyKeys.map(function (c) {
+                var loc = c === "EUR" ? "de-DE" : (c === "IDR" ? "id-ID" : "en-US");
+                return c + " " + amountsByCurrency[c].toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }).join(" • ");
+        }
         if (totalEl) totalEl.textContent = total;
         if (pendingEl) pendingEl.textContent = pending;
         if (approvedEl) approvedEl.textContent = approved;
-        if (amountEl) amountEl.textContent = amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        if (amountEl) amountEl.textContent = formattedTotal;
 
         // Update table summary footer if present
         var summaryCount = $("#summaryCount");
         var summaryAmount = $("#summaryAmount");
         var summaryStatusCounts = $("#summaryStatusCounts");
         if (summaryCount) summaryCount.textContent = total;
-        if (summaryAmount) summaryAmount.textContent = amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        if (summaryAmount) summaryAmount.textContent = formattedTotal;
         if (summaryStatusCounts) summaryStatusCounts.textContent = "P: " + pending + " • A: " + approved + " • R: " + revised + " • L: " + released;
 
         var canvas = $("#invoiceChart");

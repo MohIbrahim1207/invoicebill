@@ -12,6 +12,7 @@ import com.billing.invoicehub.repository.ClientRepository;
 import com.billing.invoicehub.repository.InvoiceRepository;
 import com.billing.invoicehub.repository.VendorTicketHistoryRepository;
 import com.billing.invoicehub.repository.VendorTicketRepository;
+import com.billing.invoicehub.util.FormatUtils;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
@@ -424,18 +425,10 @@ public class VendorTicketService {
         if (n == null) {
             return "-";
         }
-        String curr = (currency == null || currency.isBlank()) ? "IDR" : currency.trim();
-        NumberFormat nf;
-        if ("IDR".equalsIgnoreCase(curr)) {
-            nf = NumberFormat.getInstance(Locale.forLanguageTag("id-ID"));
-            nf.setMaximumFractionDigits(0);
-            nf.setMinimumFractionDigits(0);
-        } else {
-            nf = NumberFormat.getInstance(Locale.US);
-            nf.setMaximumFractionDigits(2);
-            nf.setMinimumFractionDigits(2);
-        }
-        return curr + " " + nf.format(n);
+        BigDecimal amount = (n instanceof BigDecimal)
+                ? (BigDecimal) n
+                : BigDecimal.valueOf(n.doubleValue());
+        return FormatUtils.formatCurrency(amount, currency);
     }
 
     private boolean isAdmin(AppUser user) {

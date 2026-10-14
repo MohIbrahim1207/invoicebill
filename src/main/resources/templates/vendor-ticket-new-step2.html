@@ -379,7 +379,7 @@
                 document.querySelectorAll('.prefix').forEach(el => {
                     el.textContent = currency;
                 });
-                const placeholder = currency === "IDR" ? "0" : "0.00";
+                const placeholder = (currency === "IDR" || currency === "EUR") ? "0,00" : "0.00";
                 subtotalInput.placeholder = placeholder;
                 taxInput.placeholder = placeholder;
                 totalDisplay.placeholder = placeholder;
@@ -389,9 +389,14 @@
                 if (isNaN(num)) return "";
                 if (currency === "IDR") {
                     return new Intl.NumberFormat("id-ID", {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
-                    }).format(Math.floor(num));
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }).format(num);
+                } else if (currency === "EUR") {
+                    return new Intl.NumberFormat("de-DE", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }).format(num);
                 } else {
                     return new Intl.NumberFormat("en-US", {
                         minimumFractionDigits: 2,
@@ -402,11 +407,23 @@
 
             function parseValue(valText, currency) {
                 if (!valText) return 0;
-                let clean = valText.toString().replace(/,/g, "");
-                if (currency === "IDR") {
-                    clean = clean.replace(/\./g, "");
+                let str = valText.toString().trim();
+                if (currency === "IDR" || currency === "EUR") {
+                    if (str.includes(",") && str.includes(".")) {
+                        if (str.lastIndexOf(",") > str.lastIndexOf(".")) {
+                            str = str.replace(/\./g, "").replace(",", ".");
+                        } else {
+                            str = str.replace(/,/g, "");
+                        }
+                    } else if (str.includes(",")) {
+                        str = str.replace(",", ".");
+                    } else if ((str.match(/\./g) || []).length > 1) {
+                        str = str.replace(/\./g, "");
+                    }
+                } else {
+                    str = str.replace(/,/g, "");
                 }
-                const parsed = parseFloat(clean);
+                const parsed = parseFloat(str);
                 return isNaN(parsed) ? 0 : parsed;
             }
 
@@ -435,15 +452,15 @@
                 if (val === 0) {
                     inputElement.value = "";
                 } else {
-                    inputElement.value = currency === "IDR" ? val.toFixed(0) : val.toFixed(2);
+                    inputElement.value = val.toFixed(2);
                 }
             }
 
             function handleInput(e) {
                 const currency = currencySelect.value;
                 let valText = e.target.value;
-                if (currency === "IDR") {
-                    valText = valText.replace(/[^0-9]/g, "");
+                if (currency === "IDR" || currency === "EUR") {
+                    valText = valText.replace(/[^0-9,.]/g, "");
                 } else {
                     valText = valText.replace(/[^0-9.]/g, "");
                     const parts = valText.split(".");
