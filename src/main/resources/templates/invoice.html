@@ -145,12 +145,15 @@
                                             </td>
                                         </tr>
                                         <tr th:each="invoice : ${invoices}"
-                                            th:attr="data-search=${invoice.invoiceNumber},data-amount=${invoice.amount != null ? invoice.amount : 0},data-currency=${invoice.currency != null ? invoice.currency : 'IDR'}">
+                                            th:attr="data-search=${invoice.invoiceNumber},data-amount=${invoice.amount != null ? invoice.amount : 0}">
                                             <td th:text="${invoice.id}"></td>
                                             <td th:text="${invoice.invoiceNumber}"></td>
-                                            <td th:text="${invoice.poNumber != null and !invoice.poNumber.isEmpty() ? invoice.poNumber : '-'}"></td>
+                                            <td
+                                                th:text="${invoice.poNumber != null and !invoice.poNumber.isEmpty() ? invoice.poNumber : '-'}">
+                                            </td>
                                             <td th:text="${invoice.invoiceDate}"></td>
-                                            <td th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(invoice.amount, invoice.currency)}">
+                                            <td
+                                                th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(invoice.amount, invoice.currency)}">
                                             </td>
                                             <td th:text="${invoice.client != null ? invoice.client.companyName : '-'}">
                                             </td>
@@ -258,7 +261,8 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="p-3 rounded bg-light h-100">
-                                    <div class="text-muted small" th:text="#{invoice.report.total.amount}">Total amount</div>
+                                    <div class="text-muted small" th:text="#{invoice.report.total.amount}">Total amount
+                                    </div>
                                     <div class="fw-semibold" id="reportTotalAmount">0</div>
                                 </div>
                             </div>
@@ -340,15 +344,14 @@
                 return !row.classList.contains('table-empty-row');
             });
 
-            let pending = 0, approved = 0, revised = 0, released = 0;
-            const amountsByCurrency = {};
+            let pending = 0, approved = 0, revised = 0, released = 0, total = 0;
             rows.forEach(function (row) {
                 const amtText = row.getAttribute('data-amount') || '0';
-                const rowCurr = (row.getAttribute('data-currency') || 'IDR').trim().toUpperCase();
-                const amt = parseFloat(amtText) || 0;
-                amountsByCurrency[rowCurr] = (amountsByCurrency[rowCurr] || 0) + amt;
-
+                total += parseFloat(amtText) || 0;
                 const badge = row.querySelector('td:nth-child(6) .badge, td:nth-child(6) .status-badge');
+                const statusText = badge ? badge.textContent.trim() : '';
+                // We need to map localized text back to English key for chart/counts or just use JS variables, but simplest is use badge classes if possible or map by index. We will just check against localized values if needed, or simply adapt portal logic.
+                // A more robust way is getting a data-status attribute from the row.
                 const statusSpan = badge;
                 if (statusSpan) {
                     if (statusSpan.classList.contains('badge-soft-warning')) pending += 1;
@@ -358,14 +361,7 @@
                 }
             });
 
-            const currKeys = Object.keys(amountsByCurrency);
-            let amountLabel = 'IDR 0,00';
-            if (currKeys.length > 0) {
-                amountLabel = currKeys.map(function (c) {
-                    const loc = c === 'EUR' ? 'de-DE' : (c === 'IDR' ? 'id-ID' : 'en-US');
-                    return c + ' ' + amountsByCurrency[c].toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                }).join(' • ');
-            }
+            const amountLabel = total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             // The labels here could be localized via Thymeleaf variables, but keeping it simple for now.
             const pendingLabel = '[[#{invoice.filter.pending}]]';
             const approvedLabel = '[[#{invoice.filter.approved}]]';
@@ -395,6 +391,13 @@
             });
         });
     </script>
+</body>
+
+</html> plugins: { legend: { position: 'bottom' } }
+}
+});
+});
+</script>
 </body>
 
 </html>

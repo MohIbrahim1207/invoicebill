@@ -179,16 +179,10 @@
         var approved = 0;
         var revised = 0;
         var released = 0;
-        var amountsByCurrency = {};
+        var amount = 0;
 
         rows.forEach(function (row) {
-            var rowAmt = parseFloat(row.getAttribute("data-amount") || "0");
-            var rowCurr = (row.getAttribute("data-currency") || "IDR").trim().toUpperCase();
-            if (!amountsByCurrency[rowCurr]) {
-                amountsByCurrency[rowCurr] = 0;
-            }
-            amountsByCurrency[rowCurr] += rowAmt;
-
+            amount += parseFloat(row.getAttribute("data-amount") || "0");
             var badge = row.querySelector(".badge, .status-badge");
             var status = badge ? badge.textContent.trim() : "";
             if (status === "Pending") pending += 1;
@@ -201,27 +195,17 @@
         var pendingEl = $("#statPending");
         var approvedEl = $("#statApproved");
         var amountEl = $("#statAmount");
-        var currencyKeys = Object.keys(amountsByCurrency);
-        var formattedTotal;
-        if (currencyKeys.length === 0) {
-            formattedTotal = "IDR 0,00";
-        } else {
-            formattedTotal = currencyKeys.map(function (c) {
-                var loc = c === "EUR" ? "de-DE" : (c === "IDR" ? "id-ID" : "en-US");
-                return c + " " + amountsByCurrency[c].toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            }).join(" • ");
-        }
         if (totalEl) totalEl.textContent = total;
         if (pendingEl) pendingEl.textContent = pending;
         if (approvedEl) approvedEl.textContent = approved;
-        if (amountEl) amountEl.textContent = formattedTotal;
+        if (amountEl) amountEl.textContent = amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
         // Update table summary footer if present
         var summaryCount = $("#summaryCount");
         var summaryAmount = $("#summaryAmount");
         var summaryStatusCounts = $("#summaryStatusCounts");
         if (summaryCount) summaryCount.textContent = total;
-        if (summaryAmount) summaryAmount.textContent = formattedTotal;
+        if (summaryAmount) summaryAmount.textContent = amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         if (summaryStatusCounts) summaryStatusCounts.textContent = "P: " + pending + " • A: " + approved + " • R: " + revised + " • L: " + released;
 
         var canvas = $("#invoiceChart");
@@ -262,7 +246,7 @@
             var type = c.getAttribute('data-type') || 'bar';
             // derive a tiny trend from visible rows: simple moving distribution over 6 periods
             var rows = visibleRows();
-            var values = [0,0,0,0,0,0];
+            var values = [0, 0, 0, 0, 0, 0];
             rows.forEach(function (r, i) {
                 var idx = i % values.length;
                 var amt = parseFloat(r.getAttribute('data-amount') || '0');
@@ -289,7 +273,7 @@
             sparkRefs[key] = new Chart(c.getContext('2d'), {
                 type: type,
                 data: {
-                    labels: ['','','','','',''],
+                    labels: ['', '', '', '', '', ''],
                     datasets: [{
                         data: values,
                         backgroundColor: type === 'bar' ? '#dbeafe' : 'rgba(43,110,242,0.08)',
@@ -327,4 +311,17 @@
     var tableBody = document.querySelector('#billingTable tbody');
     if (tableBody) observer.observe(tableBody, { childList: true, subtree: true });
 })();
+
+bindTableSearch("#clientTable", "#clientSearchInput");
+bindStatusFilter();
+bindPager();
+bindHistoryModal();
+refreshTableMeta();
+// initial sparkline render and keep updating when table state changes
+renderSparklines();
+// watch for table changes and re-render
+var observer = new MutationObserver(function () { renderSparklines(); });
+var tableBody = document.querySelector('#billingTable tbody');
+if (tableBody) observer.observe(tableBody, { childList: true, subtree: true });
+}) ();
 

@@ -100,8 +100,8 @@
                                                 Progress</span>
                                             <span th:if="${statusName == 'REVISE'}"
                                                 class="badge bg-danger">Revise</span>
-                                            <span th:if="${statusName == 'PARTIALLY_PAID'}"
-                                                class="badge" style="background-color: #FFF3CD; color: #856404;">Partially Paid</span>
+                                            <span th:if="${statusName == 'PARTIALLY_PAID'}" class="badge"
+                                                style="background-color: #FFF3CD; color: #856404;">Partially Paid</span>
                                             <span th:if="${statusName == 'RESOLVED'}"
                                                 class="badge bg-success">Paid</span>
                                             <span th:if="${statusName == 'CANCEL'}"
@@ -264,22 +264,23 @@
                                                     <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>In
                                                     Progress
                                                 </span>
-                                                 <span th:if="${recordStatus == 'REVISE'}" class="badge bg-danger">
-                                                     <i class="bi bi-circle-fill me-1"
-                                                         style="font-size: 0.5rem;"></i>Revise
-                                                 </span>
-                                                 <span th:if="${recordStatus == 'PARTIALLY_PAID'}" class="badge" style="background-color: #FFF3CD; color: #856404;">
-                                                     <i class="bi bi-circle-fill me-1"
-                                                         style="font-size: 0.5rem;"></i>Partially Paid
-                                                 </span>
-                                                 <span th:if="${recordStatus == 'RESOLVED'}" class="badge bg-success">
-                                                     <i class="bi bi-circle-fill me-1"
-                                                         style="font-size: 0.5rem;"></i>Paid
-                                                 </span>
-                                                 <span th:if="${recordStatus == 'CANCEL'}" class="badge bg-secondary">
-                                                     <i class="bi bi-circle-fill me-1"
-                                                         style="font-size: 0.5rem;"></i>Cancel
-                                                 </span>
+                                                <span th:if="${recordStatus == 'REVISE'}" class="badge bg-danger">
+                                                    <i class="bi bi-circle-fill me-1"
+                                                        style="font-size: 0.5rem;"></i>Revise
+                                                </span>
+                                                <span th:if="${recordStatus == 'PARTIALLY_PAID'}" class="badge"
+                                                    style="background-color: #FFF3CD; color: #856404;">
+                                                    <i class="bi bi-circle-fill me-1"
+                                                        style="font-size: 0.5rem;"></i>Partially Paid
+                                                </span>
+                                                <span th:if="${recordStatus == 'RESOLVED'}" class="badge bg-success">
+                                                    <i class="bi bi-circle-fill me-1"
+                                                        style="font-size: 0.5rem;"></i>Paid
+                                                </span>
+                                                <span th:if="${recordStatus == 'CANCEL'}" class="badge bg-secondary">
+                                                    <i class="bi bi-circle-fill me-1"
+                                                        style="font-size: 0.5rem;"></i>Cancel
+                                                </span>
                                                 <span th:if="${recordStatus == null}"
                                                     class="badge bg-light text-dark">-</span>
                                             </div>

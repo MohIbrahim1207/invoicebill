@@ -271,11 +271,13 @@
                             </div>
 
                             <div class="col-12">
-                                <label class="form-label" th:text="#{ticket.new.remarks}">Vendor Remarks (Optional)</label>
+                                <label class="form-label" th:text="#{ticket.new.remarks}">Vendor Remarks
+                                    (Optional)</label>
                                 <textarea name="vendorRemarks" class="form-control" rows="3" maxlength="2000"
                                     th:placeholder="#{ticket.new.remarks.placeholder}"
                                     th:text="${wizardState.vendorRemarks}"></textarea>
-                                <div class="form-text">Maximum 2000 characters. Explain any special situations, e.g. missing invoices or order confirmation reference.</div>
+                                <div class="form-text">Maximum 2000 characters. Explain any special situations, e.g.
+                                    missing invoices or order confirmation reference.</div>
                             </div>
 
                             <div class="col-12">
@@ -283,10 +285,11 @@
                                     <div class="calc-row mb-3">
                                         <div class="calc-label" th:text="#{ticket.new.subtotal}">Subtotal *</div>
                                         <div class="input-group input-group-lg">
-                                            <span class="input-group-text prefix bg-light fw-semibold" style="min-width: 75px; justify-content: center;">Rp</span>
-                                            <input type="text" id="subtotalInput"
-                                                class="form-control" placeholder="0.00"
-                                                required style="font-family: monospace; font-size: 1.1rem;">
+                                            <span class="input-group-text prefix bg-light fw-semibold"
+                                                style="min-width: 75px; justify-content: center;">Rp</span>
+                                            <input type="text" id="subtotalInput" class="form-control"
+                                                placeholder="0.00" required
+                                                style="font-family: monospace; font-size: 1.1rem;">
                                             <input type="hidden" name="subtotal" id="subtotalHidden"
                                                 th:value="${wizardState.subtotal}">
                                         </div>
@@ -297,9 +300,9 @@
                                     <div class="calc-row mb-3">
                                         <div class="calc-label" th:text="#{ticket.new.tax}">Tax</div>
                                         <div class="input-group input-group-lg">
-                                            <span class="input-group-text prefix bg-light fw-semibold" style="min-width: 75px; justify-content: center;">Rp</span>
-                                            <input type="text" id="taxInput"
-                                                class="form-control" placeholder="0.00"
+                                            <span class="input-group-text prefix bg-light fw-semibold"
+                                                style="min-width: 75px; justify-content: center;">Rp</span>
+                                            <input type="text" id="taxInput" class="form-control" placeholder="0.00"
                                                 style="font-family: monospace; font-size: 1.1rem;">
                                             <input type="hidden" name="tax" id="taxHidden"
                                                 th:value="${wizardState.tax}">
@@ -312,7 +315,8 @@
                                         <div class="calc-label text-primary" th:text="#{ticket.new.total}">Total
                                             (Auto-calculated) *</div>
                                         <div class="input-group input-group-lg">
-                                            <span class="input-group-text prefix bg-light fw-bold text-primary" style="min-width: 75px; justify-content: center;">Rp</span>
+                                            <span class="input-group-text prefix bg-light fw-bold text-primary"
+                                                style="min-width: 75px; justify-content: center;">Rp</span>
                                             <input type="text" id="totalDisplay"
                                                 class="form-control bg-light fw-bold text-primary" placeholder="0.00"
                                                 readonly style="font-family: monospace; font-size: 1.1rem;">
@@ -379,7 +383,7 @@
                 document.querySelectorAll('.prefix').forEach(el => {
                     el.textContent = currency;
                 });
-                const placeholder = (currency === "IDR" || currency === "EUR") ? "0,00" : "0.00";
+                const placeholder = currency === "IDR" ? "0" : "0.00";
                 subtotalInput.placeholder = placeholder;
                 taxInput.placeholder = placeholder;
                 totalDisplay.placeholder = placeholder;
@@ -389,14 +393,9 @@
                 if (isNaN(num)) return "";
                 if (currency === "IDR") {
                     return new Intl.NumberFormat("id-ID", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                    }).format(num);
-                } else if (currency === "EUR") {
-                    return new Intl.NumberFormat("de-DE", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                    }).format(num);
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    }).format(Math.floor(num));
                 } else {
                     return new Intl.NumberFormat("en-US", {
                         minimumFractionDigits: 2,
@@ -407,23 +406,11 @@
 
             function parseValue(valText, currency) {
                 if (!valText) return 0;
-                let str = valText.toString().trim();
-                if (currency === "IDR" || currency === "EUR") {
-                    if (str.includes(",") && str.includes(".")) {
-                        if (str.lastIndexOf(",") > str.lastIndexOf(".")) {
-                            str = str.replace(/\./g, "").replace(",", ".");
-                        } else {
-                            str = str.replace(/,/g, "");
-                        }
-                    } else if (str.includes(",")) {
-                        str = str.replace(",", ".");
-                    } else if ((str.match(/\./g) || []).length > 1) {
-                        str = str.replace(/\./g, "");
-                    }
-                } else {
-                    str = str.replace(/,/g, "");
+                let clean = valText.toString().replace(/,/g, "");
+                if (currency === "IDR") {
+                    clean = clean.replace(/\./g, "");
                 }
-                const parsed = parseFloat(str);
+                const parsed = parseFloat(clean);
                 return isNaN(parsed) ? 0 : parsed;
             }
 
@@ -452,15 +439,15 @@
                 if (val === 0) {
                     inputElement.value = "";
                 } else {
-                    inputElement.value = val.toFixed(2);
+                    inputElement.value = currency === "IDR" ? val.toFixed(0) : val.toFixed(2);
                 }
             }
 
             function handleInput(e) {
                 const currency = currencySelect.value;
                 let valText = e.target.value;
-                if (currency === "IDR" || currency === "EUR") {
-                    valText = valText.replace(/[^0-9,.]/g, "");
+                if (currency === "IDR") {
+                    valText = valText.replace(/[^0-9]/g, "");
                 } else {
                     valText = valText.replace(/[^0-9.]/g, "");
                     const parts = valText.split(".");
@@ -472,7 +459,7 @@
                 calculateTotal();
             }
 
-            amountInput.addEventListener("input", function() {
+            amountInput.addEventListener("input", function () {
                 const currency = currencySelect.value;
                 const amt = parseFloat(amountInput.value) || 0;
                 subtotalHidden.value = amt;
@@ -490,10 +477,10 @@
                 const currency = currencySelect.value;
                 const subtotalVal = parseFloat(subtotalHidden.value) || 0;
                 const taxVal = parseFloat(taxHidden.value) || 0;
-                
+
                 subtotalInput.value = formatCurrencyValue(subtotalVal, currency);
                 taxInput.value = formatCurrencyValue(taxVal, currency);
-                
+
                 updateCurrencyLabels();
                 calculateTotal();
             });
@@ -524,7 +511,7 @@
                 const subtotal = parseFloat(subtotalHidden.value);
                 const tax = taxInput.value ? parseValue(taxInput.value, currency) : 0;
                 const total = parseFloat(totalHidden.value);
-                
+
                 if (isNaN(subtotal) || subtotal <= 0) {
                     showToast(msgSubtotalErr);
                     subtotalInput.focus();

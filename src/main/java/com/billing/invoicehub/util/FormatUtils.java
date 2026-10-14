@@ -11,8 +11,7 @@ import java.util.Locale;
  */
 public class FormatUtils {
 
-    private static final Locale IDR_LOCALE = Locale.forLanguageTag("id-ID");
-    private static final Locale EUR_LOCALE = Locale.GERMANY;
+    private static final Locale IDR_LOCALE = new Locale("id", "ID");
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy hh:mm a");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy");
 
@@ -24,7 +23,7 @@ public class FormatUtils {
      * Formats a BigDecimal amount as IDR currency
      * 
      * @param amount the amount to format
-     * @return formatted string (e.g., "IDR 1.234.567,89")
+     * @return formatted string (e.g., "Rp 1.234.567,89")
      */
     public static String formatIDR(BigDecimal amount) {
         return formatCurrency(amount, "IDR");
@@ -33,24 +32,26 @@ public class FormatUtils {
     /**
      * Formats a BigDecimal amount with a specific currency
      * 
-     * @param amount the amount to format
+     * @param amount   the amount to format
      * @param currency the currency code (e.g., EUR, USD, IDR)
      * @return formatted string
      */
     public static String formatCurrency(BigDecimal amount, String currency) {
+        if (amount == null) {
+            return (currency != null && !currency.isBlank() ? currency.trim() : "IDR") + " 0";
+        }
         String curr = (currency != null && !currency.isBlank()) ? currency.trim() : "IDR";
-        BigDecimal amt = (amount != null) ? amount : BigDecimal.ZERO;
         NumberFormat nf;
         if ("IDR".equalsIgnoreCase(curr)) {
             nf = NumberFormat.getNumberInstance(IDR_LOCALE);
-        } else if ("EUR".equalsIgnoreCase(curr)) {
-            nf = NumberFormat.getNumberInstance(EUR_LOCALE);
+            nf.setMinimumFractionDigits(0);
+            nf.setMaximumFractionDigits(0);
         } else {
             nf = NumberFormat.getNumberInstance(Locale.US);
+            nf.setMinimumFractionDigits(2);
+            nf.setMaximumFractionDigits(2);
         }
-        nf.setMinimumFractionDigits(2);
-        nf.setMaximumFractionDigits(2);
-        return curr + " " + nf.format(amt);
+        return curr + " " + nf.format(amount);
     }
 
     /**
