@@ -66,7 +66,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
-        // Rate limiting only applies to genuinely sensitive endpoints: /login, /employee/authenticate, auth, password reset, registration
+        // Rate limiting only applies to genuinely sensitive endpoints: /login,
+        // /vendor/authenticate, auth, password reset, registration
         if (isAuthEndpoint(method, path)) {
             Bucket bucket = getOrCreateBucket(ip, authCache, config.getAuthCapacity(),
                     config.getAuthRefillTokens(), config.getAuthRefillPeriodMinutes());
@@ -83,17 +84,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                 sendTooManyRequestsResponse(response, probe.getNanosToWaitForRefill());
                 return;
             }
-        } else if (isVendorRegistrationSubmissionEndpoint(method, path)) {
+        } else if (isVendorRegistrationEndpoint(method, path)) {
             Bucket bucket = getOrCreateBucket(ip, registerCache, config.getRegisterCapacity(),
                     config.getRegisterRefillTokens(), config.getRegisterRefillPeriodMinutes());
-            ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
-            if (!probe.isConsumed()) {
-                sendTooManyRequestsResponse(response, probe.getNanosToWaitForRefill());
-                return;
-            }
-        } else if (isVendorValidationEndpoint(method, path)) {
-            Bucket bucket = getOrCreateBucket(ip, globalCache, config.getGlobalCapacity(),
-                    config.getGlobalRefillTokens(), config.getGlobalRefillPeriodMinutes());
             ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
             if (!probe.isConsumed()) {
                 sendTooManyRequestsResponse(response, probe.getNanosToWaitForRefill());
@@ -125,9 +118,11 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         return request.getRemoteAddr();
     }
 
-    private Bucket getOrCreateBucket(String ip, Cache<String, Bucket> cache, long capacity, long refillTokens, long periodMinutes) {
+    private Bucket getOrCreateBucket(String ip, Cache<String, Bucket> cache, long capacity, long refillTokens,
+            long periodMinutes) {
         return cache.get(ip, key -> Bucket.builder()
-                .addLimit(Bandwidth.classic(capacity, Refill.intervally(refillTokens, Duration.ofMinutes(periodMinutes))))
+                .addLimit(
+                        Bandwidth.classic(capacity, Refill.intervally(refillTokens, Duration.ofMinutes(periodMinutes))))
                 .build());
     }
 
@@ -151,11 +146,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         }
         return path.equals("/auth/login")
                 || path.equals("/login")
-                || path.equals("/employee/login")
                 || path.equals("/admin/login")
                 || path.equals("/vendor/authenticate")
                 || path.equals("/admin/authenticate")
-                || path.equals("/employee/authenticate")
                 || path.equals("/forgot-password")
                 || path.equals("/verify-otp")
                 || path.equals("/reset-password");
@@ -165,12 +158,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         return "POST".equalsIgnoreCase(method) && path.equals("/contact");
     }
 
-    private boolean isVendorRegistrationSubmissionEndpoint(String method, String path) {
-        return "POST".equalsIgnoreCase(method) && path.equals("/register");
-    }
-
-    private boolean isVendorValidationEndpoint(String method, String path) {
-        return "GET".equalsIgnoreCase(method) && path.startsWith("/api/register/");
+    private boolean isVendorRegistrationEndpoint(String method, String path) {
+        return ("POST".equalsIgnoreCase(method) && path.equals("/register"))
+                || path.startsWith("/api/register");
     }
 
     private boolean isDevMailEndpoint(String path) {

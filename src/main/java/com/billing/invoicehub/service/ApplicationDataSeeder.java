@@ -90,6 +90,7 @@ implements CommandLineRunner {
             () -> {
                 // User doesn't exist, create new user
                 AppUser user = new AppUser();
+                user.setUserDomain(roleNames.contains(ROLE_VENDOR) ? "VENDOR" : "INTERNAL");
                 user.setUsername(username);
                 user.setPassword(this.passwordEncoder.encode((CharSequence)rawPassword));
                 user.setEnabled(true);

@@ -12,15 +12,16 @@ import com.billing.invoicehub.repository.ClientRepository;
 import com.billing.invoicehub.repository.InvoiceRepository;
 import com.billing.invoicehub.repository.VendorTicketHistoryRepository;
 import com.billing.invoicehub.repository.VendorTicketRepository;
-import com.billing.invoicehub.util.FormatUtils;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -228,20 +229,76 @@ public class VendorTicketService {
         }
         if (recipientEmail != null && !recipientEmail.isBlank()) {
             String curr = saved.getCurrency() != null ? saved.getCurrency() : "IDR";
-            emailService.sendTicketSubmittedEmail(
-                    recipientEmail,
-                    recipientName,
-                    saved.getTicketNo(),
-                    saved.getInvoiceNo(),
-                    saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : "-",
-                    saved.getClient() != null ? saved.getClient().getCompanyName() : "-",
-                    saved.getPoNumber(),
-                    saved.getSubtotal() != null ? formatCurrency(saved.getSubtotal(), saved.getCurrency())
-                            : curr + " 0",
-                    saved.getTax() != null ? formatCurrency(saved.getTax(), saved.getCurrency()) : curr + " 0",
-                    saved.getTotal() != null ? formatCurrency(saved.getTotal(), saved.getCurrency()) : curr + " 0",
-                    appBaseUrl + "/vendor/tickets?historyTicketId=" + saved.getId() + "#ticket-history");
+            try {
+                emailService.sendTicketSubmittedEmail(
+                        recipientEmail,
+                        recipientName,
+                        saved.getTicketNo(),
+                        saved.getInvoiceNo(),
+                        saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : "-",
+                        saved.getClient() != null ? saved.getClient().getCompanyName() : "-",
+                        saved.getPoNumber(),
+                        saved.getSubtotal() != null ? formatCurrency(saved.getSubtotal(), saved.getCurrency())
+                                : curr + " 0",
+                        saved.getTax() != null ? formatCurrency(saved.getTax(), saved.getCurrency()) : curr + " 0",
+                        saved.getTotal() != null ? formatCurrency(saved.getTotal(), saved.getCurrency()) : curr + " 0",
+                        appBaseUrl + "/vendor/tickets?historyTicketId=" + saved.getId() + "#ticket-history");
+            } catch (Exception ex) {
+                log.error("Failed to send vendor confirmation email for ticket {}", saved.getTicketNo(), ex);
+            }
         }
+
+        // Email Notification to primary admin + all active Admin users
+        try {
+            AppUser vendorUser = saved.getVendor();
+            String vendorName = vendorUser != null && vendorUser.getFullName() != null
+                    && !vendorUser.getFullName().isBlank()
+                            ? vendorUser.getFullName()
+                            : (vendorUser != null ? vendorUser.getUsername() : "N/A");
+            String vendorCode = vendorUser != null && vendorUser.getVendorCode() != null
+                    && !vendorUser.getVendorCode().isBlank()
+                            ? vendorUser.getVendorCode()
+                            : "N/A";
+            String companyName = vendorUser != null && vendorUser.getCompanyName() != null
+                    && !vendorUser.getCompanyName().isBlank()
+                            ? vendorUser.getCompanyName()
+                            : (saved.getClient() != null ? saved.getClient().getCompanyName() : "N/A");
+            String subjectText = saved.getInvoiceNo() != null && !saved.getInvoiceNo().isBlank()
+                    ? "Invoice #" + saved.getInvoiceNo()
+                    : "Vendor Ticket Submission";
+            String priority = "MEDIUM";
+            String submissionDate = saved.getCreatedAt() != null ? saved.getCreatedAt().toLocalDate().toString()
+                    : LocalDate.now().toString();
+            String adminViewUrl = appBaseUrl + "/admin/vendor-tickets/" + saved.getId();
+
+            Set<String> adminRecipients = new LinkedHashSet<>();
+            adminRecipients.add("automation@flow-force.com");
+
+            List<AppUser> activeAdmins = appUserRepository.findByRoleNameAndEnabledTrue("ROLE_ADMIN");
+            for (AppUser admin : activeAdmins) {
+                if (admin.getEmail() != null && !admin.getEmail().isBlank()) {
+                    adminRecipients.add(admin.getEmail().trim().toLowerCase());
+                }
+            }
+
+            for (String adminEmail : adminRecipients) {
+                log.info("[EMAIL AUDIT] Attempting vendor ticket submit email for ticket {} to admin recipient {}",
+                        saved.getTicketNo(), adminEmail);
+                emailService.sendVendorTicketSubmittedAdminEmail(
+                        adminEmail,
+                        saved.getTicketNo(),
+                        vendorName,
+                        vendorCode,
+                        companyName,
+                        subjectText,
+                        priority,
+                        submissionDate,
+                        adminViewUrl);
+            }
+        } catch (Exception ex) {
+            log.error("Failed to send admin notification email for vendor ticket {}", saved.getTicketNo(), ex);
+        }
+
         return saved;
     }
 
@@ -405,6 +462,7 @@ public class VendorTicketService {
         if (poNumber == null || poNumber.trim().isEmpty()) {
             return false;
         }
+        return true;
     }
 
     @Transactional(readOnly = true)
@@ -421,10 +479,18 @@ public class VendorTicketService {
         if (n == null) {
             return "-";
         }
-        BigDecimal amount = (n instanceof BigDecimal)
-                ? (BigDecimal) n
-                : BigDecimal.valueOf(n.doubleValue());
-        return FormatUtils.formatCurrency(amount, currency);
+        String curr = (currency == null || currency.isBlank()) ? "IDR" : currency.trim();
+        NumberFormat nf;
+        if ("IDR".equalsIgnoreCase(curr)) {
+            nf = NumberFormat.getInstance(Locale.forLanguageTag("id-ID"));
+            nf.setMaximumFractionDigits(0);
+            nf.setMinimumFractionDigits(0);
+        } else {
+            nf = NumberFormat.getInstance(Locale.US);
+            nf.setMaximumFractionDigits(2);
+            nf.setMinimumFractionDigits(2);
+        }
+        return curr + " " + nf.format(n);
     }
 
     private boolean isAdmin(AppUser user) {

@@ -22,8 +22,7 @@ public class CloudinaryService {
     private static final Logger logger = LoggerFactory.getLogger(CloudinaryService.class);
 
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
-            "pdf", "png", "jpg", "jpeg", "webp", "doc", "docx", "xls", "xlsx"
-    );
+            "pdf", "png", "jpg", "jpeg", "webp", "doc", "docx", "xls", "xlsx");
 
     private static final long MAX_FILE_SIZE = 50 * 1024 * 1024;
 
@@ -59,20 +58,37 @@ public class CloudinaryService {
 
     public String uploadQuotePdf(byte[] pdfBytes, String fileName) throws IOException {
         try {
-            String uniqueFilename = "invoicehub/generated-quotes/" + UUID.randomUUID() + "_" + fileName.replaceAll("[^a-zA-Z0-9.-]", "_");
+            String uniqueFilename = "invoicehub/generated-quotes/" + UUID.randomUUID() + "_"
+                    + fileName.replaceAll("[^a-zA-Z0-9.-]", "_");
             @SuppressWarnings("unchecked")
             Map<String, Object> result = (Map<String, Object>) cloudinary.uploader().upload(
                     pdfBytes,
                     ObjectUtils.asMap(
                             "public_id", uniqueFilename,
                             "resource_type", "auto",
-                            "overwrite", false
-                    )
-            );
+                            "overwrite", false));
             return (String) result.get("secure_url");
         } catch (IOException e) {
             logger.error("Failed to upload quote PDF to Cloudinary: {}", e.getMessage(), e);
             throw new IOException("Failed to upload quote PDF to Cloudinary: " + e.getMessage(), e);
+        }
+    }
+
+    public String uploadQuoteDocx(byte[] docxBytes, String fileName) throws IOException {
+        try {
+            String uniqueFilename = "invoicehub/generated-quotes/" + UUID.randomUUID() + "_"
+                    + fileName.replaceAll("[^a-zA-Z0-9.-]", "_");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> result = (Map<String, Object>) cloudinary.uploader().upload(
+                    docxBytes,
+                    ObjectUtils.asMap(
+                            "public_id", uniqueFilename,
+                            "resource_type", "auto",
+                            "overwrite", false));
+            return (String) result.get("secure_url");
+        } catch (IOException e) {
+            logger.error("Failed to upload quote DOCX to Cloudinary: {}", e.getMessage(), e);
+            throw new IOException("Failed to upload quote DOCX to Cloudinary: " + e.getMessage(), e);
         }
     }
 
@@ -81,20 +97,15 @@ public class CloudinaryService {
 
         try {
 
-
-            String uniqueFilename =
-                    folder + "/" + UUID.randomUUID();
+            String uniqueFilename = folder + "/" + UUID.randomUUID();
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> result =
-                    (Map<String, Object>) cloudinary.uploader().upload(
-                            file.getBytes(),
-                            ObjectUtils.asMap(
-                                    "public_id", uniqueFilename,
-                                    "resource_type", "auto",
-                                    "overwrite", false
-                            )
-                    );
+            Map<String, Object> result = (Map<String, Object>) cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap(
+                            "public_id", uniqueFilename,
+                            "resource_type", "auto",
+                            "overwrite", false));
 
             String secureUrl = (String) result.get("secure_url");
 
@@ -116,8 +127,7 @@ public class CloudinaryService {
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new IllegalArgumentException(
                     "File size exceeds maximum limit of 50MB. Current size: " +
-                            (file.getSize() / (1024 * 1024)) + "MB"
-            );
+                            (file.getSize() / (1024 * 1024)) + "MB");
         }
 
         String originalFilename = file.getOriginalFilename();
@@ -129,8 +139,7 @@ public class CloudinaryService {
         if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase())) {
             throw new IllegalArgumentException(
                     "Unsupported file type: " + extension +
-                            ". Allowed types: " + String.join(", ", ALLOWED_EXTENSIONS)
-            );
+                            ". Allowed types: " + String.join(", ", ALLOWED_EXTENSIONS));
         }
     }
 

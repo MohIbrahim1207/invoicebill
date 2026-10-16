@@ -47,6 +47,7 @@ public class RegistrationService {
             return false;
         }
         AppUser newUser = new AppUser();
+        newUser.setUserDomain("VENDOR");
         newUser.setUsername(username);
         newUser.setEmail(email);
         newUser.setPassword(this.passwordEncoder.encode((CharSequence)password));

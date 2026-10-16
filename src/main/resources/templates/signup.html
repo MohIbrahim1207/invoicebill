@@ -511,108 +511,199 @@
                 inputElem.classList.add("is-valid");
             }
 
+            let lastCheckedUsername = "";
+            let lastCheckedEmail = "";
+            let lastCheckedGst = "";
+
             async function checkUsernameAvailabilityDirect(username) {
                 const hint = document.getElementById("usernameHint");
+                const errorDiv = document.getElementById("usernameError");
                 try {
                     const res = await fetch(`/api/register/check-username?username=${encodeURIComponent(username)}`);
-                    const data = await res.json();
-                    if (data.available) {
-                        usernameValid = true;
-                        showHint(hint, true, "Username is available!");
-                        showFieldValid(usernameInput);
-                        return true;
+                    if (res.status === 200) {
+                        const data = await res.json();
+                        if (data && data.available === true) {
+                            usernameValid = true;
+                            lastCheckedUsername = username;
+                            showHint(hint, true, "Username is available!");
+                            showFieldValid(usernameInput);
+                            return true;
+                        } else if (data && data.available === false) {
+                            usernameValid = false;
+                            lastCheckedUsername = username;
+                            showHint(hint, false, "Username is already taken.");
+                            showFieldInvalid(usernameInput, errorDiv, "Username already exists");
+                            return false;
+                        } else {
+                            usernameValid = false;
+                            showHint(hint, false, "Unable to check username availability. Please try again.");
+                            showFieldInvalid(usernameInput, errorDiv, "Unable to check username availability.");
+                            return false;
+                        }
+                    } else if (res.status === 429) {
+                        usernameValid = false;
+                        showHint(hint, false, "Please wait a moment before checking again.");
+                        showFieldInvalid(usernameInput, errorDiv, "Please wait a moment before checking again.");
+                        return false;
                     } else {
                         usernameValid = false;
-                        showHint(hint, false, "Username is already taken");
-                        showFieldInvalid(usernameInput, document.getElementById("usernameError"), "Username already exists");
+                        showHint(hint, false, "Unable to check username availability. Please try again.");
+                        showFieldInvalid(usernameInput, errorDiv, "Unable to check username availability. Please try again.");
                         return false;
                     }
                 } catch (e) {
-                    usernameValid = true;
-                    clearHint(hint, "3-20 characters, letters and numbers only");
-                    return true;
+                    usernameValid = false;
+                    showHint(hint, false, "Unable to check username availability. Please try again.");
+                    showFieldInvalid(usernameInput, errorDiv, "Unable to check username availability. Please try again.");
+                    return false;
                 }
             }
 
             async function checkEmailAvailabilityDirect(email) {
                 const hint = document.getElementById("emailHint");
+                const errorDiv = document.getElementById("emailError");
                 try {
                     const res = await fetch(`/api/register/check-email?email=${encodeURIComponent(email)}`);
-                    const data = await res.json();
-                    if (data.available) {
-                        emailValid = true;
-                        showHint(hint, true, "Email is available!");
-                        showFieldValid(emailInput);
-                        return true;
+                    if (res.status === 200) {
+                        const data = await res.json();
+                        if (data && data.available === true) {
+                            emailValid = true;
+                            lastCheckedEmail = email;
+                            showHint(hint, true, "Email is available!");
+                            showFieldValid(emailInput);
+                            return true;
+                        } else if (data && data.available === false) {
+                            emailValid = false;
+                            lastCheckedEmail = email;
+                            showHint(hint, false, "Email is already registered.");
+                            showFieldInvalid(emailInput, errorDiv, "Email is already registered.");
+                            return false;
+                        } else {
+                            emailValid = false;
+                            showHint(hint, false, "Unable to check email availability. Please try again.");
+                            showFieldInvalid(emailInput, errorDiv, "Unable to check email availability. Please try again.");
+                            return false;
+                        }
+                    } else if (res.status === 429) {
+                        emailValid = false;
+                        showHint(hint, false, "Please wait a moment before checking again.");
+                        showFieldInvalid(emailInput, errorDiv, "Please wait a moment before checking again.");
+                        return false;
                     } else {
                         emailValid = false;
-                        showHint(hint, false, "Email is already registered");
-                        showFieldInvalid(emailInput, document.getElementById("emailError"), "Email already exists");
+                        showHint(hint, false, "Unable to check email availability. Please try again.");
+                        showFieldInvalid(emailInput, errorDiv, "Unable to check email availability. Please try again.");
                         return false;
                     }
                 } catch (e) {
-                    emailValid = true;
-                    clearHint(hint);
-                    return true;
+                    emailValid = false;
+                    showHint(hint, false, "Unable to check email availability. Please try again.");
+                    showFieldInvalid(emailInput, errorDiv, "Unable to check email availability. Please try again.");
+                    return false;
                 }
             }
 
             async function checkGstAvailabilityDirect(gstNumber) {
                 const hint = document.getElementById("gstNumberHint");
+                const errorDiv = document.getElementById("gstNumberError");
                 try {
                     const res = await fetch(`/api/register/check-gst?gstNumber=${encodeURIComponent(gstNumber)}`);
-                    const data = await res.json();
-                    if (data.available) {
-                        gstValid = true;
-                        showHint(hint, true, "GST/Tax Number is available!");
-                        showFieldValid(gstNumberInput);
-                        return true;
+                    if (res.status === 200) {
+                        const data = await res.json();
+                        if (data && data.available === true) {
+                            gstValid = true;
+                            lastCheckedGst = gstNumber;
+                            showHint(hint, true, "GST/Tax Number is available!");
+                            showFieldValid(gstNumberInput);
+                            return true;
+                        } else if (data && data.available === false) {
+                            gstValid = false;
+                            lastCheckedGst = gstNumber;
+                            showHint(hint, false, "GST/Tax Number is already registered.");
+                            showFieldInvalid(gstNumberInput, errorDiv, "GST Number already exists");
+                            return false;
+                        } else {
+                            gstValid = false;
+                            showHint(hint, false, "Unable to check GST availability. Please try again.");
+                            showFieldInvalid(gstNumberInput, errorDiv, "Unable to check GST availability.");
+                            return false;
+                        }
+                    } else if (res.status === 429) {
+                        gstValid = false;
+                        showHint(hint, false, "Please wait a moment before checking again.");
+                        showFieldInvalid(gstNumberInput, errorDiv, "Please wait a moment before checking again.");
+                        return false;
                     } else {
                         gstValid = false;
-                        showHint(hint, false, "GST/Tax Number is already registered");
-                        showFieldInvalid(gstNumberInput, document.getElementById("gstNumberError"), "GST Number already exists");
+                        showHint(hint, false, "Unable to check GST availability. Please try again.");
+                        showFieldInvalid(gstNumberInput, errorDiv, "Unable to check GST availability. Please try again.");
                         return false;
                     }
                 } catch (e) {
-                    gstValid = true;
-                    clearHint(hint);
-                    return true;
+                    gstValid = false;
+                    showHint(hint, false, "Unable to check GST availability. Please try again.");
+                    showFieldInvalid(gstNumberInput, errorDiv, "Unable to check GST availability. Please try again.");
+                    return false;
                 }
             }
 
             const checkUsernameAvailability = debounce((username) => {
                 if (username.length >= 3 && /^[a-zA-Z0-9._-]+$/.test(username)) {
+                    if (username === lastCheckedUsername && usernameValid) {
+                        return;
+                    }
                     checkUsernameAvailabilityDirect(username);
                 } else {
+                    lastCheckedUsername = "";
                     usernameValid = false;
                     const hint = document.getElementById("usernameHint");
-                    showHint(hint, false, "Username must be 3-20 characters, alphanumeric");
-                    showFieldInvalid(usernameInput, document.getElementById("usernameError"), "Username must be 3-20 characters, alphanumeric");
+                    if (username.length === 0) {
+                        clearHint(hint, "3-20 characters, letters and numbers only");
+                    } else {
+                        showHint(hint, false, "Username must be 3-20 characters, alphanumeric");
+                        showFieldInvalid(usernameInput, document.getElementById("usernameError"), "Username must be 3-20 characters, alphanumeric");
+                    }
                 }
-            });
+            }, 400);
 
             const checkEmailAvailability = debounce((email) => {
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (email && emailRegex.test(email)) {
+                    if (email === lastCheckedEmail && emailValid) {
+                        return;
+                    }
                     checkEmailAvailabilityDirect(email);
                 } else {
+                    lastCheckedEmail = "";
                     emailValid = false;
                     const hint = document.getElementById("emailHint");
-                    showHint(hint, false, "Invalid email format");
-                    showFieldInvalid(emailInput, document.getElementById("emailError"), "Invalid email format");
+                    if (email.length === 0) {
+                        clearHint(hint);
+                    } else {
+                        showHint(hint, false, "Invalid email format");
+                        showFieldInvalid(emailInput, document.getElementById("emailError"), "Invalid email format");
+                    }
                 }
-            });
+            }, 400);
 
             const checkGstAvailability = debounce((gstNumber) => {
-                if (gstNumber) {
+                if (gstNumber && gstNumber.length >= 3) {
+                    if (gstNumber === lastCheckedGst && gstValid) {
+                        return;
+                    }
                     checkGstAvailabilityDirect(gstNumber);
                 } else {
+                    lastCheckedGst = "";
                     gstValid = false;
                     const hint = document.getElementById("gstNumberHint");
-                    clearHint(hint);
-                    showFieldInvalid(gstNumberInput, document.getElementById("gstNumberError"), "GST Number is required");
+                    if (gstNumber.length === 0) {
+                        clearHint(hint);
+                    } else {
+                        clearHint(hint);
+                        showFieldInvalid(gstNumberInput, document.getElementById("gstNumberError"), "GST Number is required");
+                    }
                 }
-            });
+            }, 400);
 
             usernameInput.addEventListener("input", (e) => {
                 checkUsernameAvailability(e.target.value.trim());
@@ -802,9 +893,13 @@
                     showFieldInvalid(usernameInput, document.getElementById("usernameError"), "Username must be alphanumeric (3-20 characters)");
                     valid = false;
                 } else {
-                    const isAvailable = await checkUsernameAvailabilityDirect(username);
-                    if (!isAvailable) {
-                        valid = false;
+                    if (username === lastCheckedUsername && usernameValid) {
+                        showFieldValid(usernameInput);
+                    } else {
+                        const isAvailable = await checkUsernameAvailabilityDirect(username);
+                        if (!isAvailable) {
+                            valid = false;
+                        }
                     }
                 }
 
@@ -851,9 +946,13 @@
                     showFieldInvalid(emailInput, document.getElementById("emailError"), "A valid email is required");
                     valid = false;
                 } else {
-                    const isAvailable = await checkEmailAvailabilityDirect(email);
-                    if (!isAvailable) {
-                        valid = false;
+                    if (email === lastCheckedEmail && emailValid) {
+                        showFieldValid(emailInput);
+                    } else {
+                        const isAvailable = await checkEmailAvailabilityDirect(email);
+                        if (!isAvailable) {
+                            valid = false;
+                        }
                     }
                 }
 
@@ -870,9 +969,13 @@
                     showFieldInvalid(gstNumberInput, document.getElementById("gstNumberError"), "GST/Tax Number is required");
                     valid = false;
                 } else {
-                    const isAvailable = await checkGstAvailabilityDirect(gst);
-                    if (!isAvailable) {
-                        valid = false;
+                    if (gst === lastCheckedGst && gstValid) {
+                        showFieldValid(gstNumberInput);
+                    } else {
+                        const isAvailable = await checkGstAvailabilityDirect(gst);
+                        if (!isAvailable) {
+                            valid = false;
+                        }
                     }
                 }
 

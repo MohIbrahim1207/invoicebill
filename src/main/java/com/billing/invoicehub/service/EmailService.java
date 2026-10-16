@@ -204,6 +204,22 @@ public class EmailService {
         sendHtmlEmail(to, subject, html);
     }
 
+    @org.springframework.scheduling.annotation.Async
+    public void sendVendorTicketSubmittedAdminEmail(String to, String ticketNo, String vendorName, String vendorCode, String companyName, String subjectText, String priority, String submissionDate, String viewUrl) {
+        String subject = "New Vendor Ticket Submitted - " + safe(ticketNo);
+        Context context = new Context(Locale.getDefault());
+        context.setVariable("ticketNo", safe(ticketNo));
+        context.setVariable("vendorName", safe(vendorName));
+        context.setVariable("vendorCode", safe(vendorCode));
+        context.setVariable("companyName", safe(companyName));
+        context.setVariable("subjectText", safe(subjectText));
+        context.setVariable("priority", safe(priority));
+        context.setVariable("submissionDate", safe(submissionDate));
+        context.setVariable("viewUrl", safe(viewUrl));
+        String html = renderTemplate("email/vendor-ticket-submitted-admin", context);
+        sendHtmlEmail(to, subject, html);
+    }
+
     private String renderTemplate(String templateName, Context context) {
         try {
             return templateEngine.process(templateName, context);

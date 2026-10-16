@@ -22,13 +22,13 @@ public class GenerateDummyPdfTest {
         try {
             ClassPathResource headerRes = new ClassPathResource("static/images/logo.png");
             ClassPathResource signRes = new ClassPathResource("static/images/Umapathi-signature.png");
-            
+
             try (InputStream is = headerRes.getInputStream()) {
                 byte[] bytes = is.readAllBytes();
                 Image img = Image.getInstance(bytes);
                 System.out.println("LOGO_IMAGE_INFO: width=" + img.getWidth() + ", height=" + img.getHeight());
             }
-            
+
             try (InputStream is = signRes.getInputStream()) {
                 byte[] bytes = is.readAllBytes();
                 Image img = Image.getInstance(bytes);
@@ -62,7 +62,8 @@ public class GenerateDummyPdfTest {
             document.add(new Paragraph("- Premium Siemens electrical control panel"));
             document.add(new Paragraph("- Heavy duty noise reduction enclosure"));
             document.add(new Paragraph("Line Items:"));
-            document.add(new Paragraph("1. Main Compressor Unit: Model AC-500, Qty: 1, Unit Price: 15000.00, Total: 15000.00"));
+            document.add(new Paragraph(
+                    "1. Main Compressor Unit: Model AC-500, Qty: 1, Unit Price: 15000.00, Total: 15000.00"));
             document.add(new Paragraph("2. Extra Air Filter Elements: Qty: 5, Unit Price: 100.00, Total: 500.00"));
             document.add(new Paragraph("Subtotal: 15500.00"));
             document.add(new Paragraph("Discount: 500.00"));
@@ -85,27 +86,30 @@ public class GenerateDummyPdfTest {
         try {
             AiQuotationEditDto dto = new AiQuotationEditDto();
             dto.setCustomerName("Global Manufacturing Ltd");
+            dto.setCustomerAddress("Delta Silicon 5, Cikarang, Bekasi, Indonesia");
             dto.setAttention("Procurement Department");
             dto.setDate("2026-07-07");
             dto.setReference("FF/QUOTE/2026-102");
             dto.setSubject("Supply of High Efficiency Industrial Compressor Unit");
-            
+
             dto.setMachineName("Industrial Rotary Screw Air Compressor");
             dto.setMachineModel("AC-500 Premium");
             dto.setCapacity("500 CFM @ 8.5 Bar");
-            dto.setTechnicalSpecifications("1. High efficiency rotary screw air end\n2. Siemens Premium PLC Electrical Control Panel\n3. Heavy duty noise reduction enclosure (<72 dBA)\n4. Integrated refrigerated air dryer");
-            
+            dto.setTechnicalSpecifications(
+                    "1. High efficiency rotary screw air end\n2. Siemens Premium PLC Electrical Control Panel\n3. Heavy duty noise reduction enclosure (<72 dBA)\n4. Integrated refrigerated air dryer");
+
             dto.setCurrency("USD");
             dto.setSubtotal(new BigDecimal("15500.00"));
             dto.setDiscount(new BigDecimal("500.00"));
             dto.setTax(new BigDecimal("1500.00"));
             dto.setTotalAmount(new BigDecimal("16500.00"));
-            
+
             dto.setDeliveryTime("4 weeks from purchase order");
             dto.setWarranty("24 months comprehensive warranty");
             dto.setPaymentTerms("30% advance deposit, 70% against delivery");
             dto.setValidity("60 Days");
-            dto.setNotes("1. Prices are EXW sectoral warehouse.\n2. Installation assistance is included.\n3. Standard sea-worthy wooden packing included.");
+            dto.setNotes(
+                    "1. Prices are EXW sectoral warehouse.\n2. Installation assistance is included.\n3. Standard sea-worthy wooden packing included.");
 
             java.util.List<AiQuotationEditDto.LineItem> items = new java.util.ArrayList<>();
             AiQuotationEditDto.LineItem item1 = new AiQuotationEditDto.LineItem();
@@ -134,8 +138,9 @@ public class GenerateDummyPdfTest {
             dto.setOptionalItems(optionals);
 
             FlowForceQuotePdfService pdfService = new FlowForceQuotePdfService();
-            
-            // Set paths using reflection to simulate Spring injection in unit test environment
+
+            // Set paths using reflection to simulate Spring injection in unit test
+            // environment
             java.lang.reflect.Field headerField = FlowForceQuotePdfService.class.getDeclaredField("logoImagePath");
             headerField.setAccessible(true);
             headerField.set(pdfService, "static/images/logo.png");
@@ -145,7 +150,7 @@ public class GenerateDummyPdfTest {
             sigField.set(pdfService, "static/images/Umapathi-signature.png");
 
             byte[] pdfBytes = pdfService.generateFlowForceQuotePdf(dto);
-            
+
             File uploadsDir = new File("c:/Users/NEW/Invoicehub/uploads");
             if (!uploadsDir.exists()) {
                 uploadsDir.mkdirs();
@@ -176,6 +181,9 @@ public class GenerateDummyPdfTest {
             com.billing.invoicehub.service.PdfExtractionService pdfExtractionService = new com.billing.invoicehub.service.PdfExtractionService();
             String text = pdfExtractionService.extractText(fileBytes);
             System.out.println("EXTRACTED TEXT LENGTH: " + text.length());
+            System.out.println("--- EXTRACTED TEXT START ---");
+            System.out.println(text.substring(0, Math.min(text.length(), 2000)));
+            System.out.println("--- EXTRACTED TEXT END ---");
 
             // 3. Extract Image
             byte[] imgBytes = pdfExtractionService.extractProductImage(fileBytes);
@@ -196,11 +204,13 @@ public class GenerateDummyPdfTest {
             }
 
             com.billing.invoicehub.service.GeminiAiService aiService = new com.billing.invoicehub.service.GeminiAiService();
-            java.lang.reflect.Field keyField = com.billing.invoicehub.service.GeminiAiService.class.getDeclaredField("apiKey");
+            java.lang.reflect.Field keyField = com.billing.invoicehub.service.GeminiAiService.class
+                    .getDeclaredField("apiKey");
             keyField.setAccessible(true);
             keyField.set(aiService, envKey);
 
-            java.lang.reflect.Field modelField = com.billing.invoicehub.service.GeminiAiService.class.getDeclaredField("modelName");
+            java.lang.reflect.Field modelField = com.billing.invoicehub.service.GeminiAiService.class
+                    .getDeclaredField("modelName");
             modelField.setAccessible(true);
             modelField.set(aiService, "gemini-2.5-flash");
 
@@ -235,6 +245,7 @@ public class GenerateDummyPdfTest {
     private void runSimulatedBosPdfGeneration(String base64Image) throws Exception {
         AiQuotationEditDto dto = new AiQuotationEditDto();
         dto.setCustomerName("PT. Global Food Industri");
+        dto.setCustomerAddress("Kawasan Industri Jababeka, Cikarang, Bekasi, Indonesia");
         dto.setAttention("Mr. Budi");
         dto.setDate("2026-07-08");
         dto.setReference("FF/QUOTE/2026-999");
@@ -258,7 +269,7 @@ public class GenerateDummyPdfTest {
         item1.setDescription("Cylinder block made of 1.4418 stainless steel");
         item1.setTotalPrice(BigDecimal.ZERO); // Included
         items.add(item1);
-        
+
         AiQuotationEditDto.LineItem item2 = new AiQuotationEditDto.LineItem();
         item2.setItemName("Duplex Steel Option");
         item2.setDescription("Cylinder block made of Duplex grade stainless steel");
@@ -286,4 +297,5 @@ public class GenerateDummyPdfTest {
             fos.write(pdfBytes);
         }
         System.out.println("Simulated BOS PDF generated successfully at: " + outputFile.getAbsolutePath());
-    }}
+    }
+}

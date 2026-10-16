@@ -78,7 +78,8 @@ public class VendorRegistrationService {
     @Transactional
     public AppUser registerVendor(VendorRegistrationForm form, MultipartFile gstDocument, MultipartFile companyDocument,
             MultipartFile supportingDocument) throws IOException {
-        log.info("[DEBUG-LOG-SIGNUP] VendorRegistrationService.registerVendor() executed. Username: {}", form.getUsername());
+        log.info("[DEBUG-LOG-SIGNUP] VendorRegistrationService.registerVendor() executed. Username: {}",
+                form.getUsername());
         log.info("=== Starting vendor registration for username: {} ===", form.getUsername());
 
         long maxSizeBytes = 10 * 1024 * 1024;
@@ -90,10 +91,10 @@ public class VendorRegistrationService {
         }
 
         this.validateRegistration(form, gstDocument, companyDocument);
-        if (this.userRepository.findByUsername(form.getUsername().trim()).isPresent()) {
+        if (this.userRepository.findFirstByUsernameAndUserDomain(form.getUsername().trim(), "VENDOR").isPresent()) {
             throw new IllegalArgumentException("Username already exists");
         }
-        if (this.userRepository.findByEmailIgnoreCase(form.getEmail().trim()).isPresent()) {
+        if (this.userRepository.findFirstByEmailIgnoreCaseAndUserDomain(form.getEmail().trim(), "VENDOR").isPresent()) {
             throw new IllegalArgumentException("Email already exists");
         }
         if (this.userRepository.findByCompanyNameIgnoreCase(form.getCompanyName().trim()).isPresent()) {
@@ -105,6 +106,7 @@ public class VendorRegistrationService {
         AppRole userRole = (AppRole) this.roleRepository.findByName("ROLE_VENDOR")
                 .orElseThrow(() -> new IllegalStateException("ROLE_VENDOR not found"));
         AppUser user = new AppUser();
+        user.setUserDomain("VENDOR");
         user.setUsername(form.getUsername().trim());
         user.setPassword(this.passwordEncoder.encode((CharSequence) form.getPassword()));
         user.setEmail(form.getEmail().trim());
@@ -305,19 +307,22 @@ public class VendorRegistrationService {
 
     @Transactional(readOnly = true)
     public boolean isUsernameAvailable(String username) {
-        if (username == null || username.trim().isEmpty()) return false;
+        if (username == null || username.trim().isEmpty())
+            return false;
         return this.userRepository.findByUsername(username.trim()).isEmpty();
     }
 
     @Transactional(readOnly = true)
     public boolean isEmailAvailable(String email) {
-        if (email == null || email.trim().isEmpty()) return false;
+        if (email == null || email.trim().isEmpty())
+            return false;
         return this.userRepository.findByEmailIgnoreCase(email.trim()).isEmpty();
     }
 
     @Transactional(readOnly = true)
     public boolean isGstAvailable(String gstNumber) {
-        if (gstNumber == null || gstNumber.trim().isEmpty()) return false;
+        if (gstNumber == null || gstNumber.trim().isEmpty())
+            return false;
         return this.userRepository.findByGstNumber(gstNumber.trim()).isEmpty();
     }
 }

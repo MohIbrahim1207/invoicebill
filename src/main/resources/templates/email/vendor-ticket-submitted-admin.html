@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Vendor Ticket Submitted</title>
+    <style>
+        body { margin: 0; padding: 0; background: #f4f7fb; font-family: Arial, sans-serif; color: #1f2937; }
+        .container { max-width: 680px; margin: 0 auto; padding: 24px; }
+        .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); }
+        .header { padding: 28px 32px; background: linear-gradient(135deg, #0f172a, #2563eb); color: #fff; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 8px 0 0; opacity: .9; font-size: 15px; }
+        .body { padding: 32px; line-height: 1.7; }
+        .meta { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .meta td { padding: 10px 0; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+        .label { color: #6b7280; width: 180px; font-weight: 600; }
+        .status { display: inline-block; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; text-transform: uppercase; background: #dbeafe; color: #1d4ed8; }
+        .btn { display: inline-block; background: #2563eb; color: #fff !important; text-decoration: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; margin-top: 20px; }
+        .footer { padding: 18px 32px 28px; color: #6b7280; font-size: 12px; }
+        @media (max-width: 640px) {
+            .container { padding: 12px; }
+            .body, .header, .footer { padding-left: 20px; padding-right: 20px; }
+            .label { display: block; width: auto; margin-bottom: 4px; }
+            .meta td { display: block; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <div class="header">
+            <h1>Flow Force - InvoiceHub</h1>
+            <p>New Vendor Ticket Submitted</p>
+        </div>
+        <div class="body">
+            <p>Hello Admin,</p>
+            <p>A new vendor ticket has been submitted and requires admin review.</p>
+            <table class="meta">
+                <tr>
+                    <td class="label">Ticket Number</td>
+                    <td><strong th:text="${ticketNo}">VT-2026-0001</strong></td>
+                </tr>
+                <tr>
+                    <td class="label">Status</td>
+                    <td><span class="status">Submitted</span></td>
+                </tr>
+                <tr>
+                    <td class="label">Vendor Name</td>
+                    <td th:text="${vendorName}">Vendor Corp</td>
+                </tr>
+                <tr>
+                    <td class="label">Vendor Code</td>
+                    <td th:text="${vendorCode}">VEND-001</td>
+                </tr>
+                <tr>
+                    <td class="label">Company Name</td>
+                    <td th:text="${companyName}">Vendor Company Ltd</td>
+                </tr>
+                <tr>
+                    <td class="label">Subject / Invoice No</td>
+                    <td th:text="${subjectText}">Invoice #INV-2026-001</td>
+                </tr>
+                <tr>
+                    <td class="label">Priority</td>
+                    <td th:text="${priority}">MEDIUM</td>
+                </tr>
+                <tr>
+                    <td class="label">Submission Date</td>
+                    <td th:text="${submissionDate}">Aug 05, 2026</td>
+                </tr>
+            </table>
+            <a th:href="${viewUrl}" class="btn" rel="noopener noreferrer">Review Ticket</a>
+        </div>
+        <div class="footer">
+            This is an automated notification from Flow Force InvoiceHub. Please do not reply to this email.
+        </div>
+    </div>
+</div>
+</body>
+</html>
