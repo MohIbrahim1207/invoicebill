@@ -1,312 +1,850 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>InvoiceHub - AI Quote Converter</title>
+    <title>InvoiceHub - AI Quote Assistant</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/portal.css}">
     <style>
-        .drag-drop-zone {
-            border: 2px dashed var(--portal-border, #ced4da);
-            border-radius: 8px;
-            padding: 40px 20px;
-            text-align: center;
+        .chat-workspace {
+            display: flex;
+            height: calc(100vh - 110px);
+            background: var(--portal-bg, #f8fafc);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--portal-border, #e2e8f0);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        /* Sidebar Styles */
+        .chat-sidebar {
+            width: 320px;
             background: var(--portal-card-bg, #ffffff);
+            border-right: 1px solid var(--portal-border, #e2e8f0);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .chat-sidebar-header {
+            padding: 14px;
+            border-bottom: 1px solid var(--portal-border, #e2e8f0);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar-section-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+            padding: 8px 10px 4px 10px;
+            margin-top: 4px;
+        }
+
+        .session-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .session-item {
+            padding: 10px 12px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            margin-bottom: 6px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
-        .drag-drop-zone:hover, .drag-drop-zone.dragover {
+
+        .session-item:hover {
+            background: rgba(13, 110, 253, 0.04);
+            border-color: rgba(13, 110, 253, 0.1);
+        }
+
+        .session-item.active {
+            background: rgba(13, 110, 253, 0.08);
             border-color: var(--bs-primary, #0d6efd);
-            background: rgba(13, 110, 253, 0.05);
         }
-        .drag-drop-icon {
-            font-size: 3rem;
-            color: var(--portal-text-muted, #6c757d);
-            margin-bottom: 15px;
+
+        .session-title {
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: var(--portal-text, #1e293b);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        .progress-container {
-            display: none;
-            margin-top: 20px;
+
+        .session-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.74rem;
+            color: #64748b;
+        }
+
+        .status-pill {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-draft { background: #e2e8f0; color: #475569; }
+        .status-analyzing { background: #fef3c7; color: #b45309; }
+        .status-ready { background: #dbeafe; color: #1d4ed8; }
+        .status-generated { background: #dcfce7; color: #15803d; }
+        .status-legacy { background: #f1f5f9; color: #64748b; }
+
+        /* Main Chat Area */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--portal-card-bg, #ffffff);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 14px 24px;
+            border-bottom: 1px solid var(--portal-border, #e2e8f0);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .msg-wrapper {
+            display: flex;
+            gap: 12px;
+            max-width: 82%;
+        }
+
+        .msg-wrapper.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .msg-wrapper.assistant, .msg-wrapper.system {
+            align-self: flex-start;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .avatar-user { background: #2563eb; color: #fff; }
+        .avatar-assistant { background: #0f172a; color: #fff; }
+        .avatar-system { background: #64748b; color: #fff; }
+
+        .msg-bubble {
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-size: 0.92rem;
+            line-height: 1.6;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+            white-space: pre-line;
+        }
+
+        .msg-wrapper.user .msg-bubble {
+            background: #2563eb;
+            color: #ffffff;
+            border-top-right-radius: 2px;
+        }
+
+        .msg-wrapper.assistant .msg-bubble {
+            background: #f1f5f9;
+            color: #0f172a;
+            border-top-left-radius: 2px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .msg-wrapper.system .msg-bubble {
+            background: #f8fafc;
+            color: #475569;
+            border: 1px dashed #cbd5e1;
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+
+        .msg-attachment {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: rgba(0,0,0,0.06);
+            border-radius: 6px;
+            font-size: 0.82rem;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* Review Quote Card inside Chat */
+        .quote-review-card {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .quote-review-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #0f172a;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 8px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Input Area */
+        .chat-input-area {
+            padding: 16px 24px;
+            border-top: 1px solid var(--portal-border, #e2e8f0);
+            background: #ffffff;
+        }
+
+        .attachment-preview {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            margin-bottom: 10px;
+            width: fit-content;
+        }
+
+        .chat-input-box {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 8px 12px;
+        }
+
+        .chat-input-box textarea {
+            border: none;
+            background: transparent;
+            resize: none;
+            outline: none;
+            width: 100%;
+            max-height: 120px;
+            font-size: 0.95rem;
+        }
+
+        /* Empty Initial State */
+        .empty-state {
+            margin: auto;
+            text-align: center;
+            max-width: 500px;
+            padding: 40px 20px;
+        }
+
+        .empty-state-icon {
+            font-size: 3.5rem;
+            color: #2563eb;
+            margin-bottom: 16px;
+        }
+
+        .prompt-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px 16px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 10px;
+            font-size: 0.88rem;
+        }
+
+        .prompt-card:hover {
+            border-color: #2563eb;
+            background: #eff6ff;
         }
     </style>
 </head>
+
 <body class="portal-bg">
 
-<div th:replace="fragments/layout :: topbar('AI Quote Converter')"></div>
-<div th:replace="fragments/layout :: sidebarMobile('ai-quote-converter')"></div>
+    <div th:replace="fragments/layout :: topbar('AI Quote Assistant')"></div>
+    <div th:replace="fragments/layout :: sidebarMobile('ai-quote-converter')"></div>
 
-<div class="portal-shell">
-    <div th:replace="fragments/layout :: sidebar('ai-quote-converter')"></div>
+    <div class="portal-shell">
+        <div th:replace="fragments/layout :: sidebar('ai-quote-converter')"></div>
 
-    <main class="portal-main">
-        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-2">
-            <div>
-                <h1 class="portal-heading mb-1">AI Quote Converter</h1>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="/dashboard">Portal</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">AI Quote Converter</li>
-                    </ol>
-                </nav>
-            </div>
-            <div>
-                <a href="/admin/ai-quote-converter" class="btn btn-outline-secondary"><i class="bi bi-arrow-repeat"></i> Refresh</a>
-            </div>
-        </div>
+        <main class="portal-main p-3">
 
-        <!-- Flash Messages -->
-        <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            <span th:text="${message}">Success message</span>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <span th:text="${error}">Error message</span>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-
-        <!-- Upload Quotation Card -->
-        <section class="card portal-card mb-4">
-            <div class="card-body">
-                <h2 class="section-title mb-3"><i class="bi bi-cloud-upload me-2 text-primary"></i>Convert Supplier Quotation</h2>
-                <p class="text-muted small">Upload any supplier quotation PDF (digital or scanned, max 20MB). The AI engine will parse specifications, lines, prices, and terms to build a Flow Force quote.</p>
-                
-                <form th:action="@{/admin/ai-quote-converter/upload}" method="post" enctype="multipart/form-data" id="uploadForm">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                    
-                    <div class="drag-drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-                        <div class="drag-drop-icon">
-                            <i class="bi bi-file-earmark-pdf"></i>
+            <div class="chat-workspace">
+                <!-- LEFT SIDEBAR -->
+                <aside class="chat-sidebar">
+                    <div class="chat-sidebar-header">
+                        <button id="btnNewQuote" class="btn btn-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-plus-circle"></i> New Quote
+                        </button>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" id="sidebarSearch" class="form-control bg-light border-start-0" placeholder="Search quotations..." onkeyup="filterHistoryItems()">
                         </div>
-                        <h4 class="mb-2">Drag & Drop Supplier PDF Here</h4>
-                        <p class="text-muted mb-0">or click to browse from your device</p>
-                        <input type="file" id="fileInput" name="quoteFile" accept=".pdf" class="d-none" onchange="handleFileSelected(this.files)">
                     </div>
 
-                    <div id="fileDetail" class="mt-3 d-none">
-                        <div class="d-flex align-items-center justify-content-between p-3 border rounded bg-light">
-                            <div class="d-flex align-items-center gap-3">
-                                <i class="bi bi-file-earmark-pdf-fill text-danger fs-3"></i>
-                                <div>
-                                    <div class="fw-semibold" id="fileNameDisp">File_Name.pdf</div>
-                                    <div class="text-muted small" id="fileSizeDisp">0.0 MB</div>
+                    <div class="session-list" id="sessionList">
+                        <!-- AI QUOTE SESSIONS -->
+                        <div class="sidebar-section-title"><i class="bi bi-chat-dots me-1"></i> AI Quote Sessions</div>
+                        <div id="aiSessionsContainer"></div>
+
+                        <!-- PREVIOUS CONVERSIONS -->
+                        <div class="sidebar-section-title"><i class="bi bi-clock-history me-1"></i> Previous Conversions</div>
+                        <div id="legacyConversionsContainer">
+                            <div th:each="c : ${conversions}" class="session-item legacy-item"
+                                 th:data-title="${c.originalFileName}"
+                                 th:onclick="|window.location.href='/admin/ai-quote-converter/${c.id}'|">
+                                <div class="session-title" th:text="${c.originalFileName != null ? c.originalFileName : 'Quotation #' + c.id}">Supplier Quote</div>
+                                <div class="session-meta">
+                                    <span th:text="${c.processingDate != null ? #temporals.format(c.processingDate, 'dd MMM yyyy') : ''}">09 Aug 2026</span>
+                                    <span class="status-pill status-legacy" th:text="${c.status}">COMPLETED</span>
                                 </div>
                             </div>
-                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearFileSelection()"><i class="bi bi-trash"></i> Remove</button>
-                        </div>
-
-                        <div class="progress-container" id="progressContainer">
-                            <div class="d-flex justify-content-between mb-1 small text-muted">
-                                <span>Uploading...</span>
-                                <span id="progressPercent">0%</span>
-                            </div>
-                            <div class="progress" style="height: 8px;">
-                                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
-                        </div>
-
-                        <div class="mt-3 text-end">
-                            <button type="submit" class="btn btn-primary" id="submitBtn"><i class="bi bi-cpu"></i> Extract Details & Analyze</button>
                         </div>
                     </div>
-                </form>
-            </div>
-        </section>
+                </aside>
 
-        <!-- History List Card -->
-        <section class="card portal-card">
-            <div class="card-body">
-                <h2 class="section-title mb-3"><i class="bi bi-clock-history me-2 text-primary"></i>AI Conversion Pipeline History</h2>
-                <div class="table-responsive">
-                    <table class="table align-middle portal-table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>File Name</th>
-                                <th>Uploaded By</th>
-                                <th>Processing Time</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:if="${#lists.isEmpty(conversions)}">
-                                <td colspan="6">
-                                    <div class="empty-state">
-                                        <i class="bi bi-cpu"></i>
-                                        <p>No quotation conversions uploaded yet.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr th:each="conv : ${conversions}">
-                                <td th:text="${#temporals.format(conv.processingDate, 'dd MMM yyyy HH:mm')}"></td>
-                                <td>
-                                    <span class="d-inline-flex align-items-center gap-2">
-                                        <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
-                                        <a th:href="${conv.originalFileUrl}" target="_blank" th:text="${conv.originalFileName}" class="text-decoration-none"></a>
-                                    </span>
-                                </td>
-                                <td th:text="${conv.user != null ? conv.user.fullName : 'System'}"></td>
-                                <td>
-                                    <span th:if="${conv.processingTimeMs != null && conv.processingTimeMs > 0}" th:text="${#numbers.formatDecimal(conv.processingTimeMs / 1000.0, 1, 2) + ' sec'}"></span>
-                                    <span th:unless="${conv.processingTimeMs != null && conv.processingTimeMs > 0}">N/A</span>
-                                </td>
-                                <td>
-                                    <span th:if="${conv.status == 'PROCESSING'}" class="badge bg-primary"><i class="bi bi-arrow-repeat spinner-border spinner-border-sm border-0 me-1"></i> Processing</span>
-                                    <span th:if="${conv.status == 'PENDING_REVIEW'}" class="badge bg-warning text-dark"><i class="bi bi-eye me-1"></i> Pending Review</span>
-                                    <span th:if="${conv.status == 'GENERATED'}" class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i> Generated</span>
-                                    <span th:if="${conv.status == 'FAILED'}" class="badge bg-danger" th:title="${conv.errorMessage}"><i class="bi bi-exclamation-triangle me-1"></i> Failed</span>
-                                </td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <!-- Review Draft -->
-                                        <a th:if="${conv.status == 'PENDING_REVIEW'}" th:href="@{/admin/ai-quote-converter/{id}/review(id=${conv.id})}" class="btn btn-sm btn-warning" title="Review Extracted Data">
-                                            <i class="bi bi-pencil-square"></i> Review
-                                        </a>
-                                        <!-- View Final Details -->
-                                        <a th:if="${conv.status == 'GENERATED'}" th:href="@{/admin/ai-quote-converter/{id}(id=${conv.id})}" class="btn btn-sm btn-info" title="View Quote Details">
-                                            <i class="bi bi-eye"></i> View
-                                        </a>
-                                        <!-- Direct Generated PDF Download -->
-                                        <a th:if="${conv.status == 'GENERATED'}" th:href="${conv.generatedQuoteFileUrl}" target="_blank" class="btn btn-sm btn-success" title="Download Generated PDF">
-                                            <i class="bi bi-download"></i> Download
-                                        </a>
-                                        <!-- View Error -->
-                                        <button th:if="${conv.status == 'FAILED'}" type="button" class="btn btn-sm btn-outline-danger" th:data-error="${conv.errorMessage}" onclick="alert('Extraction failed: ' + this.getAttribute('data-error'))" title="View Error Message">
-                                            <i class="bi bi-exclamation-circle"></i> Error
-                                        </button>
-                                        <!-- Delete record -->
-                                        <form th:action="@{/admin/ai-quote-converter/{id}/delete(id=${conv.id})}" method="post" style="display:inline;" onsubmit="return confirm('Delete this record? This will also remove stored files from Cloudinary.')">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                            <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="bi bi-trash"></i></button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-    </main>
-</div>
+                <!-- MAIN CHAT AREA -->
+                <section class="chat-main">
+                    <div class="chat-header">
+                        <div>
+                            <h5 class="m-0 fw-bold text-dark" id="chatTitle">AI Quote Assistant</h5>
+                            <small class="text-muted">Create Flow Force quotations through conversation</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="reloadActiveSession()" title="Refresh Session">
+                                <i class="bi bi-arrow-repeat"></i>
+                            </button>
+                        </div>
+                    </div>
 
-<div id="loadingOverlay" class="loading-overlay d-none">
-    <div class="text-center text-white">
-        <div class="spinner-border text-light mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
-        <h4>AI Extraction In Progress...</h4>
-        <p class="text-light-subtle">Reading PDF text, performing OCR fallbacks, and analyzing layout with Gemini.</p>
+                    <!-- MESSAGES AREA -->
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="empty-state" id="emptyState">
+                            <div class="empty-state-icon"><i class="bi bi-robot"></i></div>
+                            <h4 class="fw-bold">AI Quote Assistant</h4>
+                            <p class="text-muted">Turn supplier quotations into Flow Force quotations through natural conversation.</p>
+                            <div class="mt-4">
+                                <div class="prompt-card" onclick="usePrompt('Convert a rotary valve quote from DMN for ABC Industries')">
+                                    <i class="bi bi-chat-quote text-primary me-2"></i> Convert a rotary valve quote from DMN
+                                </div>
+                                <div class="prompt-card" onclick="usePrompt('Not specified')">
+                                    <i class="bi bi-person-x text-primary me-2"></i> Set customer as "Not Specified"
+                                </div>
+                                <div class="prompt-card" onclick="document.getElementById('fileInput').click()">
+                                    <i class="bi bi-paperclip text-primary me-2"></i> Upload a supplier PDF quotation
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CHAT INPUT AREA -->
+                    <div class="chat-input-area">
+                        <div id="attachmentPreview" class="attachment-preview d-none">
+                            <i class="bi bi-file-earmark-pdf text-danger"></i>
+                            <span id="attachmentName">file.pdf</span>
+                            <button type="button" class="btn-close ms-2" onclick="clearAttachment()" style="font-size: 0.7rem;"></button>
+                        </div>
+
+                        <div class="chat-input-box">
+                            <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" class="d-none" onchange="handleFileSelect(this)">
+                            <button type="button" class="btn btn-light btn-sm rounded-circle" onclick="document.getElementById('fileInput').click()" title="Attach Document">
+                                <i class="bi bi-paperclip fs-5 text-secondary"></i>
+                            </button>
+                            <textarea id="chatInput" rows="1" placeholder="Describe the quotation, paste details, or ask questions..." onkeydown="handleKeyDown(event)"></textarea>
+                            <button type="button" id="btnSend" class="btn btn-primary rounded-3 px-3" onclick="sendChatMessage()">
+                                <i class="bi bi-send-fill"></i>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+        </main>
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    const dropZone = document.getElementById('dropZone');
-    const fileInput = document.getElementById('fileInput');
-    const fileDetail = document.getElementById('fileDetail');
-    const fileNameDisp = document.getElementById('fileNameDisp');
-    const fileSizeDisp = document.getElementById('fileSizeDisp');
-    const uploadForm = document.getElementById('uploadForm');
-    const progressContainer = document.getElementById('progressContainer');
-    const progressBar = document.getElementById('progressBar');
-    const progressPercent = document.getElementById('progressPercent');
-    const submitBtn = document.getElementById('submitBtn');
-    const loadingOverlay = document.getElementById('loadingOverlay');
+    <!-- CSRF Parameters for AJAX -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <input type="hidden" id="csrfParam" th:value="${_csrf.parameterName}">
+    <input type="hidden" id="csrfToken" th:value="${_csrf.token}">
 
-    // Drag and Drop listeners
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropZone.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        }, false);
-    });
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:inline="javascript">
+        console.log("AI QUOTE ASSISTANT JS INITIALIZED");
+        let currentSessionId = null;
+        let selectedFile = null;
 
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-        }, false);
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        handleFileSelected(files);
-    }, false);
-
-    function handleFileSelected(files) {
-        if (files.length > 0) {
-            const file = files[0];
-            if (file.type !== 'application/pdf') {
-                alert('Only PDF files are supported.');
-                return;
-            }
-            
-            // Set file to input
-            fileInput.files = files;
-            
-            fileNameDisp.textContent = file.name;
-            fileSizeDisp.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
-            
-            dropZone.classList.add('d-none');
-            fileDetail.classList.remove('d-none');
-        }
-    }
-
-    function clearFileSelection() {
-        fileInput.value = '';
-        dropZone.classList.remove('d-none');
-        fileDetail.classList.add('d-none');
-        progressContainer.style.display = 'none';
-        progressBar.style.width = '0%';
-        progressPercent.textContent = '0%';
-    }
-
-    // Ajax Form Submit with Progress
-    uploadForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        const files = fileInput.files;
-        if (files.length === 0) return;
-
-        submitBtn.disabled = true;
-        progressContainer.style.display = 'block';
-        
-        const formData = new FormData(uploadForm);
-        const xhr = new XMLHttpRequest();
-
-        // Track upload progress
-        xhr.upload.addEventListener('progress', (e) => {
-            if (e.lengthComputable) {
-                const percent = Math.round((e.loaded / e.total) * 100);
-                progressBar.style.width = percent + '%';
-                progressBar.setAttribute('aria-valuenow', percent);
-                progressPercent.textContent = percent + '%';
-                
-                if (percent === 100) {
-                    // Upload is complete, now background extraction starts
-                    loadingOverlay.classList.remove('d-none');
-                }
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSessions();
+            const btnNew = document.getElementById('btnNewQuote');
+            if (btnNew) {
+                btnNew.addEventListener('click', createNewSession);
+            } else {
+                console.warn('btnNewQuote element not found during DOMContentLoaded binding');
             }
         });
 
-        xhr.onload = function() {
-            // Once processed, reload the page
-            window.location.reload();
-        };
+        function getCsrfHeader() {
+            const metaHeader = document.querySelector("meta[name='_csrf_header']")?.getAttribute("content") || 'X-CSRF-TOKEN';
+            const metaToken = document.querySelector("meta[name='_csrf']")?.getAttribute("content") || document.getElementById('csrfToken')?.value || '';
+            const headers = {};
+            if (metaToken) {
+                headers[metaHeader] = metaToken;
+                headers['X-CSRF-TOKEN'] = metaToken;
+            }
+            return headers;
+        }
 
-        xhr.onerror = function() {
-            loadingOverlay.classList.add('d-none');
-            alert('Upload failed. Please try again.');
-            submitBtn.disabled = false;
-        };
+        function showUIError(msg) {
+            const messagesEl = document.getElementById('chatMessages');
+            if (messagesEl) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'msg-wrapper system';
+                wrapper.innerHTML = `
+                    <div class="avatar avatar-system">!</div>
+                    <div class="msg-bubble text-danger bg-danger-subtle border-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>${escapeHtml(msg)}</div>
+                `;
+                messagesEl.appendChild(wrapper);
+                scrollToBottom();
+            }
+        }
 
-        xhr.open('POST', uploadForm.action, true);
-        xhr.send(formData);
-    });
-</script>
+        async function loadSessions() {
+            try {
+                const res = await fetch('/admin/ai-quote-converter/api/sessions');
+                if (res.ok) {
+                    const sessions = await res.json();
+                    renderSessionList(sessions);
+                    if (!currentSessionId && sessions.length > 0) {
+                        selectSession(sessions[0].id);
+                    }
+                } else {
+                    console.error('Failed to load sessions HTTP status:', res.status);
+                    showUIError('Unable to load quotation sessions (HTTP ' + res.status + '). Please refresh.');
+                }
+            } catch (e) {
+                console.error('Error loading sessions:', e);
+                showUIError('Unable to load quotation history. Please check your network connection.');
+            }
+        }
+
+        function renderSessionList(sessions) {
+            const listEl = document.getElementById('aiSessionsContainer');
+            listEl.innerHTML = '';
+            if (sessions.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-muted p-2 small">No active chat sessions</div>';
+                return;
+            }
+            sessions.forEach(s => {
+                const item = document.createElement('div');
+                item.className = `session-item chat-item ${s.id === currentSessionId ? 'active' : ''}`;
+                item.setAttribute('data-id', s.id);
+                item.setAttribute('data-title', s.title || '');
+                item.onclick = () => selectSession(s.id);
+                
+                let statusClass = 'status-draft';
+                if (s.status === 'ANALYZING') statusClass = 'status-analyzing';
+                if (s.status === 'READY') statusClass = 'status-ready';
+                if (s.status === 'GENERATED') statusClass = 'status-generated';
+
+                item.innerHTML = `
+                    <div class="session-title">${escapeHtml(s.title)}</div>
+                    <div class="session-meta">
+                        <span>${s.updatedAt || ''}</span>
+                        <span class="status-pill ${statusClass}">${s.status}</span>
+                    </div>
+                `;
+                listEl.appendChild(item);
+            });
+        }
+
+        function filterHistoryItems() {
+            const query = document.getElementById('sidebarSearch').value.toLowerCase().trim();
+            const items = document.querySelectorAll('.session-item');
+            items.forEach(item => {
+                const title = (item.getAttribute('data-title') || '').toLowerCase();
+                const text = item.innerText.toLowerCase();
+                if (!query || title.includes(query) || text.includes(query)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        async function createNewSession() {
+            try {
+                const res = await fetch('/admin/ai-quote-converter/api/sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
+                    body: JSON.stringify({ title: 'New Quotation Assistant' })
+                });
+                if (res.ok) {
+                    const session = await res.json();
+                    currentSessionId = session.id;
+                    await loadSessions();
+                    renderActiveSession(session);
+                } else {
+                    console.error('Failed to create session HTTP status:', res.status);
+                    showUIError('Failed to create a new quotation session (HTTP ' + res.status + ').');
+                }
+            } catch (e) {
+                console.error('Error creating session:', e);
+                showUIError('Failed to create a new session. Please check your connection.');
+            }
+        }
+
+        async function selectSession(sessionId) {
+            currentSessionId = sessionId;
+            // update active highlight without recursive loadSessions call
+            document.querySelectorAll('#aiSessionsContainer .session-item').forEach(item => {
+                if (item.getAttribute('data-id') == sessionId) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+
+            try {
+                const res = await fetch(`/admin/ai-quote-converter/api/sessions/${sessionId}`);
+                if (res.ok) {
+                    const session = await res.json();
+                    renderActiveSession(session);
+                } else {
+                    console.error('Failed to select session HTTP status:', res.status);
+                    showUIError('Unable to retrieve quotation session details (HTTP ' + res.status + ').');
+                }
+            } catch (e) {
+                console.error('Error selecting session:', e);
+                showUIError('Failed to load session details.');
+            }
+        }
+
+        function reloadActiveSession() {
+            if (currentSessionId) selectSession(currentSessionId);
+            else loadSessions();
+        }
+
+        function renderActiveSession(session) {
+            if (!session) return;
+            document.getElementById('chatTitle').innerText = session.title || 'AI Quote Assistant';
+            const messagesEl = document.getElementById('chatMessages');
+            messagesEl.innerHTML = '';
+
+            if (!session.messages || session.messages.length === 0) {
+                const emptyClone = document.createElement('div');
+                emptyClone.className = 'empty-state';
+                emptyClone.innerHTML = `
+                    <div class="empty-state-icon"><i class="bi bi-robot"></i></div>
+                    <h4 class="fw-bold">AI Quote Assistant</h4>
+                    <p class="text-muted">Turn supplier quotations into Flow Force quotations through natural conversation.</p>
+                    <div class="mt-4">
+                        <div class="prompt-card" onclick="usePrompt('Convert a rotary valve quote from DMN for ABC Industries')">
+                            <i class="bi bi-chat-quote text-primary me-2"></i> Convert a rotary valve quote from DMN
+                        </div>
+                        <div class="prompt-card" onclick="usePrompt('Not specified')">
+                            <i class="bi bi-person-x text-primary me-2"></i> Set customer as &quot;Not Specified&quot;
+                        </div>
+                        <div class="prompt-card" onclick="document.getElementById('fileInput').click()">
+                            <i class="bi bi-paperclip text-primary me-2"></i> Upload a supplier PDF quotation
+                        </div>
+                    </div>
+                `;
+                messagesEl.appendChild(emptyClone);
+                return;
+            }
+
+            session.messages.forEach(msg => appendMessage(msg));
+
+            // If structured quote exists and is ready, render review card at the bottom
+            if (session.structuredQuoteData && (session.status === 'READY' || session.status === 'GENERATED')) {
+                renderReviewCard(session.structuredQuoteData, session.status, session.generatedPdfUrl, session.generatedPdfFilename, session.generatedDocxUrl, session.generatedDocxFilename);
+            }
+
+            scrollToBottom();
+        }
+
+        function appendMessage(msg) {
+            const messagesEl = document.getElementById('chatMessages');
+            const wrapper = document.createElement('div');
+            const senderClass = msg.sender.toLowerCase();
+            wrapper.className = `msg-wrapper ${senderClass}`;
+
+            let avatarText = 'AI';
+            if (msg.sender === 'USER') avatarText = 'U';
+            if (msg.sender === 'SYSTEM') avatarText = 'S';
+
+            let attachmentMarkup = '';
+            if (msg.attachmentFilename) {
+                const href = msg.attachmentUrl ? msg.attachmentUrl : '#';
+                attachmentMarkup = `<br><a href="${href}" target="_blank" class="msg-attachment"><i class="bi bi-paperclip"></i> ${escapeHtml(msg.attachmentFilename)}</a>`;
+            }
+
+            wrapper.innerHTML = `
+                <div class="avatar avatar-${senderClass}">${avatarText}</div>
+                <div class="msg-bubble">${escapeHtml(msg.content)}${attachmentMarkup}</div>
+            `;
+            messagesEl.appendChild(wrapper);
+        }
+
+        function renderReviewCard(data, status, pdfUrl, pdfFilename, docxUrl, docxFilename) {
+            const messagesEl = document.getElementById('chatMessages');
+            const card = document.createElement('div');
+            card.className = 'quote-review-card';
+
+            let lineItemsMarkup = '';
+            if (data.lineItems && data.lineItems.length > 0) {
+                lineItemsMarkup = data.lineItems.map(i => `<li>${escapeHtml(i.description || 'Item')} × ${i.quantity || 1} @ ${data.currency || '$'}${i.unitPrice || 0} = ${data.currency || '$'}${i.totalPrice || 0}</li>`).join('');
+            } else {
+                lineItemsMarkup = '<li>No line items added yet.</li>';
+            }
+
+            let pdfActionsMarkup = '';
+            let pdfIframeMarkup = '';
+
+            if (pdfUrl || docxUrl) {
+                let downloadBtns = '';
+                if (pdfUrl) {
+                    downloadBtns += `<a href="${pdfUrl}" target="_blank" class="btn btn-sm btn-success me-2 mb-1"><i class="bi bi-file-earmark-pdf me-1"></i> Download Flow Force PDF</a>`;
+                    pdfIframeMarkup = `
+                        <div class="mt-3">
+                            <label class="form-label fw-bold small text-secondary"><i class="bi bi-eye me-1"></i> Generated Quotation PDF Preview</label>
+                            <div class="ratio ratio-16x9 border rounded overflow-hidden shadow-sm" style="min-height: 450px;">
+                                <iframe src="${pdfUrl}" title="Flow Force Quotation PDF Preview" allowfullscreen></iframe>
+                            </div>
+                        </div>
+                    `;
+                }
+                if (docxUrl) {
+                    downloadBtns += `<a href="${docxUrl}" target="_blank" class="btn btn-sm btn-outline-primary mb-1"><i class="bi bi-file-earmark-word me-1"></i> Download Flow Force Word</a>`;
+                }
+                pdfActionsMarkup = `
+                    <div class="mt-3 p-3 bg-success-subtle border border-success rounded text-success">
+                        <i class="bi bi-check-circle-fill me-2"></i> Flow Force Quotation Generated!
+                        <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                            ${downloadBtns}
+                        </div>
+                    </div>
+                `;
+            } else if (status === 'GENERATED') {
+                pdfActionsMarkup = `
+                    <div class="mt-3 p-3 bg-warning-subtle border border-warning rounded text-warning-emphasis">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i> PDF preview unavailable.
+                    </div>
+                `;
+            }
+
+            card.innerHTML = `
+                <div class="quote-review-title">
+                    <span><i class="bi bi-file-earmark-text text-primary me-2"></i> Flow Force Quotation Preview</span>
+                    <span class="badge bg-primary">${status}</span>
+                </div>
+                <div class="row g-2 small">
+                    <div class="col-md-6"><strong>Supplier:</strong> ${escapeHtml(data.supplierName || 'N/A')}</div>
+                    <div class="col-md-6"><strong>Customer:</strong> ${escapeHtml(data.customerName || 'Not Specified')}</div>
+                    <div class="col-md-6"><strong>Quotation #:</strong> ${escapeHtml(data.quotationNumber || 'Auto-generated')}</div>
+                    <div class="col-md-6"><strong>Currency:</strong> ${escapeHtml(data.currency || 'USD')}</div>
+                    <div class="col-12 mt-2"><strong>Line Items:</strong><ul>${lineItemsMarkup}</ul></div>
+                    <div class="col-md-6"><strong>Subtotal:</strong> ${data.currency || '$'} ${data.subtotal || '0.00'}</div>
+                    <div class="col-md-6"><strong>Total Amount:</strong> <strong>${data.currency || '$'} ${data.totalAmount || '0.00'}</strong></div>
+                    <div class="col-md-6"><strong>Delivery:</strong> ${escapeHtml(data.deliveryTime || 'N/A')}</div>
+                    <div class="col-md-6"><strong>Payment Terms:</strong> ${escapeHtml(data.paymentTerms || 'N/A')}</div>
+                </div>
+                ${pdfActionsMarkup}
+                ${pdfIframeMarkup}
+
+                <div class="mt-3 p-2 bg-light border rounded">
+                    <label class="form-label fw-bold mb-1 small text-secondary">Output Format</label>
+                    <div class="d-flex gap-3 small">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="outputFormat" id="fmtPdf" value="PDF" checked onchange="updateGenBtnLabel()">
+                            <label class="form-check-label" for="fmtPdf">PDF</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="outputFormat" id="fmtDocx" value="DOCX" onchange="updateGenBtnLabel()">
+                            <label class="form-check-label" for="fmtDocx">Word (.docx)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="outputFormat" id="fmtBoth" value="BOTH" onchange="updateGenBtnLabel()">
+                            <label class="form-check-label" for="fmtBoth">Both PDF + Word</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3 d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-primary" onclick="promptEditField()"><i class="bi bi-pencil"></i> Edit Details</button>
+                    <button id="btnGenerateQuote" class="btn btn-sm btn-primary fw-bold" onclick="generatePdf()"><i class="bi bi-file-earmark-check me-1"></i> Generate Flow Force PDF</button>
+                </div>
+            `;
+            messagesEl.appendChild(card);
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const messageText = input.value.trim();
+            if (!messageText && !selectedFile) return;
+
+            if (!currentSessionId) {
+                await createNewSession();
+            }
+
+            const formData = new FormData();
+            if (messageText) formData.append('message', messageText);
+            if (selectedFile) formData.append('file', selectedFile);
+
+            // Optimistic rendering user msg
+            appendMessage({ sender: 'USER', content: messageText || 'Uploaded attachment', attachmentFilename: selectedFile ? selectedFile.name : null });
+            input.value = '';
+            clearAttachment();
+            scrollToBottom();
+
+            // Disable input while waiting
+            document.getElementById('btnSend').disabled = true;
+
+            try {
+                const res = await fetch(`/admin/ai-quote-converter/api/sessions/${currentSessionId}/messages`, {
+                    method: 'POST',
+                    headers: getCsrfHeader(),
+                    body: formData
+                });
+                if (res.ok) {
+                    const aiMsg = await res.json();
+                    appendMessage(aiMsg);
+                    if (aiMsg.quoteData) {
+                        selectSession(currentSessionId); // refresh state and review card
+                    }
+                } else {
+                    appendMessage({ sender: 'SYSTEM', content: 'An error occurred while communicating with AI.' });
+                }
+            } catch (e) {
+                console.error('Chat error:', e);
+                appendMessage({ sender: 'SYSTEM', content: 'Failed to send message: ' + e.message });
+            } finally {
+                document.getElementById('btnSend').disabled = false;
+                scrollToBottom();
+            }
+        }
+
+        function updateGenBtnLabel() {
+            const btn = document.getElementById('btnGenerateQuote');
+            if (!btn) return;
+            const selected = document.querySelector('input[name="outputFormat"]:checked')?.value || 'PDF';
+            if (selected === 'DOCX') {
+                btn.innerHTML = '<i class="bi bi-file-earmark-word me-1"></i> Generate Flow Force Word';
+            } else if (selected === 'BOTH') {
+                btn.innerHTML = '<i class="bi bi-files me-1"></i> Generate Flow Force PDF + Word';
+            } else {
+                btn.innerHTML = '<i class="bi bi-file-earmark-pdf me-1"></i> Generate Flow Force PDF';
+            }
+        }
+
+        async function generatePdf() {
+            if (!currentSessionId) return;
+            const formatVal = document.querySelector('input[name="outputFormat"]:checked')?.value || 'PDF';
+            try {
+                const res = await fetch(`/admin/ai-quote-converter/api/sessions/${currentSessionId}/generate?format=${encodeURIComponent(formatVal)}`, {
+                    method: 'POST',
+                    headers: getCsrfHeader()
+                });
+                if (res.ok) {
+                    selectSession(currentSessionId);
+                } else {
+                    let errMsg = 'Quotation Generation failed.';
+                    try {
+                        const errObj = await res.json();
+                        if (errObj && errObj.error) errMsg += ' Details: ' + errObj.error;
+                    } catch (ignore) {}
+                    alert(errMsg);
+                }
+            } catch (e) {
+                alert('Generation error: ' + e.message);
+            }
+        }
+
+        function handleFileSelect(input) {
+            if (input.files && input.files[0]) {
+                selectedFile = input.files[0];
+                document.getElementById('attachmentName').innerText = selectedFile.name;
+                document.getElementById('attachmentPreview').classList.remove('d-none');
+            }
+        }
+
+        function clearAttachment() {
+            selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('attachmentPreview').classList.add('d-none');
+        }
+
+        function usePrompt(text) {
+            document.getElementById('chatInput').value = text;
+            sendChatMessage();
+        }
+
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        }
+
+        function scrollToBottom() {
+            const el = document.getElementById('chatMessages');
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function promptEditField() {
+            const cust = prompt("Enter Customer Name:");
+            if (cust !== null) {
+                usePrompt("Customer name is " + cust);
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+
 </body>
 </html>

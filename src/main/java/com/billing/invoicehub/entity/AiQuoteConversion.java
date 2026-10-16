@@ -35,6 +35,11 @@ public class AiQuoteConversion {
     @Column(length = 1000)
     private String generatedQuoteFileUrl;
 
+    private String generatedDocxFileName;
+
+    @Column(length = 1000)
+    private String generatedDocxFileUrl;
+
     @Column(nullable = false)
     private LocalDateTime processingDate;
 
@@ -50,6 +55,10 @@ public class AiQuoteConversion {
 
     @Column(columnDefinition = "LONGTEXT")
     private String versionHistory;
+
+    /** JSON array of validation warnings (unmatched numeric values or vendor legal-text detections). */
+    @Column(columnDefinition = "TEXT")
+    private String validationWarnings;
 
     // Getters and Setters
     public Long getId() {
@@ -108,6 +117,22 @@ public class AiQuoteConversion {
         this.generatedQuoteFileUrl = generatedQuoteFileUrl;
     }
 
+    public String getGeneratedDocxFileName() {
+        return generatedDocxFileName;
+    }
+
+    public void setGeneratedDocxFileName(String generatedDocxFileName) {
+        this.generatedDocxFileName = generatedDocxFileName;
+    }
+
+    public String getGeneratedDocxFileUrl() {
+        return generatedDocxFileUrl;
+    }
+
+    public void setGeneratedDocxFileUrl(String generatedDocxFileUrl) {
+        this.generatedDocxFileUrl = generatedDocxFileUrl;
+    }
+
     public LocalDateTime getProcessingDate() {
         return processingDate;
     }
@@ -154,5 +179,13 @@ public class AiQuoteConversion {
 
     public void setVersionHistory(String versionHistory) {
         this.versionHistory = versionHistory;
+    }
+
+    public String getValidationWarnings() {
+        return validationWarnings;
+    }
+
+    public void setValidationWarnings(String validationWarnings) {
+        this.validationWarnings = validationWarnings;
     }
 }

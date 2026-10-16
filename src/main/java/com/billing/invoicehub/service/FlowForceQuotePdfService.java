@@ -13,6 +13,8 @@ import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.awt.Color;
@@ -23,6 +25,8 @@ import java.util.List;
 
 @Service
 public class FlowForceQuotePdfService {
+
+    private static final Logger logger = LoggerFactory.getLogger(FlowForceQuotePdfService.class);
 
     static {
         try {
@@ -52,14 +56,18 @@ public class FlowForceQuotePdfService {
     private static final String COMPANY_EMAIL = "sales@flowforce.com";
     private static final String COMPANY_PHONE = "+1-800-FLOW-FORCE";
 
+    public byte[] generateQuotationPdf(AiQuotationEditDto quoteDto) {
+        return generateFlowForceQuotePdf(quoteDto);
+    }
+
     public byte[] generateFlowForceQuotePdf(AiQuotationEditDto quoteDto) {
         if (quoteDto == null) {
             throw new IllegalArgumentException("Quotation data is required");
         }
 
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            // Load logo image
-            byte[] logoBytes;
+            // Load logo image with graceful fallback
+            byte[] logoBytes = null;
             try {
                 String path = logoImagePath != null ? logoImagePath : "static/images/logo.png";
                 org.springframework.core.io.Resource resource = new org.springframework.core.io.DefaultResourceLoader().getResource(
@@ -69,13 +77,18 @@ public class FlowForceQuotePdfService {
                     logoBytes = is.readAllBytes();
                 }
             } catch (Exception e) {
-                throw new IllegalStateException("Failed to load logo image from configuration path: " + logoImagePath, e);
+                // Ignore missing logo and proceed gracefully
             }
 
-            com.lowagie.text.Image logoImage = com.lowagie.text.Image.getInstance(logoBytes);
-            float logoScaledWidth = 180f;
-            float logoScaledHeight = (logoImage.getHeight() / logoImage.getWidth()) * logoScaledWidth;
-            logoImage.scaleAbsolute(logoScaledWidth, logoScaledHeight);
+            com.lowagie.text.Image logoImage = null;
+            if (logoBytes != null && logoBytes.length > 0) {
+                try {
+                    logoImage = com.lowagie.text.Image.getInstance(logoBytes);
+                    float logoScaledWidth = 180f;
+                    float logoScaledHeight = (logoImage.getHeight() / logoImage.getWidth()) * logoScaledWidth;
+                    logoImage.scaleAbsolute(logoScaledWidth, logoScaledHeight);
+                } catch (Exception ignore) {}
+            }
 
             // Construct Header Table: Logo on Left, Coded Company Address Block on Right
             PdfPTable headerTable = new PdfPTable(new float[] {1f, 1f});
@@ -84,7 +97,9 @@ public class FlowForceQuotePdfService {
 
             PdfPCell logoCell = new PdfPCell();
             logoCell.setBorder(Rectangle.NO_BORDER);
-            logoCell.addElement(logoImage);
+            if (logoImage != null) {
+                logoCell.addElement(logoImage);
+            }
             logoCell.setVerticalAlignment(Element.ALIGN_TOP);
             headerTable.addCell(logoCell);
 
@@ -161,9 +176,11 @@ public class FlowForceQuotePdfService {
             document.close();
             return outputStream.toByteArray();
         } catch (DocumentException ex) {
-            throw new IllegalStateException("Failed to generate Flow Force quotation PDF", ex);
+            logger.error("[PDF GENERATION FAILED] iText DocumentException: {}", ex.getMessage(), ex);
+            throw new IllegalStateException("Failed to generate Flow Force quotation PDF: " + ex.getMessage(), ex);
         } catch (Exception ex) {
-            throw new IllegalStateException("Failed to generate Flow Force quotation PDF", ex);
+            logger.error("[PDF GENERATION FAILED] Unexpected error during PDF rendering: {}", ex.getMessage(), ex);
+            throw new IllegalStateException("Failed to generate Flow Force quotation PDF: " + ex.getMessage(), ex);
         }
     }
 
@@ -490,36 +507,9 @@ public class FlowForceQuotePdfService {
 
         document.add(termsTable);
 
-        // Signature Section
-        byte[] signBytes;
-        try {
-            String path = signatureImagePath != null ? signatureImagePath : "static/images/Umapathi-signature.png";
-            org.springframework.core.io.Resource resource = new org.springframework.core.io.DefaultResourceLoader().getResource(
-                path.startsWith("classpath:") || path.startsWith("file:") ? path : "classpath:" + path
-            );
-            try (java.io.InputStream is = resource.getInputStream()) {
-                signBytes = is.readAllBytes();
-            }
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to load signature image from configuration path: " + signatureImagePath, e);
-        }
-
-        com.lowagie.text.Image signImage;
-        try {
-            signImage = com.lowagie.text.Image.getInstance(signBytes);
-            float scaledWidth = 90f;
-            float scaledHeight = (signImage.getHeight() / signImage.getWidth()) * scaledWidth;
-            signImage.scaleAbsolute(scaledWidth, scaledHeight);
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to create signature image instance", e);
-        }
-
         Paragraph bestRegards = new Paragraph("Best regards\n\nYours Sincerely\n\nPT. FLOW FORCE ENGINEERING", font(9, Font.BOLD, TEXT_DARK));
-        bestRegards.setSpacingAfter(4);
+        bestRegards.setSpacingAfter(14);
         document.add(bestRegards);
-
-        signImage.setAlignment(Element.ALIGN_LEFT);
-        document.add(signImage);
 
         Paragraph gmName = new Paragraph("Umapathi\nGeneral Manager", font(9, Font.BOLD, TEXT_DARK));
         gmName.setSpacingBefore(4);

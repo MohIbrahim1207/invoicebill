@@ -240,4 +240,162 @@ public class PdfExtractionService {
         }
         return null;
     }
+
+    /**
+     * Extracts ALL content images from a PDF (machine photos, drawings, diagrams).
+     * Applies branding-exclusion rules to filter out headers, footers, logos.
+     * Returns images sorted by page (ascending) then by descending y (top-to-bottom order).
+     *
+     * Branding-exclusion rules:
+     * 1. Image hash appears on 2 or more pages → excluded (repeating header/footer/logo)
+     * 2. Image is in the top 20% of any page AND its hash also appears on page 0 → excluded (multi-page header)
+     * 3. Image dimensions < 60×60 → excluded (icons, bullets, decorative elements)
+     * 4. Same hash on same page → deduplicated (keep only first occurrence)
+     */
+    public java.util.List<ImagePlacement> extractAllContentImages(byte[] pdfBytes) {
+        if (pdfBytes == null || pdfBytes.length == 0) {
+            return java.util.Collections.emptyList();
+        }
+
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(pdfBytes);
+             PDDocument document = PDDocument.load(bais)) {
+
+            final java.util.List<ImagePlacement> allPlacements = new java.util.ArrayList<>();
+
+            class ContentImageEngine extends org.apache.pdfbox.contentstream.PDFStreamEngine {
+                private int currentPageIdx = 0;
+                private float currentPageHeight = 0;
+
+                public ContentImageEngine() {
+                    super();
+                    addOperator(new org.apache.pdfbox.contentstream.operator.state.Save());
+                    addOperator(new org.apache.pdfbox.contentstream.operator.state.Restore());
+                    addOperator(new org.apache.pdfbox.contentstream.operator.state.Concatenate());
+                    addOperator(new org.apache.pdfbox.contentstream.operator.DrawObject());
+                }
+
+                public void setPageContext(int pageIdx, float pageHeight) {
+                    this.currentPageIdx = pageIdx;
+                    this.currentPageHeight = pageHeight;
+                }
+
+                @Override
+                protected void processOperator(org.apache.pdfbox.contentstream.operator.Operator operator,
+                                               java.util.List<org.apache.pdfbox.cos.COSBase> operands) throws IOException {
+                    if ("Do".equals(operator.getName()) && !operands.isEmpty()) {
+                        org.apache.pdfbox.cos.COSBase base = operands.get(0);
+                        if (base instanceof COSName) {
+                            COSName objectName = (COSName) base;
+                            org.apache.pdfbox.pdmodel.graphics.PDXObject xobject = getResources().getXObject(objectName);
+                            if (xobject instanceof PDImageXObject) {
+                                PDImageXObject image = (PDImageXObject) xobject;
+                                org.apache.pdfbox.util.Matrix ctm = getGraphicsState().getCurrentTransformationMatrix();
+
+                                ImagePlacement p = new ImagePlacement();
+                                p.pageIndex = this.currentPageIdx;
+                                p.pageHeight = this.currentPageHeight;
+                                p.x = ctm.getTranslateX();
+                                p.y = ctm.getTranslateY();
+                                p.w = Math.abs(ctm.getScalingFactorX());
+                                p.h = Math.abs(ctm.getScalingFactorY());
+
+                                try {
+                                    BufferedImage bufferedImage = image.getImage();
+                                    if (bufferedImage != null) {
+                                        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                                            ImageIO.write(bufferedImage, "png", baos);
+                                            p.imageBytes = baos.toByteArray();
+                                            java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
+                                            byte[] digest = md.digest(p.imageBytes);
+                                            StringBuilder sb = new StringBuilder();
+                                            for (byte b : digest) sb.append(String.format("%02x", b));
+                                            p.hash = sb.toString();
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    // ignore corrupt images
+                                }
+
+                                if (p.imageBytes != null && p.hash != null) {
+                                    allPlacements.add(p);
+                                }
+                            }
+                        }
+                    }
+                    super.processOperator(operator, operands);
+                }
+            }
+
+            ContentImageEngine engine = new ContentImageEngine();
+            int pageIdx = 0;
+            for (PDPage page : document.getPages()) {
+                float height = page.getMediaBox().getHeight();
+                engine.setPageContext(pageIdx, height);
+                engine.processPage(page);
+                pageIdx++;
+            }
+
+            // Build hash → Set<pageIndex> map
+            java.util.Map<String, java.util.Set<Integer>> hashToPages = new java.util.HashMap<>();
+            for (ImagePlacement p : allPlacements) {
+                hashToPages.computeIfAbsent(p.hash, k -> new java.util.HashSet<>()).add(p.pageIndex);
+            }
+
+            // Identify hashes present on page 0 (for multi-page header detection)
+            java.util.Set<String> page0Hashes = new java.util.HashSet<>();
+            for (ImagePlacement p : allPlacements) {
+                if (p.pageIndex == 0) page0Hashes.add(p.hash);
+            }
+
+            // Filter and deduplicate
+            java.util.Set<String> seenOnPage = new java.util.HashSet<>(); // "hash:pageIdx"
+            java.util.List<ImagePlacement> contentImages = new java.util.ArrayList<>();
+
+            for (ImagePlacement p : allPlacements) {
+                // Rule 1: repeating across 2+ pages → branding
+                java.util.Set<Integer> pages = hashToPages.get(p.hash);
+                if (pages != null && pages.size() > 1) {
+                    logger.info("Excluding repeating image (hash {}) from page {}", p.hash, p.pageIndex);
+                    continue;
+                }
+
+                // Rule 2: in top 20% of any page AND also on page 0 → multi-page header
+                float topY = p.y + p.h;
+                boolean inHeaderZone = topY > p.pageHeight * 0.80f;
+                if (inHeaderZone && page0Hashes.contains(p.hash)) {
+                    logger.info("Excluding header image (hash {}) in top 20% zone on page {}", p.hash, p.pageIndex);
+                    continue;
+                }
+
+                // Rule 3: too small to be content
+                if (p.w < 60 || p.h < 60) {
+                    logger.info("Excluding small image w={}, h={} on page {}", p.w, p.h, p.pageIndex);
+                    continue;
+                }
+
+                // Rule 4: deduplicate same hash on same page
+                String key = p.hash + ":" + p.pageIndex;
+                if (seenOnPage.contains(key)) {
+                    continue;
+                }
+                seenOnPage.add(key);
+
+                contentImages.add(p);
+            }
+
+            // Sort by pageIndex asc, then by y desc (top of page = highest y in PDF coords)
+            contentImages.sort((a, b) -> {
+                if (a.pageIndex != b.pageIndex) return Integer.compare(a.pageIndex, b.pageIndex);
+                return Float.compare(b.y, a.y); // descending y = top-to-bottom
+            });
+
+            logger.info("Extracted {} content images from PDF ({} total placements, {} filtered out as branding)",
+                    contentImages.size(), allPlacements.size(), allPlacements.size() - contentImages.size());
+            return contentImages;
+
+        } catch (Exception e) {
+            logger.error("Failed to extract content images from PDF: {}", e.getMessage(), e);
+            return java.util.Collections.emptyList();
+        }
+    }
 }

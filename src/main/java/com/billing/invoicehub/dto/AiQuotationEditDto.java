@@ -6,6 +6,8 @@ import java.util.List;
 public class AiQuotationEditDto {
     private String supplierName;
     private String customerName;
+    private Boolean customerSpecified = true;
+    private String customerAddress;
     private String quotationNumber;
     private String date;
     private String machineName;
@@ -42,6 +44,60 @@ public class AiQuotationEditDto {
     private List<OptionalItem> optionalItems;
     private String productImageBase64;
 
+    // --- New fields for faithful document reconstruction ---
+    /** Full cover letter body paragraphs, extracted verbatim from the vendor's letter (seller voice neutralized). */
+    private String coverLetterBody;
+    /** Structured, numbered Terms & Conditions clauses extracted verbatim. */
+    private List<TermsClause> termsAndConditionsList;
+    /** Part A — Machine Scope table rows, if present in the source document. */
+    private List<TableRow> partAScope;
+    /** Part B — Screens/Impellers/Spares table rows, if present in the source document. */
+    private List<TableRow> partBScope;
+    // --- Generalized flexible specification and custom table fields ---
+    private List<KeyValuePair> specificationAttributes;
+    private List<CustomTable> customTables;
+
+    // Getters and Setters for generalized fields
+    public List<KeyValuePair> getSpecificationAttributes() { return specificationAttributes; }
+    public void setSpecificationAttributes(List<KeyValuePair> specificationAttributes) { this.specificationAttributes = specificationAttributes; }
+
+    public List<CustomTable> getCustomTables() { return customTables; }
+    public void setCustomTables(List<CustomTable> customTables) { this.customTables = customTables; }
+
+    // --- New nested class: KeyValuePair ---
+    public static class KeyValuePair {
+        private String label;
+        private String value;
+
+        public KeyValuePair() {}
+        public KeyValuePair(String label, String value) {
+            this.label = label;
+            this.value = value;
+        }
+
+        public String getLabel() { return label; }
+        public void setLabel(String label) { this.label = label; }
+        public String getValue() { return value; }
+        public void setValue(String value) { this.value = value; }
+    }
+
+    // --- New nested class: CustomTable ---
+    public static class CustomTable {
+        private String title;
+        private List<String> headers;
+        private List<TableRow> rows;
+
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+        public List<String> getHeaders() { return headers; }
+        public void setHeaders(List<String> headers) { this.headers = headers; }
+        public List<TableRow> getRows() { return rows; }
+        public void setRows(List<TableRow> rows) { this.rows = rows; }
+    }
+
+    // --- All content images extracted from the source PDF (machine photos, drawings, diagrams). ---
+    private List<ExtractedImage> extractedImages;
+
     // Getters and Setters
     public String getProductImageBase64() {
         return productImageBase64;
@@ -50,13 +106,6 @@ public class AiQuotationEditDto {
     public void setProductImageBase64(String productImageBase64) {
         this.productImageBase64 = productImageBase64;
     }
-    public String getSupplierName() {
-        return supplierName;
-    }
-
-    public void setSupplierName(String supplierName) {
-        this.supplierName = supplierName;
-    }
 
     public String getCustomerName() {
         return customerName;
@@ -64,6 +113,29 @@ public class AiQuotationEditDto {
 
     public void setCustomerName(String customerName) {
         this.customerName = customerName;
+    }
+
+    public Boolean getCustomerSpecified() {
+        return customerSpecified != null ? customerSpecified : true;
+    }
+
+    public void setCustomerSpecified(Boolean customerSpecified) {
+        this.customerSpecified = customerSpecified;
+    }
+
+    public String getCustomerAddress() {
+        return customerAddress;
+    }
+
+    public void setCustomerAddress(String customerAddress) {
+        this.customerAddress = customerAddress;
+    }
+    public String getSupplierName() {
+        return supplierName;
+    }
+
+    public void setSupplierName(String supplierName) {
+        this.supplierName = supplierName;
     }
 
     public String getQuotationNumber() {
@@ -416,5 +488,73 @@ public class AiQuotationEditDto {
         public void setPrice(BigDecimal price) {
             this.price = price;
         }
+    }
+
+    // --- Getters/Setters for new reconstruction fields ---
+
+    public String getCoverLetterBody() { return coverLetterBody; }
+    public void setCoverLetterBody(String coverLetterBody) { this.coverLetterBody = coverLetterBody; }
+
+    public List<TermsClause> getTermsAndConditionsList() { return termsAndConditionsList; }
+    public void setTermsAndConditionsList(List<TermsClause> termsAndConditionsList) { this.termsAndConditionsList = termsAndConditionsList; }
+
+    public List<TableRow> getPartAScope() { return partAScope; }
+    public void setPartAScope(List<TableRow> partAScope) { this.partAScope = partAScope; }
+
+    public List<TableRow> getPartBScope() { return partBScope; }
+    public void setPartBScope(List<TableRow> partBScope) { this.partBScope = partBScope; }
+
+    public List<ExtractedImage> getExtractedImages() { return extractedImages; }
+    public void setExtractedImages(List<ExtractedImage> extractedImages) { this.extractedImages = extractedImages; }
+
+    // --- New nested class: TermsClause ---
+    /** Represents a single numbered Terms & Conditions clause. */
+    public static class TermsClause {
+        private String number;
+        private String title;
+        private String text;
+
+        public String getNumber() { return number; }
+        public void setNumber(String number) { this.number = number; }
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+        public String getText() { return text; }
+        public void setText(String text) { this.text = text; }
+    }
+
+    // --- New nested class: TableRow (for Part A / Part B scope tables) ---
+    /** Represents a single row in a multi-column scope table. */
+    public static class TableRow {
+        private List<String> cells;
+
+        public List<String> getCells() { return cells; }
+        public void setCells(List<String> cells) { this.cells = cells; }
+    }
+
+    // --- New nested class: ExtractedImage ---
+    /** Represents a content image extracted from the source PDF with positional metadata. */
+    public static class ExtractedImage {
+        private int pageNumber;    // 1-based page number in the source PDF
+        private float x;           // x position in PDF points
+        private float y;           // y position in PDF points (from bottom)
+        private float width;       // rendered width in points
+        private float height;      // rendered height in points
+        private float pageHeight;  // total source page height in points (for normalization)
+        private String imageBase64; // PNG-encoded image bytes as Base64
+
+        public int getPageNumber() { return pageNumber; }
+        public void setPageNumber(int pageNumber) { this.pageNumber = pageNumber; }
+        public float getX() { return x; }
+        public void setX(float x) { this.x = x; }
+        public float getY() { return y; }
+        public void setY(float y) { this.y = y; }
+        public float getWidth() { return width; }
+        public void setWidth(float width) { this.width = width; }
+        public float getHeight() { return height; }
+        public void setHeight(float height) { this.height = height; }
+        public float getPageHeight() { return pageHeight; }
+        public void setPageHeight(float pageHeight) { this.pageHeight = pageHeight; }
+        public String getImageBase64() { return imageBase64; }
+        public void setImageBase64(String imageBase64) { this.imageBase64 = imageBase64; }
     }
 }
