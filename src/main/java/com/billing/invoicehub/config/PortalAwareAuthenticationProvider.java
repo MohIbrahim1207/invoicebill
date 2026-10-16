@@ -1,64 +1,94 @@
 package com.billing.invoicehub.config;
 
+import com.billing.invoicehub.entity.PortalType;
+import com.billing.invoicehub.service.CustomUserDetailsService;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.Set;
 
 /**
- * Wraps an underlying {@link AuthenticationProvider} and enforces that the
- * authenticated principal holds a specific role.  If the credentials are valid
- * but the account does not have the required role the authentication is
- * rejected with a meaningful message — <em>before</em> any success handler
- * executes.  This ensures complete portal isolation without duplicating
- * password-verification logic.
+ * Custom {@link AuthenticationProvider} enforcing domain-scoped authentication and portal-role security.
  */
 public class PortalAwareAuthenticationProvider implements AuthenticationProvider {
 
-    private final AuthenticationProvider delegate;
-    private final String requiredRole;
+    private final CustomUserDetailsService userDetailsService;
+    private final PasswordEncoder passwordEncoder;
+    private final PortalType portalType;
+    private final String targetDomain; // "VENDOR" or "INTERNAL"
+    private final Set<String> allowedRoles;
     private final String portalErrorMessage;
 
-    /**
-     * @param delegate         The real provider that verifies credentials
-     *                         (typically a {@code DaoAuthenticationProvider}).
-     * @param requiredRole     The Spring-Security role string that must be
-     *                         present, e.g. {@code "ROLE_ADMIN"}.
-     * @param portalErrorMessage The human-readable message to embed in the
-     *                           thrown exception so the failure handler can
-     *                           redirect to an appropriate URL.
-     */
-    public PortalAwareAuthenticationProvider(AuthenticationProvider delegate,
-                                             String requiredRole,
+    public PortalAwareAuthenticationProvider(CustomUserDetailsService userDetailsService,
+                                             PasswordEncoder passwordEncoder,
+                                             PortalType portalType,
+                                             String targetDomain,
+                                             Set<String> allowedRoles,
                                              String portalErrorMessage) {
-        this.delegate = delegate;
-        this.requiredRole = requiredRole;
+        this.userDetailsService = userDetailsService;
+        this.passwordEncoder = passwordEncoder;
+        this.portalType = portalType;
+        this.targetDomain = targetDomain;
+        this.allowedRoles = allowedRoles;
         this.portalErrorMessage = portalErrorMessage;
+    }
+
+    public PortalType getPortalType() {
+        return portalType;
+    }
+
+    public String getTargetDomain() {
+        return targetDomain;
     }
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        // Delegate the actual credential check — may throw BadCredentialsException,
-        // DisabledException, etc. for invalid credentials.
-        Authentication result = delegate.authenticate(authentication);
+        String username = authentication.getName();
+        String rawPassword = (String) authentication.getCredentials();
 
-        // Credentials are valid; now enforce the portal role constraint.
-        boolean hasRequiredRole = result.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch(requiredRole::equals);
-
-        if (!hasRequiredRole) {
-            // Throw with the portal-specific message so the failure handler
-            // can distinguish this case from a plain wrong-password error.
-            throw new BadCredentialsException(portalErrorMessage);
+        if (username == null || username.isBlank() || rawPassword == null) {
+            throw new BadCredentialsException("Invalid username or password");
         }
 
-        return result;
+        // 1. Look up user strictly within the target domain ("VENDOR" vs "INTERNAL")
+        UserDetails userDetails;
+        try {
+            userDetails = userDetailsService.loadUserByUsernameAndDomain(username, targetDomain);
+        } catch (UsernameNotFoundException ex) {
+            // User does not exist in this authentication domain
+            throw new BadCredentialsException("Invalid username or password");
+        }
+
+        // 2. Validate password
+        if (!passwordEncoder.matches(rawPassword, userDetails.getPassword())) {
+            throw new BadCredentialsException("Invalid username or password");
+        }
+
+        // 3. Validate role allowed for this specific portal
+        boolean hasAllowedRole = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(allowedRoles::contains);
+
+        if (!hasAllowedRole) {
+            String detectedRole = userDetails.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .findFirst()
+                    .orElse("UNKNOWN");
+            throw new BadCredentialsException(portalErrorMessage + ":" + detectedRole);
+        }
+
+        return new UsernamePasswordAuthenticationToken(userDetails, userDetails.getPassword(), userDetails.getAuthorities());
     }
 
     @Override
     public boolean supports(Class<?> authentication) {
-        return delegate.supports(authentication);
+        return UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication);
     }
 }

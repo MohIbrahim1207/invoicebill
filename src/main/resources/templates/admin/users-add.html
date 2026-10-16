@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - InvoiceHub Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ff-blue: #0d6efd;
+            --ff-blue-dark: #0a58ca;
+            --ff-blue-light: #e7f1ff;
+            --ff-slate-bg: #f8f9fa;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f4f6f9;
+            color: #2b303a;
+        }
+        .user-mgmt-header {
+            background: linear-gradient(135deg, #ffffff 0%, #f0f4f9 100%);
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .stat-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #ffffff;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(13, 110, 253, 0.08) !important;
+        }
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+        }
+        .card-custom {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        }
+        .card-custom-header {
+            background: #ffffff;
+            border-bottom: 1px solid #edf2f7;
+            padding: 1.1rem 1.5rem;
+            border-top-left-radius: 14px;
+            border-top-right-radius: 14px;
+        }
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            padding: 0.55rem 0.85rem;
+            font-size: 0.925rem;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--ff-blue);
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+        }
+        .input-group-text {
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background-color: #f8fafc;
+        }
+        .btn-ff-primary {
+            background-color: var(--ff-blue);
+            color: #ffffff;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 0.6rem 1.25rem;
+            border: none;
+            transition: all 0.2s ease;
+        }
+        .btn-ff-primary:hover {
+            background-color: var(--ff-blue-dark);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
+        }
+        .role-badge {
+            font-weight: 600;
+            font-size: 0.75rem;
+            padding: 0.35em 0.75em;
+            border-radius: 6px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        .table-custom th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #64748b;
+            font-weight: 700;
+            background-color: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.85rem 1rem;
+        }
+        .table-custom td {
+            padding: 0.9rem 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9rem;
+        }
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            color: #64748b;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            transition: all 0.15s ease;
+        }
+        .action-btn:hover {
+            color: var(--ff-blue);
+            background: var(--ff-blue-light);
+            border-color: #bfdbfe;
+        }
+        .password-strength-meter {
+            height: 4px;
+            border-radius: 2px;
+            background-color: #e2e8f0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .password-strength-bar {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        .pagination-container .page-link {
+            border-radius: 6px;
+            margin: 0 2px;
+            color: #475569;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .pagination-container .page-item.active .page-link {
+            background-color: var(--ff-blue);
+            border-color: var(--ff-blue);
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: topbar('User Management')}"></div>
+
+<div class="container-fluid px-3 px-lg-5 py-4">
+
+    <!-- Page Header & Summary Cards Section -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 d-flex flex-wrap align-items-center justify-content-between gap-3 mb-1">
+            <div>
+                <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-people-fill text-primary me-2"></i>User Account Management</h4>
+                <p class="text-muted small mb-0">Create new staff credentials, manage roles, and review active portal accounts.</p>
+            </div>
+            <div>
+                <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm rounded-2"><i class="bi bi-arrow-left me-1"></i> Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Metric Summary Cards -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card p-3 shadow-sm d-flex align-items-center gap-3">
+                <div class="stat-icon bg-primary-subtle text-primary">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-semibold text-uppercase">Total Users</div>
+                    <div class="fs-4 fw-bold text-dark" id="statTotalUsers" th:text="${allUsers != null ? allUsers.size() : 0}">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <div class="stat-card p-3 shadow-sm d-flex align-items-center gap-3">
+                <div class="stat-icon bg-warning-subtle text-warning-emphasis">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-semibold text-uppercase">Accounts Staff</div>
+                    <div class="fs-4 fw-bold text-dark" th:text="${accountsCount}">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <div class="stat-card p-3 shadow-sm d-flex align-items-center gap-3">
+                <div class="stat-icon bg-dark-subtle text-dark">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-semibold text-uppercase">Administrators</div>
+                    <div class="fs-4 fw-bold text-dark" th:text="${adminCount}">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Grid: Add Form (Left/Top) & User Directory (Right/Bottom) -->
+    <div class="row g-4">
+
+        <!-- Add New Account Compact Form -->
+        <div class="col-12 col-xl-5">
+            <div class="card-custom">
+                <div class="card-custom-header d-flex align-items-center justify-content-between">
+                    <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-person-plus-fill me-2 text-primary"></i>Add New Account</h6>
+                    <span class="badge bg-primary-subtle text-primary">Form</span>
+                </div>
+                <div class="card-body p-4">
+
+                    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show small" role="alert">
+                        <i class="bi bi-check-circle-fill me-1"></i> <span th:text="${successMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show small" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> <span th:text="${errorMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+
+                    <form th:action="@{/admin/users/create}" method="post" id="createUserForm">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                        <div class="row g-3">
+                            <!-- Full Name -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-semibold small text-secondary">Full Name <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><i class="bi bi-person text-muted"></i></span>
+                                    <input type="text" name="fullName" class="form-control" placeholder="e.g. Jane Smith" required>
+                                </div>
+                            </div>
+
+                            <!-- Company Email -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-semibold small text-secondary">Company Email <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><i class="bi bi-envelope text-muted"></i></span>
+                                    <input type="email" name="email" class="form-control" placeholder="name@company.com" required>
+                                </div>
+                            </div>
+
+                            <!-- Initial Password -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-semibold small text-secondary">Initial Password <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><i class="bi bi-lock text-muted"></i></span>
+                                    <input type="password" name="password" id="inputPassword" class="form-control" placeholder="Min. 6 chars" required minlength="6" oninput="checkPasswordStrength(this.value)">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility()"><i class="bi bi-eye" id="toggleIcon"></i></button>
+                                </div>
+                                <div class="password-strength-meter mt-2">
+                                    <div class="password-strength-bar" id="strengthBar"></div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <span class="form-text text-muted small" style="font-size:0.75rem;" id="strengthText">Must be at least 6 characters.</span>
+                                </div>
+                            </div>
+
+                            <!-- Role Assignment -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-semibold small text-secondary">Role Assignment <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><i class="bi bi-shield-check text-muted"></i></span>
+                                    <select name="role" class="form-select" required>
+                                        <option value="ROLE_ACCOUNTS" selected>Accounts</option>
+                                        <option value="ROLE_VENDOR">Vendor</option>
+                                        <option th:if="${isSuperAdmin}" value="ROLE_ADMIN">Admin</option>
+                                        <option th:if="${isSuperAdmin}" value="ROLE_SUPER_ADMIN">Super Admin</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4 text-muted opacity-25">
+
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span class="text-muted small"><i class="bi bi-info-circle me-1"></i>User will log in using this email.</span>
+                            <button type="submit" class="btn btn-ff-primary btn-sm px-4">
+                                <i class="bi bi-check-lg me-1"></i> Create Account
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Registered Users Directory Table -->
+        <div class="col-12 col-xl-7">
+            <div class="card-custom h-100 d-flex flex-column">
+                <div class="card-custom-header">
+                    <div class="row align-items-center g-2">
+                        <div class="col-12 col-sm-4">
+                            <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-list-ul me-2 text-primary"></i>Registered Users</h6>
+                        </div>
+                        <div class="col-12 col-sm-8 d-flex gap-2 flex-wrap justify-content-sm-end">
+                            <!-- Search Input -->
+                            <div class="input-group input-group-sm" style="max-width: 220px;">
+                                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" id="userSearchInput" class="form-control" placeholder="Search name or email..." onkeyup="filterUserTable()">
+                            </div>
+                            <!-- Role Filter Select -->
+                            <select id="roleFilterSelect" class="form-select form-select-sm" style="max-width: 140px;" onchange="filterUserTable()">
+                                <option value="ALL" selected>All Roles</option>
+                                <option value="ACCOUNTS">Accounts</option>
+                                <option value="ADMIN">Admin</option>
+                                <option value="VENDOR">Vendor</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-0 flex-grow-1">
+                    <div class="table-responsive">
+                        <table class="table table-custom table-hover align-middle mb-0" id="userTable">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">User Details</th>
+                                    <th>Role</th>
+                                    <th>Created Date</th>
+                                    <th class="text-end pe-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody">
+                                <tr th:each="user : ${allUsers}" class="user-row"
+                                    th:id="'user-row-' + ${user.id}"
+                                    th:data-id="${user.id}"
+                                    th:data-name="${user.fullName != null && !user.fullName.isBlank() ? user.fullName : user.username}"
+                                    th:data-email="${user.email != null && !user.email.isBlank() ? user.email : user.username}"
+                                    th:data-role="${user.roles != null && !user.roles.isEmpty() ? user.roles[0].name : 'ROLE_ACCOUNTS'}"
+                                    th:data-enabled="${user.enabled}">
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="avatar-circle bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width:36px; height:36px; font-size:0.85rem;">
+                                                <span th:text="${user.fullName != null && !user.fullName.isBlank() ? #strings.substring(user.fullName, 0, 1) : 'U'}">U</span>
+                                            </div>
+                                            <div>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="fw-semibold text-dark user-name" th:text="${user.fullName != null && !user.fullName.isBlank() ? user.fullName : user.username}">Name</span>
+                                                    <span th:if="${!user.enabled}" class="badge bg-danger-subtle text-danger border border-danger-subtle user-disabled-tag" style="font-size:0.65rem;">Disabled</span>
+                                                </div>
+                                                <div class="small text-muted user-email" th:text="${user.email != null && !user.email.isBlank() ? user.email : user.username}">email@company.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span th:each="r : ${user.roles}" class="user-role-container">
+                                            <span th:if="${r.name == 'ROLE_EMPLOYEE'}" class="badge role-badge bg-primary-subtle text-primary border border-primary-subtle" data-role="EMPLOYEE">Employee</span>
+                                            <span th:if="${r.name == 'ROLE_MANAGER'}" class="badge role-badge bg-info-subtle text-info-emphasis border border-info-subtle" data-role="EMPLOYEE">Manager</span>
+                                            <span th:if="${r.name == 'ROLE_ACCOUNTS'}" class="badge role-badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" data-role="ACCOUNTS">Accounts</span>
+                                            <span th:if="${r.name == 'ROLE_ADMIN'}" class="badge role-badge bg-dark text-white" data-role="ADMIN">Admin</span>
+                                            <span th:if="${r.name == 'ROLE_SUPER_ADMIN'}" class="badge role-badge bg-danger text-white" data-role="ADMIN">Super Admin</span>
+                                            <span th:if="${r.name == 'ROLE_VENDOR'}" class="badge role-badge bg-secondary text-white" data-role="VENDOR">Vendor</span>
+                                        </span>
+                                    </td>
+                                    <td class="small text-muted">
+                                        <span th:if="${user.registrationDate != null}" th:text="${#temporals.format(user.registrationDate, 'dd MMM yyyy')}">Date</span>
+                                        <span th:unless="${user.registrationDate != null}">—</span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="d-inline-flex gap-1">
+                                            <button type="button" class="action-btn" title="Edit User" th:onclick="'openEditModal(' + ${user.id} + ')'"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="action-btn" title="Reset Password" th:onclick="'openResetPasswordModal(' + ${user.id} + ')'"><i class="bi bi-key"></i></button>
+                                            <button type="button" class="action-btn" th:title="${user.enabled ? 'Disable User' : 'Enable User'}" th:onclick="'openToggleStatusModal(' + ${user.id} + ')'">
+                                                <i class="bi" th:classappend="${user.enabled ? 'bi-slash-circle' : 'bi-check-circle text-success'}"></i>
+                                            </button>
+                                            <button type="button" class="action-btn text-danger" title="Delete User" th:onclick="'openDeleteModal(' + ${user.id} + ')'"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr id="noUsersRow" th:if="${#lists.isEmpty(allUsers)}">
+                                    <td colspan="4" class="text-center py-5 text-muted">
+                                        <i class="bi bi-people display-6 opacity-50 d-block mb-2"></i>
+                                        No registered users found matching your criteria.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Footer Pagination -->
+                <div class="card-footer bg-white border-top p-3 d-flex flex-wrap align-items-center justify-content-between gap-2 rounded-bottom-4">
+                    <div class="small text-muted" id="paginationInfo">Showing 1 to 10 of 10 users</div>
+                    <nav aria-label="Table pagination">
+                        <ul class="pagination pagination-sm mb-0 pagination-container" id="paginationControls">
+                            <!-- Generated via JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Toast Container for Notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+    <div id="liveToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body d-flex align-items-center gap-2" id="toastMessage">
+                <i class="bi bi-info-circle-fill fs-5" id="toastIcon"></i>
+                <span id="toastText">Action completed successfully.</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<!-- 1. Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h6 class="modal-title fw-bold" id="editUserModalLabel"><i class="bi bi-pencil-square me-2 text-primary"></i>Edit User Account</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-secondary">Full Name <span class="text-danger">*</span></label>
+                        <input type="text" id="editFullName" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-secondary">Company Email <span class="text-danger">*</span></label>
+                        <input type="email" id="editEmail" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-secondary">Role Assignment <span class="text-danger">*</span></label>
+                        <select id="editRole" class="form-select form-select-sm" required>
+                            <option value="ROLE_ACCOUNTS">Accounts</option>
+                            <option value="ROLE_VENDOR">Vendor</option>
+                            <option th:if="${isSuperAdmin}" value="ROLE_ADMIN">Admin</option>
+                            <option th:if="${isSuperAdmin}" value="ROLE_SUPER_ADMIN">Super Admin</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="editEnabled">
+                        <label class="form-check-label fw-semibold small text-secondary" for="editEnabled">Account Active (Enabled for login)</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-sm btn-light border" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-primary fw-bold px-3" id="btnSaveEdit" onclick="submitUserEdit()">
+                    <span class="spinner-border spinner-border-sm me-1 d-none" id="editSpinner" role="status"></span>
+                    <i class="bi bi-check-lg me-1" id="editCheckIcon"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h6 class="modal-title fw-bold" id="resetPasswordModalLabel"><i class="bi bi-key-fill me-2 text-warning"></i>Reset User Password</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-light border small text-secondary mb-3">
+                    Resetting password for <strong class="text-dark" id="resetUserDisplayName">User</strong>
+                </div>
+                <form id="resetPasswordForm">
+                    <input type="hidden" id="resetUserId">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-secondary">New Password <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-sm">
+                            <input type="password" id="resetNewPassword" class="form-control" placeholder="Min 6 characters" required minlength="6" oninput="checkModalPasswordStrength(this.value)">
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleModalPasswordVisibility('resetNewPassword', 'modalToggleIcon1')">
+                                <i class="bi bi-eye" id="modalToggleIcon1"></i>
+                            </button>
+                        </div>
+                        <div class="password-strength-meter mt-2">
+                            <div class="password-strength-bar" id="modalStrengthBar"></div>
+                        </div>
+                        <span class="form-text text-muted small" style="font-size:0.75rem;" id="modalStrengthText">Must be at least 6 characters.</span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-secondary">Confirm New Password <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-sm">
+                            <input type="password" id="resetConfirmPassword" class="form-control" placeholder="Re-enter new password" required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleModalPasswordVisibility('resetConfirmPassword', 'modalToggleIcon2')">
+                                <i class="bi bi-eye" id="modalToggleIcon2"></i>
+                            </button>
+                        </div>
+                        <div id="modalMatchError" class="text-danger small mt-1 d-none"><i class="bi bi-exclamation-circle me-1"></i> Passwords do not match.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-sm btn-light border" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-warning text-dark fw-bold px-3" id="btnSubmitResetPassword" onclick="submitResetPassword()">
+                    <span class="spinner-border spinner-border-sm me-1 d-none" id="resetSpinner" role="status"></span>
+                    <i class="bi bi-key me-1" id="resetKeyIcon"></i> Reset Password
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3. Toggle Status Modal -->
+<div class="modal fade" id="toggleStatusModal" tabindex="-1" aria-labelledby="toggleStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h6 class="modal-title fw-bold" id="toggleStatusModalTitle"><i class="bi bi-slash-circle me-2 text-warning"></i>Change User Status</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <input type="hidden" id="toggleStatusUserId">
+                <i class="bi bi-exclamation-circle text-warning display-5 d-block mb-3" id="toggleStatusIcon"></i>
+                <h6 class="fw-bold mb-2" id="toggleStatusHeading">Disable this user account?</h6>
+                <p class="text-muted small mb-0" id="toggleStatusDescription">This user will no longer be able to log in to InvoiceHub portal.</p>
+            </div>
+            <div class="modal-footer bg-light justify-content-center">
+                <button type="button" class="btn btn-sm btn-light border px-3" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-warning text-dark fw-bold px-4" id="btnSubmitToggleStatus" onclick="submitToggleStatus()">
+                    <span class="spinner-border spinner-border-sm me-1 d-none" id="toggleStatusSpinner" role="status"></span>
+                    <span id="toggleStatusBtnText">Confirm Change</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. Delete User Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h6 class="modal-title fw-bold" id="deleteUserModalLabel"><i class="bi bi-trash-fill me-2"></i>Delete User Account</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <input type="hidden" id="deleteUserId">
+                <i class="bi bi-exclamation-triangle-fill text-danger display-5 d-block mb-3"></i>
+                <h6 class="fw-bold mb-1" id="deleteUserName">Jane Smith</h6>
+                <div class="text-muted small mb-3" id="deleteUserEmail">jane@company.com</div>
+                <div class="alert alert-danger-subtle text-danger border border-danger-subtle p-2 small mb-0 rounded-2">
+                    <i class="bi bi-shield-exclamation me-1"></i> Warning: Deleting a user account is permanent and cannot be undone.
+                </div>
+            </div>
+            <div class="modal-footer bg-light justify-content-center">
+                <button type="button" class="btn btn-sm btn-light border px-3" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-danger fw-bold px-4" id="btnSubmitDelete" onclick="submitDeleteUser()">
+                    <span class="spinner-border spinner-border-sm me-1 d-none" id="deleteSpinner" role="status"></span>
+                    <i class="bi bi-trash me-1" id="deleteTrashIcon"></i> Delete User
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function getCsrfToken() {
+        const csrfInput = document.querySelector('input[name="_csrf"]');
+        return csrfInput ? csrfInput.value : '';
+    }
+
+    function showToast(message, isError = false) {
+        const toastEl = document.getElementById('liveToast');
+        const toastText = document.getElementById('toastText');
+        const toastIcon = document.getElementById('toastIcon');
+
+        toastText.innerText = message;
+        if (isError) {
+            toastEl.className = 'toast align-items-center text-white bg-danger border-0';
+            toastIcon.className = 'bi bi-exclamation-circle-fill fs-5';
+        } else {
+            toastEl.className = 'toast align-items-center text-white bg-success border-0';
+            toastIcon.className = 'bi bi-check-circle-fill fs-5';
+        }
+
+        const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+        toast.show();
+    }
+
+    function togglePasswordVisibility() {
+        const passwordInput = document.getElementById('inputPassword');
+        const toggleIcon = document.getElementById('toggleIcon');
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleIcon.classList.remove('bi-eye');
+            toggleIcon.classList.add('bi-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.classList.remove('bi-eye-slash');
+            toggleIcon.classList.add('bi-eye');
+        }
+    }
+
+    function toggleModalPasswordVisibility(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        }
+    }
+
+    function checkPasswordStrength(val) {
+        const bar = document.getElementById('strengthBar');
+        const text = document.getElementById('strengthText');
+        if (!val) {
+            bar.style.width = '0%';
+            text.innerText = 'Must be at least 6 characters.';
+            text.className = 'form-text text-muted small';
+            return;
+        }
+
+        if (val.length < 6) {
+            bar.style.width = '30%';
+            bar.style.backgroundColor = '#dc3545';
+            text.innerText = 'Weak: Minimum 6 characters required.';
+            text.className = 'form-text text-danger small';
+        } else if (val.length >= 6 && val.length < 10) {
+            bar.style.width = '65%';
+            bar.style.backgroundColor = '#ffc107';
+            text.innerText = 'Moderate password strength.';
+            text.className = 'form-text text-warning-emphasis small';
+        } else {
+            bar.style.width = '100%';
+            bar.style.backgroundColor = '#198754';
+            text.innerText = 'Strong password.';
+            text.className = 'form-text text-success small';
+        }
+    }
+
+    function checkModalPasswordStrength(val) {
+        const bar = document.getElementById('modalStrengthBar');
+        const text = document.getElementById('modalStrengthText');
+        if (!val) {
+            bar.style.width = '0%';
+            text.innerText = 'Must be at least 6 characters.';
+            text.className = 'form-text text-muted small';
+            return;
+        }
+
+        if (val.length < 6) {
+            bar.style.width = '30%';
+            bar.style.backgroundColor = '#dc3545';
+            text.innerText = 'Weak: Minimum 6 characters required.';
+            text.className = 'form-text text-danger small';
+        } else if (val.length >= 6 && val.length < 10) {
+            bar.style.width = '65%';
+            bar.style.backgroundColor = '#ffc107';
+            text.innerText = 'Moderate password strength.';
+            text.className = 'form-text text-warning-emphasis small';
+        } else {
+            bar.style.width = '100%';
+            bar.style.backgroundColor = '#198754';
+            text.innerText = 'Strong password.';
+            text.className = 'form-text text-success small';
+        }
+    }
+
+    // 1. Edit User Modal & Submit
+    function openEditModal(userId) {
+        const row = document.getElementById('user-row-' + userId);
+        if (!row) return;
+
+        document.getElementById('editUserId').value = userId;
+        document.getElementById('editFullName').value = row.getAttribute('data-name') || '';
+        document.getElementById('editEmail').value = row.getAttribute('data-email') || '';
+        document.getElementById('editRole').value = row.getAttribute('data-role') || 'ROLE_ACCOUNTS';
+        document.getElementById('editEnabled').checked = row.getAttribute('data-enabled') === 'true';
+
+        const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+        modal.show();
+    }
+
+    async function submitUserEdit() {
+        const userId = document.getElementById('editUserId').value;
+        const fullName = document.getElementById('editFullName').value.trim();
+        const email = document.getElementById('editEmail').value.trim();
+        const role = document.getElementById('editRole').value;
+        const enabled = document.getElementById('editEnabled').checked;
+
+        if (!fullName || !email) {
+            showToast('Full name and email are required.', true);
+            return;
+        }
+
+        const btn = document.getElementById('btnSaveEdit');
+        const spinner = document.getElementById('editSpinner');
+        const checkIcon = document.getElementById('editCheckIcon');
+
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        checkIcon.classList.add('d-none');
+
+        try {
+            const formData = new URLSearchParams();
+            formData.append('fullName', fullName);
+            formData.append('email', email);
+            formData.append('role', role);
+            formData.append('enabled', enabled);
+
+            const res = await fetch(`/admin/users/${userId}/update`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-TOKEN': getCsrfToken()
+                },
+                body: formData
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                showToast(data.message || 'User updated successfully.');
+                const modalEl = document.getElementById('editUserModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+
+                // Update DOM row
+                const row = document.getElementById('user-row-' + userId);
+                if (row) {
+                    row.setAttribute('data-name', fullName);
+                    row.setAttribute('data-email', email);
+                    row.setAttribute('data-role', role);
+                    row.setAttribute('data-enabled', enabled);
+
+                    const nameEl = row.querySelector('.user-name');
+                    if (nameEl) nameEl.innerText = fullName;
+
+                    const emailEl = row.querySelector('.user-email');
+                    if (emailEl) emailEl.innerText = email;
+
+                    const disabledTag = row.querySelector('.user-disabled-tag');
+                    if (!enabled) {
+                        if (!disabledTag && nameEl) {
+                            nameEl.insertAdjacentHTML('afterend', '<span class="badge bg-danger-subtle text-danger border border-danger-subtle user-disabled-tag" style="font-size:0.65rem;">Disabled</span>');
+                        }
+                    } else if (disabledTag) {
+                        disabledTag.remove();
+                    }
+                }
+                renderTable();
+            } else {
+                showToast(data.error || 'Failed to update user.', true);
+            }
+        } catch (e) {
+            showToast('Network error while updating user: ' + e.message, true);
+        } finally {
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+            checkIcon.classList.remove('d-none');
+        }
+    }
+
+    // 2. Reset Password Modal & Submit
+    function openResetPasswordModal(userId) {
+        const row = document.getElementById('user-row-' + userId);
+        if (!row) return;
+
+        document.getElementById('resetUserId').value = userId;
+        document.getElementById('resetUserDisplayName').innerText = row.getAttribute('data-name') + ' (' + row.getAttribute('data-email') + ')';
+        document.getElementById('resetNewPassword').value = '';
+        document.getElementById('resetConfirmPassword').value = '';
+        document.getElementById('modalMatchError').classList.add('d-none');
+
+        const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+        modal.show();
+    }
+
+    async function submitResetPassword() {
+        const userId = document.getElementById('resetUserId').value;
+        const pass1 = document.getElementById('resetNewPassword').value;
+        const pass2 = document.getElementById('resetConfirmPassword').value;
+        const matchError = document.getElementById('modalMatchError');
+
+        if (!pass1 || pass1.length < 6) {
+            showToast('Password must be at least 6 characters long.', true);
+            return;
+        }
+
+        if (pass1 !== pass2) {
+            matchError.classList.remove('d-none');
+            return;
+        }
+        matchError.classList.add('d-none');
+
+        const btn = document.getElementById('btnSubmitResetPassword');
+        const spinner = document.getElementById('resetSpinner');
+        const keyIcon = document.getElementById('resetKeyIcon');
+
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        keyIcon.classList.add('d-none');
+
+        try {
+            const formData = new URLSearchParams();
+            formData.append('password', pass1);
+
+            const res = await fetch(`/admin/users/${userId}/reset-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-TOKEN': getCsrfToken()
+                },
+                body: formData
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast(data.message || 'Password reset successfully.');
+                const modalEl = document.getElementById('resetPasswordModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            } else {
+                showToast(data.error || 'Failed to reset password.', true);
+            }
+        } catch (e) {
+            showToast('Error resetting password: ' + e.message, true);
+        } finally {
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+            keyIcon.classList.remove('d-none');
+        }
+    }
+
+    // 3. Toggle User Status Modal & Submit
+    function openToggleStatusModal(userId) {
+        const row = document.getElementById('user-row-' + userId);
+        if (!row) return;
+
+        const isCurrentlyEnabled = row.getAttribute('data-enabled') === 'true';
+        document.getElementById('toggleStatusUserId').value = userId;
+
+        const heading = document.getElementById('toggleStatusHeading');
+        const desc = document.getElementById('toggleStatusDescription');
+        const btnText = document.getElementById('toggleStatusBtnText');
+        const icon = document.getElementById('toggleStatusIcon');
+
+        if (isCurrentlyEnabled) {
+            heading.innerText = 'Disable this user account?';
+            desc.innerText = 'This user will no longer be able to log in to InvoiceHub portal.';
+            btnText.innerText = 'Disable Account';
+            icon.className = 'bi bi-slash-circle text-warning display-5 d-block mb-3';
+        } else {
+            heading.innerText = 'Enable this user account?';
+            desc.innerText = 'This user will regain active login access to InvoiceHub portal.';
+            btnText.innerText = 'Enable Account';
+            icon.className = 'bi bi-check-circle text-success display-5 d-block mb-3';
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('toggleStatusModal'));
+        modal.show();
+    }
+
+    async function submitToggleStatus() {
+        const userId = document.getElementById('toggleStatusUserId').value;
+        const btn = document.getElementById('btnSubmitToggleStatus');
+        const spinner = document.getElementById('toggleStatusSpinner');
+
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+
+        try {
+            const res = await fetch(`/admin/users/${userId}/toggle-status`, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': getCsrfToken() }
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast(data.message || 'User status updated successfully.');
+                const modalEl = document.getElementById('toggleStatusModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+
+                const row = document.getElementById('user-row-' + userId);
+                if (row) {
+                    row.setAttribute('data-enabled', data.enabled);
+                    const nameEl = row.querySelector('.user-name');
+                    const disabledTag = row.querySelector('.user-disabled-tag');
+                    if (!data.enabled) {
+                        if (!disabledTag && nameEl) {
+                            nameEl.insertAdjacentHTML('afterend', '<span class="badge bg-danger-subtle text-danger border border-danger-subtle user-disabled-tag" style="font-size:0.65rem;">Disabled</span>');
+                        }
+                    } else if (disabledTag) {
+                        disabledTag.remove();
+                    }
+                }
+                renderTable();
+            } else {
+                showToast(data.error || 'Failed to update user status.', true);
+            }
+        } catch (e) {
+            showToast('Error changing user status: ' + e.message, true);
+        } finally {
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+        }
+    }
+
+    // 4. Delete User Modal & Submit
+    function openDeleteModal(userId) {
+        const row = document.getElementById('user-row-' + userId);
+        if (!row) return;
+
+        document.getElementById('deleteUserId').value = userId;
+        document.getElementById('deleteUserName').innerText = row.getAttribute('data-name');
+        document.getElementById('deleteUserEmail').innerText = row.getAttribute('data-email');
+
+        const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+        modal.show();
+    }
+
+    async function submitDeleteUser() {
+        const userId = document.getElementById('deleteUserId').value;
+        const btn = document.getElementById('btnSubmitDelete');
+        const spinner = document.getElementById('deleteSpinner');
+        const trashIcon = document.getElementById('deleteTrashIcon');
+
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        trashIcon.classList.add('d-none');
+
+        try {
+            const res = await fetch(`/admin/users/${userId}`, {
+                method: 'DELETE',
+                headers: { 'X-CSRF-TOKEN': getCsrfToken() }
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast(data.message || 'User deleted successfully.');
+                const modalEl = document.getElementById('deleteUserModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+
+                const row = document.getElementById('user-row-' + userId);
+                if (row) row.remove();
+
+                // Update Total User Stat Counter
+                const statTotal = document.getElementById('statTotalUsers');
+                if (statTotal) {
+                    let currentCount = parseInt(statTotal.innerText) || 0;
+                    statTotal.innerText = Math.max(0, currentCount - 1);
+                }
+
+                renderTable();
+            } else {
+                showToast(data.error || 'Failed to delete user.', true);
+            }
+        } catch (e) {
+            showToast('Error deleting user: ' + e.message, true);
+        } finally {
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+            trashIcon.classList.remove('d-none');
+        }
+    }
+
+    // 5 & 6 & 7. Client-side Filter & Pagination
+    let currentPage = 1;
+    const rowsPerPage = 7;
+
+    function filterUserTable() {
+        currentPage = 1;
+        renderTable();
+    }
+
+    function renderTable() {
+        const searchVal = document.getElementById('userSearchInput').value.toLowerCase().trim();
+        const roleVal = document.getElementById('roleFilterSelect').value;
+        const allRows = document.querySelectorAll('.user-row');
+        let visibleRows = [];
+
+        allRows.forEach(row => {
+            const name = (row.getAttribute('data-name') || '').toLowerCase();
+            const email = (row.getAttribute('data-email') || '').toLowerCase();
+            const roleBadges = row.querySelectorAll('.user-role-container [data-role]');
+
+            let matchesSearch = !searchVal || name.includes(searchVal) || email.includes(searchVal);
+            let matchesRole = roleVal === 'ALL';
+
+            if (roleVal !== 'ALL') {
+                roleBadges.forEach(badge => {
+                    if (badge.getAttribute('data-role') === roleVal) {
+                        matchesRole = true;
+                    }
+                });
+            }
+
+            if (matchesSearch && matchesRole) {
+                visibleRows.push(row);
+            }
+            row.style.display = 'none';
+        });
+
+        const totalItems = visibleRows.length;
+        const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
+
+        if (currentPage > totalPages) currentPage = totalPages;
+        const startIdx = (currentPage - 1) * rowsPerPage;
+        const endIdx = startIdx + rowsPerPage;
+
+        visibleRows.slice(startIdx, endIdx).forEach(row => {
+            row.style.display = '';
+        });
+
+        // Update Pagination Info Text
+        const infoEl = document.getElementById('paginationInfo');
+        if (totalItems === 0) {
+            infoEl.innerText = 'Showing 0 users';
+        } else {
+            infoEl.innerText = `Showing ${startIdx + 1} to ${Math.min(endIdx, totalItems)} of ${totalItems} users`;
+        }
+
+        // Render Pagination Controls
+        const paginationControls = document.getElementById('paginationControls');
+        paginationControls.innerHTML = '';
+
+        if (totalPages > 1) {
+            let prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Prev</a>`;
+            paginationControls.appendChild(prevLi);
+
+            for (let i = 1; i <= totalPages; i++) {
+                let pageLi = document.createElement('li');
+                pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                pageLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
+                paginationControls.appendChild(pageLi);
+            }
+
+            let nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
+            paginationControls.appendChild(nextLi);
+        }
+    }
+
+    function changePage(page) {
+        currentPage = page;
+        renderTable();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderTable();
+    });
+</script>
+</body>
+</html>

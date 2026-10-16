@@ -97,7 +97,7 @@
                 <!-- SockJS and STOMP CDNs -->
                 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
-                
+
                 <!-- Custom Premium Toast Styles -->
                 <style>
                     .custom-toast-container {
@@ -109,10 +109,11 @@
                         flex-direction: column;
                         gap: 12px;
                     }
+
                     .custom-toast {
                         background: var(--portal-card-bg, #ffffff);
                         border-left: 4px solid var(--bs-primary, #0d6efd);
-                        box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+                        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
                         border-radius: 8px;
                         padding: 16px 20px;
                         color: var(--portal-text, #333333);
@@ -122,31 +123,37 @@
                         transform: translateX(120%);
                         transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
                         width: 360px;
-                        border-top: 1px solid rgba(0,0,0,0.05);
-                        border-bottom: 1px solid rgba(0,0,0,0.05);
-                        border-right: 1px solid rgba(0,0,0,0.05);
+                        border-top: 1px solid rgba(0, 0, 0, 0.05);
+                        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+                        border-right: 1px solid rgba(0, 0, 0, 0.05);
                     }
+
                     .custom-toast.show {
                         transform: translateX(0);
                     }
+
                     .custom-toast-icon {
                         font-size: 1.35rem;
                         color: var(--bs-primary, #0d6efd);
                         margin-top: 2px;
                     }
+
                     .custom-toast-content {
                         flex-grow: 1;
                     }
+
                     .custom-toast-title {
                         font-weight: 700;
                         font-size: 0.92rem;
                         margin-bottom: 4px;
                     }
+
                     .custom-toast-msg {
                         font-size: 0.82rem;
                         color: var(--portal-text-muted, #666666);
                         line-height: 1.4;
                     }
+
                     .custom-toast-close {
                         cursor: pointer;
                         color: #bbb;
@@ -156,11 +163,12 @@
                         padding: 0;
                         margin-top: 2px;
                     }
+
                     .custom-toast-close:hover {
                         color: #555;
                     }
                 </style>
-                
+
                 <div class="custom-toast-container" id="toastContainer"></div>
 
                 <script>
@@ -173,10 +181,10 @@
                     function escapeHtml(str) {
                         if (!str) return '';
                         return str.replace(/&/g, "&amp;")
-                                  .replace(/</g, "&lt;")
-                                  .replace(/>/g, "&gt;")
-                                  .replace(/"/g, "&quot;")
-                                  .replace(/'/g, "&#039;");
+                            .replace(/</g, "&lt;")
+                            .replace(/>/g, "&gt;")
+                            .replace(/"/g, "&quot;")
+                            .replace(/'/g, "&#039;");
                     }
 
                     function playChime() {
@@ -187,21 +195,21 @@
                             const osc1 = ctx.createOscillator();
                             const osc2 = ctx.createOscillator();
                             const gainNode = ctx.createGain();
-                            
+
                             osc1.type = 'sine';
                             osc1.frequency.setValueAtTime(880, ctx.currentTime);
-                            
+
                             osc2.type = 'sine';
                             osc2.frequency.setValueAtTime(1320, ctx.currentTime);
-                            
+
                             gainNode.gain.setValueAtTime(0, ctx.currentTime);
                             gainNode.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.05);
                             gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
-                            
+
                             osc1.connect(gainNode);
                             osc2.connect(gainNode);
                             gainNode.connect(ctx.destination);
-                            
+
                             osc1.start();
                             osc2.start();
                             osc1.stop(ctx.currentTime + 0.6);
@@ -214,7 +222,7 @@
                     function showCustomToast(title, message) {
                         const container = document.getElementById('toastContainer');
                         if (!container) return;
-                        
+
                         const toast = document.createElement('div');
                         toast.className = 'custom-toast';
                         toast.innerHTML = `
@@ -225,10 +233,10 @@
                             </div>
                             <button class="custom-toast-close" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button>
                         `;
-                        
+
                         container.appendChild(toast);
                         setTimeout(() => toast.classList.add('show'), 50);
-                        
+
                         // Auto dismiss after 6 seconds
                         setTimeout(() => {
                             toast.classList.remove('show');
@@ -245,13 +253,13 @@
                             method: 'POST',
                             headers: headers
                         })
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.status === 'success') {
-                                loadNotifications();
-                            }
-                        })
-                        .catch(err => console.error('Error marking read:', err));
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    loadNotifications();
+                                }
+                            })
+                            .catch(err => console.error('Error marking read:', err));
                     }
 
                     function loadNotifications() {
@@ -260,7 +268,7 @@
                             .then(data => {
                                 const notificationList = document.getElementById('notificationList');
                                 const unreadBadge = document.getElementById('unreadBadge');
-                                
+
                                 const list = data.content;
                                 if (list && list.length > 0) {
                                     let html = '<div class="list-group list-group-flush">';
@@ -316,22 +324,22 @@
                         loadNotifications();
                     }
 
-                    document.addEventListener('DOMContentLoaded', function() {
+                    document.addEventListener('DOMContentLoaded', function () {
                         loadNotifications();
-                        
+
                         // Subscribe to admin WebSocket if user is ADMIN
-                        const isAdmin = [[${#authorization.expression('hasRole("ROLE_ADMIN")')}]];
+                        const isAdmin = [[${ #authorization.expression('hasRole("ROLE_ADMIN")') }]];
                         if (isAdmin) {
                             try {
                                 const socket = new SockJS('/ws');
                                 const stompClient = Stomp.over(socket);
                                 stompClient.debug = null;
-                                stompClient.connect({}, function(frame) {
-                                    stompClient.subscribe('/topic/admin-notifications', function(message) {
+                                stompClient.connect({}, function (frame) {
+                                    stompClient.subscribe('/topic/admin-notifications', function (message) {
                                         const notif = JSON.parse(message.body);
                                         handleIncomingNotification(notif);
                                     });
-                                }, function(err) {
+                                }, function (err) {
                                     console.warn('STOMP connection failed, retrying in 10s', err);
                                 });
                             } catch (e) {
@@ -404,7 +412,13 @@
             sec:authorize="hasRole('ADMIN')">
             <i class="bi bi-person-badge"></i> <span th:text="#{sidebar.vendor.verification}">Vendor Verification</span>
         </a>
+        <a href="/admin/ai-quote-converter" class="sidebar-link"
+            th:classappend="${active == 'ai-quote-converter'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')">
             <i class="bi bi-cpu"></i> <span>AI Quote Converter</span>
+        </a>
+        <a href="/admin/users/add" class="sidebar-link" th:classappend="${active == 'users-add'} ? ' active' : ''"
+            sec:authorize="hasRole('ADMIN')">
+            <i class="bi bi-person-plus"></i> <span>Add User</span>
         </a>
         <a href="/admin/audit-logs" class="sidebar-link" th:classappend="${active == 'audit-logs'} ? ' active' : ''"
             sec:authorize="hasRole('ADMIN')">
@@ -422,9 +436,8 @@
             <div class="d-flex flex-column">
                 <a href="/invoice" class="sidebar-link" th:classappend="${active == 'billing'} ? ' active' : ''"><i
                         class="bi bi-receipt-cutoff"></i> <span th:text="#{sidebar.billing}">Billing Intake</span></a>
-                <a href="/admin/reports" class="sidebar-link"
-                    th:classappend="${active == 'reports'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i
-                        class="bi bi-bar-chart-line"></i> <span>Reports</span></a>
+                <a href="/admin/reports" class="sidebar-link" th:classappend="${active == 'reports'} ? ' active' : ''"
+                    sec:authorize="hasRole('ADMIN')"><i class="bi bi-bar-chart-line"></i> <span>Reports</span></a>
                 <a href="/notifications" class="sidebar-link"
                     th:classappend="${active == 'notifications'} ? ' active' : ''"><i class="bi bi-bell"></i> <span
                         th:text="#{sidebar.notifications}">Notifications</span></a>
@@ -443,7 +456,12 @@
                 <a href="/admin/vendors" class="sidebar-link" th:classappend="${active == 'vendors'} ? ' active' : ''"
                     sec:authorize="hasRole('ADMIN')"><i class="bi bi-person-badge"></i> <span
                         th:text="#{sidebar.vendor.verification}">Vendor Verification</span></a>
-                        class="bi bi-cpu"></i> <span>AI Quote Converter</span></a>
+                <a href="/admin/ai-quote-converter" class="sidebar-link"
+                    th:classappend="${active == 'ai-quote-converter'} ? ' active' : ''"
+                    sec:authorize="hasRole('ADMIN')"><i class="bi bi-cpu"></i> <span>AI Quote Converter</span></a>
+                <a href="/admin/users/add" class="sidebar-link"
+                    th:classappend="${active == 'users-add'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i
+                        class="bi bi-person-plus"></i> <span>Add User</span></a>
                 <a href="/admin/audit-logs" class="sidebar-link"
                     th:classappend="${active == 'audit-logs'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i
                         class="bi bi-shield-check"></i> <span>Audit Log</span></a>

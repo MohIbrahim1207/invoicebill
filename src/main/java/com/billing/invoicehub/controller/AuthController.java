@@ -61,10 +61,10 @@ public class AuthController {
         this.aiQuoteConversionService = aiQuoteConversionService;
     }
 
-    @GetMapping(value = { "/login" })
+    @GetMapping(value = { "/login", "/vendor/login" })
     public String login(Authentication authentication) {
         if (this.isAuthenticated(authentication)) {
-            return this.hasRole(authentication, "ROLE_ADMIN") ? "redirect:/admin/dashboard" : "redirect:/invoice";
+            return redirectUserToDashboard(authentication);
         }
         return "login";
     }
@@ -72,9 +72,22 @@ public class AuthController {
     @GetMapping(value = { "/admin/login" })
     public String adminLogin(Authentication authentication) {
         if (this.isAuthenticated(authentication)) {
-            return this.hasRole(authentication, "ROLE_ADMIN") ? "redirect:/admin/dashboard" : "redirect:/invoice";
+            return redirectUserToDashboard(authentication);
         }
         return "admin-login";
+    }
+
+    private String redirectUserToDashboard(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "redirect:/vendor/login";
+        }
+        for (org.springframework.security.core.GrantedAuthority authority : authentication.getAuthorities()) {
+            String role = authority.getAuthority();
+            if ("ROLE_SUPER_ADMIN".equalsIgnoreCase(role) || "ROLE_ADMIN".equalsIgnoreCase(role) || "ROLE_ACCOUNTS".equalsIgnoreCase(role)) {
+                return "redirect:/admin/dashboard";
+            }
+        }
+        return "redirect:/invoice";
     }
 
     @GetMapping(value = { "/signup", "/register" })
@@ -109,7 +122,8 @@ public class AuthController {
             log.info("Vendor registration successful for: {}", form.getUsername());
             return ResponseEntity.ok(Map.of("success", true, "redirect", "/login?pendingVerification=true"));
         } catch (DataIntegrityViolationException ex) {
-            log.warn("Database integrity violation during vendor registration for username {}: {}", form.getUsername(), ex.getMessage());
+            log.warn("Database integrity violation during vendor registration for username {}: {}", form.getUsername(),
+                    ex.getMessage());
             Map<String, String> errors = new HashMap<>();
             errors.put("global", "A registration with this username, email, or GST Number already exists.");
             return ResponseEntity.badRequest().body(Map.of("success", false, "errors", errors));

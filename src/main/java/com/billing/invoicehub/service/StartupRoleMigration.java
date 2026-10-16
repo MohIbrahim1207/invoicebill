@@ -58,6 +58,13 @@ public class StartupRoleMigration implements ApplicationRunner {
             }
 
             try {
+                jdbc.execute("DELETE FROM app_roles WHERE name = 'ROLE_MANAGER'");
+                log.info("Successfully removed ROLE_MANAGER from app_roles");
+            } catch (Exception e) {
+                log.debug("Could not delete ROLE_MANAGER from app_roles: {}", e.getMessage());
+            }
+
+            try {
                 jdbc.execute("ALTER TABLE notification MODIFY COLUMN type VARCHAR(50)");
                 log.info("Successfully updated notification.type to VARCHAR(50)");
             } catch (Exception e) {
@@ -84,10 +91,10 @@ public class StartupRoleMigration implements ApplicationRunner {
                 Long vendorRoleId = null;
                 Long userRoleId = null;
                 try {
-                    vendorRoleId = jdbc.queryForObject("SELECT id FROM app_roles WHERE name = ?", Long.class, "ROLE_VENDOR");
+                    vendorRoleId = jdbc.queryForObject("SELECT MIN(id) FROM app_roles WHERE name = ?", Long.class, "ROLE_VENDOR");
                 } catch (Exception e) {}
                 try {
-                    userRoleId = jdbc.queryForObject("SELECT id FROM app_roles WHERE name = ?", Long.class, "ROLE_USER");
+                    userRoleId = jdbc.queryForObject("SELECT MIN(id) FROM app_roles WHERE name = ?", Long.class, "ROLE_USER");
                 } catch (Exception e) {}
 
                 if (vendorRoleId != null && userRoleId != null) {

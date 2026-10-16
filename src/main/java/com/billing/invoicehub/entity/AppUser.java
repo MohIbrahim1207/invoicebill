@@ -18,11 +18,12 @@ public class AppUser {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @jakarta.persistence.Column(unique = true)
+    @jakarta.persistence.Column(nullable = false)
     private String username;
     private String password;
-    @jakarta.persistence.Column(unique = true)
     private String email;
+    @jakarta.persistence.Column(name = "user_domain", nullable = false)
+    private String userDomain = "INTERNAL";
     private boolean enabled;
     private boolean verified;
     private String vendorCode;
@@ -206,5 +207,13 @@ public class AppUser {
 
     public void setRoles(Set<AppRole> roles) {
         this.roles = roles;
+    }
+
+    public String getUserDomain() {
+        return this.userDomain;
+    }
+
+    public void setUserDomain(String userDomain) {
+        this.userDomain = userDomain;
     }
 }

@@ -12,6 +12,7 @@ public class AppRole {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @jakarta.persistence.Column(name = "name", nullable = false, unique = true)
     private String name;
 
     public Long getId() {

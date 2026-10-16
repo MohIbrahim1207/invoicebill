@@ -1,47 +1,40 @@
 package com.billing.invoicehub.config;
 
+import com.billing.invoicehub.entity.PortalType;
 import com.billing.invoicehub.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
+import java.util.Set;
+
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    /**
-     * When {@code false} (set via {@code csrf.enabled=false} in test properties),
-     * CSRF protection is disabled for integration tests so that MockMvc's
-     * {@code csrf()} RequestPostProcessor does not cause session-reuse issues.
-     */
-    @Value("${csrf.enabled:true}")
+    @Value("${app.security.csrf.enabled:true}")
     private boolean csrfEnabled;
-
-    // ─── Shared infrastructure ────────────────────────────────────────────────
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
     }
 
-    /**
-     * Base DAO provider — only verifies username/password.
-     * NOT registered directly into any filter chain; wrapped by portal-aware providers below.
-     */
-    private DaoAuthenticationProvider baseDaoProvider(CustomUserDetailsService userDetailsService,
+    @Bean
+    public DaoAuthenticationProvider baseDaoProvider(CustomUserDetailsService userDetailsService,
                                                        PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService);
@@ -52,7 +45,7 @@ public class SecurityConfig {
     // ─── Security filter chains ───────────────────────────────────────────────
 
     /**
-     * Admin portal chain — handles /admin/** exclusively.
+     * Portal 3: Admin portal chain — handles /admin/** exclusively.
      * Processing URL: POST /admin/authenticate
      */
     @Bean
@@ -66,9 +59,12 @@ public class SecurityConfig {
             PasswordEncoder passwordEncoder) throws Exception {
 
         AuthenticationProvider adminProvider = new PortalAwareAuthenticationProvider(
-                baseDaoProvider(userDetailsService, passwordEncoder),
-                "ROLE_ADMIN",
-                RoleBasedAuthenticationFailureHandler.MSG_VENDOR_ON_ADMIN_PORTAL);
+                userDetailsService,
+                passwordEncoder,
+                PortalType.ADMIN,
+                "INTERNAL",
+                Set.of("ROLE_ADMIN", "ROLE_ACCOUNTS", "ROLE_SUPER_ADMIN"),
+                RoleBasedAuthenticationFailureHandler.MSG_NON_ADMIN_ON_ADMIN_PORTAL);
 
         http.securityMatcher("/admin/**")
                 .authenticationManager(new ProviderManager(adminProvider))
@@ -76,7 +72,7 @@ public class SecurityConfig {
                         .requestMatchers("/admin/login", "/admin/authenticate",
                                 "/error", "/css/**", "/js/**", "/favicon.ico")
                         .permitAll()
-                        .anyRequest().hasRole("ADMIN"))
+                        .anyRequest().hasAnyRole("ADMIN", "ACCOUNTS", "SUPER_ADMIN"))
                 .formLogin(form -> form
                         .loginPage("/admin/login")
                         .loginProcessingUrl("/admin/authenticate")
@@ -106,7 +102,7 @@ public class SecurityConfig {
     }
 
     /**
-     * Vendor/application portal chain — handles all non-admin routes.
+     * Portal 1: Vendor / App portal chain — handles all other non-admin routes.
      * Processing URL: POST /vendor/authenticate
      */
     @Bean
@@ -120,15 +116,19 @@ public class SecurityConfig {
             PasswordEncoder passwordEncoder) throws Exception {
 
         AuthenticationProvider vendorProvider = new PortalAwareAuthenticationProvider(
-                baseDaoProvider(userDetailsService, passwordEncoder),
-                "ROLE_VENDOR",
-                RoleBasedAuthenticationFailureHandler.MSG_ADMIN_ON_VENDOR_PORTAL);
+                userDetailsService,
+                passwordEncoder,
+                PortalType.VENDOR,
+                "VENDOR",
+                Set.of("ROLE_VENDOR"),
+                RoleBasedAuthenticationFailureHandler.MSG_WRONG_PORTAL);
 
         http.authenticationManager(new ProviderManager(vendorProvider))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/",
                                 "/login",
+                                "/vendor/login",
                                 "/vendor/authenticate",
                                 "/signup",
                                 "/register",
@@ -145,16 +145,13 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/favicon.ico")
                         .permitAll()
-                        .requestMatchers("/api/purchase-orders/**").authenticated()
-                        // Admin-only within the app chain
                         .requestMatchers("/clients", "/clients/**", "/saveClient", "/updateClient", "/deleteClient/**", "/dashboard").hasRole("ADMIN")
-                        // Vendor-only routes — corrected from ROLE_USER to ROLE_VENDOR
                         .requestMatchers("/vendor-tickets", "/vendor-tickets/**").hasRole("VENDOR")
                         .requestMatchers("/invoice", "/invoice/**",
                                 "/saveInvoice", "/updateInvoice", "/deleteInvoice/**").hasRole("VENDOR")
                         .anyRequest().authenticated())
                 .formLogin(form -> form
-                        .loginPage("/login")
+                        .loginPage("/vendor/login")
                         .loginProcessingUrl("/vendor/authenticate")
                         .successHandler(successHandler)
                         .failureHandler(failureHandler)
@@ -162,7 +159,7 @@ public class SecurityConfig {
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessHandler(logoutSuccessHandler))
-                .exceptionHandling(ex -> ex.accessDeniedPage("/login?denied=true"))
+                .exceptionHandling(ex -> ex.accessDeniedPage("/vendor/login?denied=true"))
                 .csrf(csrfEnabled ? Customizer.withDefaults() : AbstractHttpConfigurer::disable)
                 .headers(headers -> headers
                         .frameOptions(frame -> frame.sameOrigin())

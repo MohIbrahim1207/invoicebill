@@ -40,8 +40,14 @@ implements AuthenticationSuccessHandler {
                     .collect(java.util.stream.Collectors.joining(","));
             auditLogService.log(username, role, "Login", null, null, null, "User successfully logged in");
         }
+        boolean isSuperAdmin = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch("ROLE_SUPER_ADMIN"::equals);
         boolean isAdmin = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch("ROLE_ADMIN"::equals);
-        String targetUrl = isAdmin ? "/admin/dashboard" : "/invoice";
+        boolean isAccounts = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch("ROLE_ACCOUNTS"::equals);
+
+        String targetUrl = "/invoice";
+        if (isSuperAdmin || isAdmin || isAccounts) {
+            targetUrl = "/admin/dashboard";
+        }
         response.sendRedirect(request.getContextPath() + targetUrl);
     }
 }

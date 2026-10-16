@@ -21,27 +21,17 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Integration tests verifying strict portal-role separation.
- *
- * <p>Each test creates a genuinely clean {@link MockHttpSession} — explicitly setting the
- * {@code SPRING_SECURITY_CONTEXT} attribute to {@code null} so Spring Security's
- * {@link HttpSessionSecurityContextRepository} cannot find a pre-existing authenticated
- * context and thus is forced to run the authentication filter chain.</p>
- *
- * <ol>
- *   <li>Admin via Vendor portal  → rejected, redirected to /login?error=admin_portal</li>
- *   <li>Vendor via Admin portal  → rejected, redirected to /admin/login?error=vendor_portal</li>
- *   <li>Admin via Admin portal   → success, redirected to /admin/dashboard</li>
- *   <li>Vendor via Vendor portal → success, redirected to /invoice</li>
- * </ol>
+ * Integration tests verifying domain-scoped separation (VENDOR vs INTERNAL).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
+@org.springframework.test.context.TestPropertySource(properties = {"rate-limiting.enabled=false"})
 class PortalSeparationIntegrationTest {
 
     @Autowired
@@ -56,82 +46,122 @@ class PortalSeparationIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private static final String ADMIN_USERNAME = "ptst_admin_portal";
-    private static final String VENDOR_USERNAME = "ptst_vendor_portal";
+    private static final String ADMIN_USERNAME = "3p_admin_portal";
+    private static final String VENDOR_USERNAME = "3p_vendor_portal";
+    private static final String ACCOUNTS_USERNAME = "3p_accounts_portal";
     private static final String PLAIN_PASSWORD  = "TestPassword123!";
+
+    private static final String DUAL_EMAIL = "john.dual@domain.test";
 
     @BeforeEach
     void seedUsers() {
         SecurityContextHolder.clearContext();
-        // ── Admin role ──────────────────────────────────────────────────────
-        AppRole adminRole = roleRepository.findByName("ROLE_ADMIN")
-                .orElseGet(() -> {
-                    AppRole r = new AppRole();
-                    r.setName("ROLE_ADMIN");
-                    return roleRepository.save(r);
-                });
+        AppRole adminRole = getOrCreateRole("ROLE_ADMIN");
+        AppRole vendorRole = getOrCreateRole("ROLE_VENDOR");
+        AppRole accountsRole = getOrCreateRole("ROLE_ACCOUNTS");
 
-        // ── Vendor role ─────────────────────────────────────────────────────
-        AppRole vendorRole = roleRepository.findByName("ROLE_VENDOR")
-                .orElseGet(() -> {
-                    AppRole r = new AppRole();
-                    r.setName("ROLE_VENDOR");
-                    return roleRepository.save(r);
-                });
+        createUserIfAbsent(ADMIN_USERNAME, "3p_admin@test.local", adminRole, "INTERNAL");
+        createUserIfAbsent(VENDOR_USERNAME, "3p_vendor@test.local", vendorRole, "VENDOR");
+        createUserIfAbsent(ACCOUNTS_USERNAME, "3p_accounts@test.local", accountsRole, "INTERNAL");
 
-        // ── Admin user ───────────────────────────────────────────────────────
-        if (userRepository.findByUsername(ADMIN_USERNAME).isEmpty()) {
-            AppUser admin = new AppUser();
-            admin.setUsername(ADMIN_USERNAME);
-            admin.setPassword(passwordEncoder.encode(PLAIN_PASSWORD));
-            admin.setEmail("ptst_admin@test.local");
-            admin.setEnabled(true);
-            admin.setVerified(true);
-            admin.setRegistrationDate(LocalDateTime.now());
-            admin.setRoles(Set.of(adminRole));
-            userRepository.save(admin);
-        }
-
-        // ── Vendor user ──────────────────────────────────────────────────────
-        if (userRepository.findByUsername(VENDOR_USERNAME).isEmpty()) {
-            AppUser vendor = new AppUser();
-            vendor.setUsername(VENDOR_USERNAME);
-            vendor.setPassword(passwordEncoder.encode(PLAIN_PASSWORD));
-            vendor.setEmail("ptst_vendor@test.local");
-            vendor.setEnabled(true);
-            vendor.setVerified(true);
-            vendor.setRegistrationDate(LocalDateTime.now());
-            vendor.setRoles(Set.of(vendorRole));
-            userRepository.save(vendor);
-        }
         SecurityContextHolder.clearContext();
+    }
+
+    private AppRole getOrCreateRole(String roleName) {
+        return roleRepository.findFirstByName(roleName).orElseGet(() -> {
+            AppRole r = new AppRole();
+            r.setName(roleName);
+            return roleRepository.save(r);
+        });
+    }
+
+    private void createUserIfAbsent(String username, String email, AppRole role, String domain) {
+        if (userRepository.findFirstByUsernameAndUserDomain(username, domain).isEmpty()) {
+            AppUser u = new AppUser();
+            u.setUserDomain(domain);
+            u.setUsername(username);
+            u.setPassword(passwordEncoder.encode(PLAIN_PASSWORD));
+            u.setEmail(email);
+            u.setEnabled(true);
+            u.setVerified(true);
+            u.setRegistrationDate(LocalDateTime.now());
+            u.setRoles(Set.of(role));
+            userRepository.save(u);
+        }
     }
 
     @AfterEach
     void cleanup() {
         SecurityContextHolder.clearContext();
-        userRepository.findByUsername(ADMIN_USERNAME).ifPresent(userRepository::delete);
-        userRepository.findByUsername(VENDOR_USERNAME).ifPresent(userRepository::delete);
+        userRepository.findFirstByUsernameAndUserDomain(ADMIN_USERNAME, "INTERNAL").ifPresent(userRepository::delete);
+        userRepository.findFirstByUsernameAndUserDomain(VENDOR_USERNAME, "VENDOR").ifPresent(userRepository::delete);
+        userRepository.findFirstByUsernameAndUserDomain(ACCOUNTS_USERNAME, "INTERNAL").ifPresent(userRepository::delete);
+
+        userRepository.findFirstByEmailIgnoreCaseAndUserDomain(DUAL_EMAIL, "VENDOR").ifPresent(userRepository::delete);
+        userRepository.findFirstByEmailIgnoreCaseAndUserDomain(DUAL_EMAIL, "INTERNAL").ifPresent(userRepository::delete);
     }
 
-    /**
-     * Creates a fresh MockHttpSession with the security context attribute explicitly null.
-     * This prevents {@link HttpSessionSecurityContextRepository} from finding any
-     * pre-existing auth context, forcing the authentication filter to run.
-     */
     private static MockHttpSession cleanSession() {
         MockHttpSession session = new MockHttpSession();
-        // Explicitly null out any previously-stored Spring Security context on this session.
-        session.setAttribute(
-                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-                null);
+        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, null);
         return session;
     }
 
-    // ── Test 1: Admin account rejected by Vendor portal ─────────────────────
+    // ── DOMAIN SEPARATION TESTS (VENDOR vs INTERNAL) ─────────────────────────
 
     @Test
-    @DisplayName("Admin via Vendor portal → denied, redirected to /login?error=admin_portal")
+    @DisplayName("Domain Separation: Same email address allowed as Vendor AND Admin without interference")
+    void sameEmailCrossDomain_shouldBeAllowedAndIsolated() throws Exception {
+        AppRole vendorRole = getOrCreateRole("ROLE_VENDOR");
+        AppRole adminRole = getOrCreateRole("ROLE_ADMIN");
+
+        // 1. Create Vendor with dual email
+        createUserIfAbsent("vendor_john", DUAL_EMAIL, vendorRole, "VENDOR");
+        // 2. Create Admin with same dual email
+        createUserIfAbsent("admin_john", DUAL_EMAIL, adminRole, "INTERNAL");
+
+        // Both accounts exist in DB cleanly
+        assertTrue(userRepository.existsByEmailIgnoreCaseAndUserDomain(DUAL_EMAIL, "VENDOR"));
+        assertTrue(userRepository.existsByEmailIgnoreCaseAndUserDomain(DUAL_EMAIL, "INTERNAL"));
+
+        // 3. Authenticate Vendor portal using dual email -> succeeds to /invoice
+        mockMvc.perform(post("/vendor/authenticate")
+                        .session(cleanSession())
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("username", DUAL_EMAIL)
+                        .param("password", PLAIN_PASSWORD)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/invoice"));
+
+        // 4. Authenticate Admin portal using dual email -> succeeds to /admin/dashboard
+        mockMvc.perform(post("/admin/authenticate")
+                        .session(cleanSession())
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("username", DUAL_EMAIL)
+                        .param("password", PLAIN_PASSWORD)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/dashboard"));
+    }
+
+    // ── PORTAL 1: VENDOR PORTAL TESTS (/vendor/login, /vendor/authenticate) ──
+
+    @Test
+    @DisplayName("Portal 1: Vendor via Vendor Portal -> Success, redirect to /invoice")
+    void vendorViaVendorPortal_shouldSucceed() throws Exception {
+        mockMvc.perform(post("/vendor/authenticate")
+                        .session(cleanSession())
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("username", VENDOR_USERNAME)
+                        .param("password", PLAIN_PASSWORD)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/invoice"));
+    }
+
+    @Test
+    @DisplayName("Portal 1: Non-Vendor (Admin) via Vendor Portal -> Denied, redirect with invalid credentials")
     void adminViaVendorPortal_shouldBeRejected() throws Exception {
         mockMvc.perform(post("/vendor/authenticate")
                         .session(cleanSession())
@@ -140,28 +170,13 @@ class PortalSeparationIntegrationTest {
                         .param("password", PLAIN_PASSWORD)
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/login?error=admin_portal"));
+                .andExpect(redirectedUrl("/vendor/login?error=invalid"));
     }
 
-    // ── Test 2: Vendor account rejected by Admin portal ─────────────────────
+    // ── PORTAL 2: ADMIN PORTAL TESTS (/admin/login, /admin/authenticate) ──
 
     @Test
-    @DisplayName("Vendor via Admin portal → denied, redirected to /admin/login?error=vendor_portal")
-    void vendorViaAdminPortal_shouldBeRejected() throws Exception {
-        mockMvc.perform(post("/admin/authenticate")
-                        .session(cleanSession())
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("username", VENDOR_USERNAME)
-                        .param("password", PLAIN_PASSWORD)
-                        .with(csrf()))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/admin/login?error=vendor_portal"));
-    }
-
-    // ── Test 3: Admin succeeds via Admin portal ──────────────────────────────
-
-    @Test
-    @DisplayName("Admin via Admin portal → success, redirected to /admin/dashboard")
+    @DisplayName("Portal 2: Admin via Admin Portal -> Success, redirect to /admin/dashboard")
     void adminViaAdminPortal_shouldSucceed() throws Exception {
         mockMvc.perform(post("/admin/authenticate")
                         .session(cleanSession())
@@ -173,18 +188,41 @@ class PortalSeparationIntegrationTest {
                 .andExpect(redirectedUrl("/admin/dashboard"));
     }
 
-    // ── Test 4: Vendor succeeds via Vendor portal ────────────────────────────
+    @Test
+    @DisplayName("Portal 2: Accounts via Admin Portal -> Success, redirect to /admin/dashboard")
+    void accountsViaAdminPortal_shouldSucceed() throws Exception {
+        mockMvc.perform(post("/admin/authenticate")
+                        .session(cleanSession())
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("username", ACCOUNTS_USERNAME)
+                        .param("password", PLAIN_PASSWORD)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/dashboard"));
+    }
 
     @Test
-    @DisplayName("Vendor via Vendor portal → success, redirected to /invoice")
-    void vendorViaVendorPortal_shouldSucceed() throws Exception {
-        mockMvc.perform(post("/vendor/authenticate")
+    @DisplayName("Portal 2: Vendor via Admin Portal -> Denied, redirect with invalid credentials")
+    void vendorViaAdminPortal_shouldBeRejected() throws Exception {
+        mockMvc.perform(post("/admin/authenticate")
                         .session(cleanSession())
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                         .param("username", VENDOR_USERNAME)
                         .param("password", PLAIN_PASSWORD)
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/invoice"));
+                .andExpect(redirectedUrl("/admin/login?error=invalid"));
+    }
+
+    @Autowired
+    private com.billing.invoicehub.service.EmployeeUserService employeeUserService;
+
+    @Test
+    @DisplayName("Validation: Cross-Domain Duplicate Email Creation on /admin/users/create is Hard-Blocked")
+    void createDuplicateCrossDomainUser_shouldBeBlocked() {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            employeeUserService.createUser("Duplicate Tester", "3p_vendor@test.local", "TestPassword123!", "ROLE_ACCOUNTS", null);
+        });
+        assertEquals("This email is already registered as a Vendor account. Each email may only be associated with one portal domain.", ex.getMessage());
     }
 }
