@@ -43,7 +43,6 @@ public class VendorTicketService {
     private final EmailService emailService;
     private final String configuredAdminEmail;
     private final String appBaseUrl;
-    private final PurchaseOrderService purchaseOrderService;
 
     public VendorTicketService(VendorTicketRepository vendorTicketRepository,
             VendorTicketHistoryRepository vendorTicketHistoryRepository,
@@ -51,7 +50,6 @@ public class VendorTicketService {
             ClientRepository clientRepository,
             InvoiceRepository invoiceRepository,
             EmailService emailService,
-            PurchaseOrderService purchaseOrderService,
             @Value("${app.admin.email:}") String configuredAdminEmail,
             @Value("${app.base-url:https://your-invoicehub.example.com}") String appBaseUrl) {
         this.vendorTicketRepository = vendorTicketRepository;
@@ -62,7 +60,6 @@ public class VendorTicketService {
         this.emailService = emailService;
         this.configuredAdminEmail = configuredAdminEmail;
         this.appBaseUrl = appBaseUrl;
-        this.purchaseOrderService = purchaseOrderService;
     }
 
     @Transactional(readOnly = true)
@@ -408,7 +405,6 @@ public class VendorTicketService {
         if (poNumber == null || poNumber.trim().isEmpty()) {
             return false;
         }
-        return purchaseOrderService.validatePO(poNumber);
     }
 
     @Transactional(readOnly = true)
