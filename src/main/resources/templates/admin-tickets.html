@@ -77,7 +77,7 @@
                                 <th>Invoice No</th>
                                 <th>PO Number</th>
                                 <th>Vendor</th>
-                                <th>Amount</th>
+                                <th>Total</th>
                                 <th>Date</th>
                                 <th>Status</th>
                                 <th>Action</th>
@@ -103,7 +103,7 @@
                                     </td>
                                     <td th:text="${ticket.vendor != null ? ticket.vendor.username : '-'}"></td>
                                     <td
-                                        th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.amount, ticket.currency)}">
+                                        th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.total != null ? ticket.total : ticket.amount, ticket.currency)}">
                                     </td>
                                     <td th:text="${ticket.invoiceDate}"></td>
                                     <td
@@ -133,7 +133,6 @@
                                     </td>
                                 </tr>
                             </th:block>
-                            D
                         </tbody>
                     </table>
                 </div>

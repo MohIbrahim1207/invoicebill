@@ -78,10 +78,16 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div>
-                                        <label class="text-muted small">Amount</label>
-                                        <p class="fw-bold"
-                                            th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.amount, ticket.currency)}">
+                                        <label class="text-muted small">Total Amount</label>
+                                        <p class="fw-bold text-primary mb-1"
+                                            th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.total != null ? ticket.total : ticket.amount, ticket.currency)}">
                                             -</p>
+                                        <div class="small text-muted" th:if="${ticket.subtotal != null or ticket.tax != null}">
+                                            <span>Subtotal: <span th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.subtotal != null ? ticket.subtotal : ticket.amount, ticket.currency)}">-</span></span>
+                                            <span class="ms-2" th:if="${ticket.tax != null and ticket.tax.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
+                                                | Tax: <span th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.tax, ticket.currency)}">-</span>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">

@@ -42,14 +42,11 @@ public class ForgotPasswordController {
         String result = this.passwordResetService.sendOtpToEmail(username, email);
         if ("OK".equals(result)) {
             redirectAttributes.addFlashAttribute("email", (Object) email);
+            redirectAttributes.addFlashAttribute("username", (Object) username);
             return "redirect:/verify-otp";
         }
-        if ("USERNAME_NOT_FOUND".equals(result)) {
-            model.addAttribute("error", (Object) "Username not found");
-            return "forgot-password";
-        }
-        if ("EMAIL_MISMATCH".equals(result)) {
-            model.addAttribute("error", (Object) "Email does not match this username");
+        if ("USERNAME_NOT_FOUND".equals(result) || "EMAIL_MISMATCH".equals(result) || "USER_NOT_FOUND".equals(result)) {
+            model.addAttribute("error", (Object) "If an account matching those details exists, an OTP has been sent.");
             return "forgot-password";
         }
         model.addAttribute("error", (Object) "Failed to send OTP. Please try again later.");
@@ -57,19 +54,30 @@ public class ForgotPasswordController {
     }
 
     @GetMapping(value = { "/verify-otp" })
-    public String verifyOtpPage(@RequestParam(required = false) String email, Model model) {
+    public String verifyOtpPage(@RequestParam(required = false) String email,
+                                @RequestParam(required = false) String username,
+                                Model model) {
         if (email != null && !email.isBlank()) {
             model.addAttribute("email", (Object) email);
+        }
+        if (username != null && !username.isBlank()) {
+            model.addAttribute("username", (Object) username);
         }
         return "verify-otp";
     }
 
     @PostMapping(value = { "/verify-otp" })
-    public String verifyOtp(@RequestParam String email, @RequestParam String otp, HttpSession session, Model model,
-            RedirectAttributes redirectAttributes) {
+    public String verifyOtp(@RequestParam String email,
+                            @RequestParam(required = false) String username,
+                            @RequestParam String otp,
+                            HttpSession session, Model model,
+                            RedirectAttributes redirectAttributes) {
         PasswordResetService.OtpVerificationResult result = this.passwordResetService.verifyOtp(email, otp);
         if (result != PasswordResetService.OtpVerificationResult.SUCCESS) {
             model.addAttribute("email", (Object) email);
+            if (username != null && !username.isBlank()) {
+                model.addAttribute("username", (Object) username);
+            }
             String errorMsg = (result == PasswordResetService.OtpVerificationResult.LOCKED)
                     ? "Too many failed attempts. Please request a new OTP."
                     : "Invalid or expired OTP. Please try again.";
@@ -77,6 +85,9 @@ public class ForgotPasswordController {
             return "verify-otp";
         }
         session.setAttribute("resetEmail", (Object) email);
+        if (username != null && !username.isBlank()) {
+            session.setAttribute("resetUsername", (Object) username);
+        }
         redirectAttributes.addFlashAttribute("email", (Object) email);
         return "redirect:/reset-password";
     }
@@ -96,6 +107,7 @@ public class ForgotPasswordController {
             @RequestParam String confirmPassword, HttpSession session, Model model,
             RedirectAttributes redirectAttributes) {
         Object sessionEmail = session.getAttribute("resetEmail");
+        String sessionUsername = (String) session.getAttribute("resetUsername");
         if (sessionEmail == null || !sessionEmail.equals(email)) {
             redirectAttributes.addFlashAttribute("error", (Object) "Session expired. Please try again.");
             return "redirect:/forgot-password";
@@ -110,14 +122,15 @@ public class ForgotPasswordController {
             model.addAttribute("error", (Object) "Passwords do not match.");
             return "reset-password";
         }
-        boolean updated = this.passwordResetService.resetPassword(email, newPassword, confirmPassword);
+        boolean updated = this.passwordResetService.resetPassword(sessionUsername, email, newPassword, confirmPassword);
         if (updated) {
             session.removeAttribute("resetEmail");
+            session.removeAttribute("resetUsername");
             redirectAttributes.addFlashAttribute("message", (Object) "Password updated successfully. Please log in.");
             return "redirect:/login";
         }
         model.addAttribute("email", (Object) email);
-        model.addAttribute("error", (Object) "Failed to update password. Please try again.");
+        model.addAttribute("error", (Object) "Failed to update password. Password must be at least 8 characters and contain at least one digit.");
         return "reset-password";
     }
 }

@@ -5,6 +5,7 @@ import com.billing.invoicehub.entity.PasswordResetToken;
 import com.billing.invoicehub.repository.AppUserRepository;
 import com.billing.invoicehub.repository.PasswordResetTokenRepository;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.security.SecureRandom;
 import org.slf4j.Logger;
@@ -35,22 +36,26 @@ public class PasswordResetService {
 
     @Transactional
     public String sendOtpToEmail(String username, String email) {
-        Optional<AppUser> userOpt = this.userRepository.findByUsername(username);
+        if (username == null || username.isBlank() || email == null || email.isBlank()) {
+            return "USER_NOT_FOUND";
+        }
+
+        // Domain-safe lookup: matches account having BOTH username and email
+        Optional<AppUser> userOpt = this.userRepository.findFirstByUsernameAndEmailIgnoreCase(username.trim(), email.trim());
 
         // Generic check — never reveal whether username or email exists
-        if (userOpt.isEmpty() || userOpt.get().getEmail() == null
-                || !userOpt.get().getEmail().equalsIgnoreCase(email)) {
+        if (userOpt.isEmpty()) {
             return "USER_NOT_FOUND";
         }
 
         AppUser user = userOpt.get();
         String otp = this.generateOtp();
         LocalDateTime expiryTime = LocalDateTime.now().plusMinutes(10L);
-        PasswordResetToken token = new PasswordResetToken(email, otp, expiryTime);
+        PasswordResetToken token = new PasswordResetToken(email.trim(), otp, expiryTime);
         this.tokenRepository.save(token);
 
         try {
-            this.sendOtpEmail(email, otp);
+            this.sendOtpEmail(email.trim(), otp);
             return "OK";
         } catch (Exception ex) {
             log.error("Failed to send OTP email to {}: {}", email, ex.getMessage(), ex);
@@ -122,21 +127,51 @@ public class PasswordResetService {
     }
 
     @Transactional
-    public boolean resetPassword(String email, String newPassword, String confirmPassword) {
+    public boolean resetPassword(String username, String email, String newPassword, String confirmPassword) {
         // Password policy: min 8 chars, at least one number
-        if (newPassword.length() < 8 || !newPassword.matches(".*\\d.*")) {
+        if (newPassword == null || newPassword.length() < 8 || !newPassword.matches(".*\\d.*")) {
             return false;
         }
 
-        if (!newPassword.equals(confirmPassword)) return false;
+        if (!newPassword.equals(confirmPassword)) {
+            return false;
+        }
 
-        // Use findByEmailIgnoreCase instead of findAll()
-        Optional<AppUser> user = this.userRepository.findByEmailIgnoreCase(email);
-        if (user.isEmpty()) return false;
+        if (email == null || email.isBlank()) {
+            return false;
+        }
 
-        user.get().setPassword(this.passwordEncoder.encode(newPassword));
-        this.userRepository.save(user.get());
+        Optional<AppUser> userOpt;
+        if (username != null && !username.isBlank()) {
+            userOpt = this.userRepository.findFirstByUsernameAndEmailIgnoreCase(username.trim(), email.trim());
+        } else {
+            List<AppUser> matchingUsers = this.userRepository.findAllByEmailIgnoreCase(email.trim());
+            if (matchingUsers.size() == 1) {
+                userOpt = Optional.of(matchingUsers.get(0));
+            } else if (matchingUsers.isEmpty()) {
+                userOpt = Optional.empty();
+            } else {
+                // Ambiguous: multiple accounts share this email across domains (e.g. VENDOR vs INTERNAL).
+                // Refuse to reset without username to prevent modifying the wrong account.
+                log.warn("Password reset rejected for email '{}': multiple accounts exist across domains and username was not provided", email);
+                return false;
+            }
+        }
+
+        if (userOpt.isEmpty()) {
+            return false;
+        }
+
+        AppUser user = userOpt.get();
+        user.setPassword(this.passwordEncoder.encode(newPassword));
+        this.userRepository.save(user);
+        log.info("Password successfully reset for user '{}' in domain '{}'", user.getUsername(), user.getUserDomain());
         return true;
+    }
+
+    @Transactional
+    public boolean resetPassword(String email, String newPassword, String confirmPassword) {
+        return resetPassword(null, email, newPassword, confirmPassword);
     }
 
     private String generateOtp() {

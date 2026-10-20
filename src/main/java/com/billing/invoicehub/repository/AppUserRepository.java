@@ -21,6 +21,14 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
     Optional<AppUser> findFirstByEmailIgnoreCaseAndUserDomain(String email, String userDomain);
 
+    Optional<AppUser> findFirstByUsernameAndEmailIgnoreCase(String username, String email);
+
+    Optional<AppUser> findFirstByUsernameAndEmailIgnoreCaseAndUserDomain(String username, String email, String userDomain);
+
+    List<AppUser> findAllByEmailIgnoreCase(String email);
+
+    List<AppUser> findAllByUsername(String username);
+
     Optional<AppUser> findByVendorCode(String vendorCode);
 
     Optional<AppUser> findFirstByVendorCode(String vendorCode);

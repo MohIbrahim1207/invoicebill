@@ -22,7 +22,7 @@ public class AppUser {
     private String username;
     private String password;
     private String email;
-    @jakarta.persistence.Column(name = "user_domain", nullable = false)
+    @jakarta.persistence.Column(name = "user_domain", nullable = false, columnDefinition = "VARCHAR(20) DEFAULT 'INTERNAL'")
     private String userDomain = "INTERNAL";
     private boolean enabled;
     private boolean verified;

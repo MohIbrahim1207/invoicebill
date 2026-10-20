@@ -207,9 +207,117 @@ public class StartupRoleMigration implements ApplicationRunner {
                 }
             }
 
+            // -------------------------------------------------------------------------
+            // Domain Separation Migration:
+            // Ensure app_user.user_domain exists and assign VENDOR / INTERNAL domains.
+            // -------------------------------------------------------------------------
+            try {
+                // 1. Ensure user_domain column exists in app_user
+                Integer colExists = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND LOWER(TABLE_NAME) = 'app_user' AND LOWER(COLUMN_NAME) = 'user_domain'",
+                    Integer.class
+                );
+                if (colExists == null || colExists == 0) {
+                    log.info("Adding user_domain column to app_user table...");
+                    jdbc.execute("ALTER TABLE app_user ADD COLUMN user_domain VARCHAR(20) NOT NULL DEFAULT 'INTERNAL'");
+                    log.info("Successfully added user_domain column to app_user.");
+                }
+            } catch (Exception ex) {
+                log.debug("Column user_domain check or addition note: {}", ex.getMessage());
+                try {
+                    jdbc.execute("ALTER TABLE app_user ADD COLUMN user_domain VARCHAR(20) NOT NULL DEFAULT 'INTERNAL'");
+                } catch (Exception ignored) {}
+            }
+
+            // 2. Assign user_domain = 'VENDOR' for all accounts holding ROLE_VENDOR
+            try {
+                int vendorsUpdated = jdbc.update(
+                    "UPDATE app_user SET user_domain = 'VENDOR' " +
+                    "WHERE id IN (" +
+                    "    SELECT ur.user_id FROM app_user_roles ur " +
+                    "    JOIN app_roles r ON ur.role_id = r.id " +
+                    "    WHERE r.name = 'ROLE_VENDOR'" +
+                    ") AND (user_domain IS NULL OR user_domain != 'VENDOR')"
+                );
+                if (vendorsUpdated > 0) {
+                    log.info("Migrated {} existing vendor accounts to VENDOR domain.", vendorsUpdated);
+                }
+            } catch (Exception ex) {
+                log.warn("Failed migrating accounts to VENDOR domain: {}", ex.getMessage());
+            }
+
+            // 3. Fallback: classify vendor accounts by business profile attributes
+            try {
+                int fallbackVendors = jdbc.update(
+                    "UPDATE app_user SET user_domain = 'VENDOR' " +
+                    "WHERE (company_name IS NOT NULL OR gst_number IS NOT NULL) " +
+                    "  AND (user_domain IS NULL OR user_domain != 'VENDOR') " +
+                    "  AND NOT EXISTS (" +
+                    "      SELECT 1 FROM app_user_roles ur " +
+                    "      JOIN app_roles r ON ur.role_id = r.id " +
+                    "      WHERE ur.user_id = app_user.id " +
+                    "        AND r.name IN ('ROLE_ADMIN', 'ROLE_SUPER_ADMIN', 'ROLE_ACCOUNTS', 'ROLE_MANAGER', 'ROLE_EMPLOYEE')" +
+                    "  )"
+                );
+                if (fallbackVendors > 0) {
+                    log.info("Migrated {} vendor accounts to VENDOR domain via profile attributes.", fallbackVendors);
+                }
+            } catch (Exception ex) {
+                log.debug("Vendor fallback profile check: {}", ex.getMessage());
+            }
+
+            // 4. Assign user_domain = 'INTERNAL' for all accounts holding internal roles
+            try {
+                int internalsUpdated = jdbc.update(
+                    "UPDATE app_user SET user_domain = 'INTERNAL' " +
+                    "WHERE id IN (" +
+                    "    SELECT ur.user_id FROM app_user_roles ur " +
+                    "    JOIN app_roles r ON ur.role_id = r.id " +
+                    "    WHERE r.name IN ('ROLE_ADMIN', 'ROLE_SUPER_ADMIN', 'ROLE_ACCOUNTS', 'ROLE_MANAGER', 'ROLE_EMPLOYEE')" +
+                    ") AND (user_domain IS NULL OR user_domain != 'INTERNAL')"
+                );
+                if (internalsUpdated > 0) {
+                    log.info("Migrated {} existing accounts to INTERNAL domain.", internalsUpdated);
+                }
+            } catch (Exception ex) {
+                log.warn("Failed migrating accounts to INTERNAL domain: {}", ex.getMessage());
+            }
+
+            // 5. Default any remaining records without domain to 'INTERNAL'
+            try {
+                int nullDomainCount = jdbc.update(
+                    "UPDATE app_user SET user_domain = 'INTERNAL' WHERE user_domain IS NULL OR user_domain = ''"
+                );
+                if (nullDomainCount > 0) {
+                    log.info("Defaulted {} user records with empty domain to INTERNAL.", nullDomainCount);
+                }
+            } catch (Exception ex) {
+                log.debug("User domain null fallback: {}", ex.getMessage());
+            }
+
+            // 6. Safe index creation for domain lookup performance (checks information_schema to prevent duplicate key errors)
+            createIndexIfNotExists("idx_app_user_domain", "app_user", "user_domain");
+            createIndexIfNotExists("idx_app_user_usr_dom", "app_user", "username, user_domain");
+            createIndexIfNotExists("idx_app_user_email_dom", "app_user", "email, user_domain");
+
             log.info("Startup role migration completed.");
         } catch (Exception ex) {
             log.warn("Startup role migration failed - continuing startup. Cause: {}", ex.getMessage());
+        }
+    }
+
+    private void createIndexIfNotExists(String indexName, String tableName, String columns) {
+        try {
+            Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND LOWER(TABLE_NAME) = ? AND LOWER(INDEX_NAME) = ?",
+                Integer.class, tableName.toLowerCase(), indexName.toLowerCase()
+            );
+            if (count == null || count == 0) {
+                jdbc.execute("CREATE INDEX " + indexName + " ON " + tableName + " (" + columns + ")");
+                log.info("Successfully created index {} on {}({})", indexName, tableName, columns);
+            }
+        } catch (Exception ex) {
+            log.debug("Index {} check or creation note: {}", indexName, ex.getMessage());
         }
     }
 }

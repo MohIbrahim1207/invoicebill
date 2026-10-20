@@ -62,12 +62,25 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             return;
         }
 
-        String ip = getClientIp(request);
         String path = request.getRequestURI();
+        if (isStaticResource(path)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String ip = getClientIp(request);
         String method = request.getMethod();
 
-        // Rate limiting only applies to genuinely sensitive endpoints: /login,
-        // /vendor/authenticate, auth, password reset, registration
+        // 1. Global rate limiting on all dynamic requests
+        Bucket globalBucket = getOrCreateBucket(ip, globalCache, config.getGlobalCapacity(),
+                config.getGlobalRefillTokens(), config.getGlobalRefillPeriodMinutes());
+        ConsumptionProbe globalProbe = globalBucket.tryConsumeAndReturnRemaining(1);
+        if (!globalProbe.isConsumed()) {
+            sendTooManyRequestsResponse(response, globalProbe.getNanosToWaitForRefill());
+            return;
+        }
+
+        // 2. Sensitive endpoint rate limiting: auth, contact, register, dev-mail
         if (isAuthEndpoint(method, path)) {
             Bucket bucket = getOrCreateBucket(ip, authCache, config.getAuthCapacity(),
                     config.getAuthRefillTokens(), config.getAuthRefillPeriodMinutes());
@@ -105,13 +118,31 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    private boolean isStaticResource(String path) {
+        if (path == null) {
+            return false;
+        }
+        return path.startsWith("/css/")
+                || path.startsWith("/js/")
+                || path.startsWith("/images/")
+                || path.startsWith("/webjars/")
+                || path.equals("/favicon.ico");
+    }
+
     private String getClientIp(HttpServletRequest request) {
         if (config.isBehindProxy()) {
+            String realIp = request.getHeader("X-Real-IP");
+            if (realIp != null && !realIp.isBlank()) {
+                return realIp.trim();
+            }
             String xff = request.getHeader("X-Forwarded-For");
             if (xff != null && !xff.isBlank()) {
                 String[] ips = xff.split(",");
                 if (ips.length > 0) {
-                    return ips[0].trim();
+                    String candidate = ips[0].trim();
+                    if (!candidate.isBlank()) {
+                        return candidate;
+                    }
                 }
             }
         }
