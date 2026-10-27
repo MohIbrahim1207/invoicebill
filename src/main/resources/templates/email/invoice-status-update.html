@@ -58,6 +58,7 @@
                             <span th:case="'Rejected'" class="status rejected">Rejected</span>
                             <span th:case="'Revised'" class="status revised">Revised</span>
                             <span th:case="'Paid'" class="status paid">Paid</span>
+                            <span th:case="'Partially Paid'" class="status" style="background:#fef3c7;color:#92400e;">Partially Paid / Dibayar Sebagian</span>
                             <span th:case="*" class="status" style="background:#e5e7eb;color:#374151;" th:text="${newStatus}">Updated</span>
                         </span>
                     </td>

@@ -115,6 +115,7 @@
                                         <option value="" th:text="#{invoice.filter.all}">All statuses</option>
                                         <option value="Pending" th:text="#{invoice.filter.pending}">Pending</option>
                                         <option value="Approved" th:text="#{invoice.filter.approved}">Approved</option>
+                                        <option value="Partially Paid" th:text="#{invoice.filter.partially_paid}">Partially Paid</option>
                                         <option value="Revised" th:text="#{invoice.filter.revised}">Revised</option>
                                         <option value="Released" th:text="#{invoice.filter.released}">Released</option>
                                     </select>
@@ -163,6 +164,8 @@
                                                         th:text="#{invoice.filter.pending}">Pending</span>
                                                     <span th:case="'Approved'" class="status-badge badge-soft-success"
                                                         th:text="#{invoice.filter.approved}">Approved</span>
+                                                    <span th:case="'Partially Paid'" class="status-badge" style="background-color: #FFF3CD; color: #856404;"
+                                                        th:text="#{invoice.filter.partially_paid}">Partially Paid</span>
                                                     <span th:case="'Revised'" class="status-badge badge-soft-danger"
                                                         th:text="#{invoice.filter.revised}">Revised</span>
                                                     <span th:case="'Released'" class="status-badge badge-soft-primary"

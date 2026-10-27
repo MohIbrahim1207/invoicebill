@@ -514,8 +514,12 @@ public class VendorTicketService {
             case IN_PROGRESS -> "In Progress";
             case REVISE -> "Revised";
             case RESOLVED -> "Approved";
+            case PARTIALLY_PAID -> "Partially Paid";
             case CANCEL -> "Rejected";
-            default -> "Pending";
+            default -> {
+                log.warn("Unknown ticket status encountered when mapping to invoice status: {}", status);
+                yield null;
+            }
         };
     }
 
