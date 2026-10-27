@@ -120,27 +120,7 @@ public class CloudinaryService {
     }
 
     private void validateFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File is required and cannot be empty");
-        }
-
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException(
-                    "File size exceeds maximum limit of 50MB. Current size: " +
-                            (file.getSize() / (1024 * 1024)) + "MB");
-        }
-
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || !originalFilename.contains(".")) {
-            throw new IllegalArgumentException("File must have a valid extension");
-        }
-
-        String extension = getFileExtension(originalFilename);
-        if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase())) {
-            throw new IllegalArgumentException(
-                    "Unsupported file type: " + extension +
-                            ". Allowed types: " + String.join(", ", ALLOWED_EXTENSIONS));
-        }
+        com.billing.invoicehub.util.FileValidationUtil.validateFile(file);
     }
 
     private String getFileExtension(String filename) {

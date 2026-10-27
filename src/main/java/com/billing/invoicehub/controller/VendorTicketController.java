@@ -7,6 +7,7 @@ import com.billing.invoicehub.entity.VendorTicket;
 import com.billing.invoicehub.entity.VendorTicketHistory;
 import com.billing.invoicehub.service.FileStorageService;
 import com.billing.invoicehub.service.VendorTicketService;
+import com.billing.invoicehub.util.FileValidationUtil;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -214,15 +215,15 @@ public class VendorTicketController {
             return "redirect:/login";
         }
 
-        long maxSizeBytes = 10 * 1024 * 1024;
-        String sizeError = "File size exceeds the maximum allowed limit of 10 MB. Please upload a smaller file.";
-        if ((invoiceFile != null && invoiceFile.getSize() > maxSizeBytes) ||
-            (taxDocument != null && taxDocument.getSize() > maxSizeBytes) ||
-            (poCopy != null && poCopy.getSize() > maxSizeBytes) ||
-            (deliveryNote != null && deliveryNote.getSize() > maxSizeBytes) ||
-            (otherDocument != null && otherDocument.getSize() > maxSizeBytes) ||
-            (supportingDocument != null && supportingDocument.getSize() > maxSizeBytes)) {
-            redirectAttributes.addFlashAttribute("error", sizeError);
+        try {
+            FileValidationUtil.validateFileIfPresent(invoiceFile, "invoiceFile");
+            FileValidationUtil.validateFileIfPresent(taxDocument, "taxDocument");
+            FileValidationUtil.validateFileIfPresent(poCopy, "poCopy");
+            FileValidationUtil.validateFileIfPresent(deliveryNote, "deliveryNote");
+            FileValidationUtil.validateFileIfPresent(otherDocument, "otherDocument");
+            FileValidationUtil.validateFileIfPresent(supportingDocument, "supportingDocument");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
             return "redirect:/vendor-tickets/new/step3";
         }
 

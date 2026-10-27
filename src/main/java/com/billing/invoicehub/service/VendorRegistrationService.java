@@ -23,6 +23,7 @@ import com.billing.invoicehub.entity.AppUser;
 import com.billing.invoicehub.entity.NotificationType;
 import com.billing.invoicehub.repository.AppRoleRepository;
 import com.billing.invoicehub.repository.AppUserRepository;
+import com.billing.invoicehub.util.FileValidationUtil;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.Year;
@@ -82,12 +83,10 @@ public class VendorRegistrationService {
                 form.getUsername());
         log.info("=== Starting vendor registration for username: {} ===", form.getUsername());
 
-        long maxSizeBytes = 10 * 1024 * 1024;
-        String sizeError = "File size exceeds the maximum allowed limit of 10 MB. Please upload a smaller file.";
-        if ((gstDocument != null && gstDocument.getSize() > maxSizeBytes) ||
-                (companyDocument != null && companyDocument.getSize() > maxSizeBytes) ||
-                (supportingDocument != null && supportingDocument.getSize() > maxSizeBytes)) {
-            throw new IllegalArgumentException(sizeError);
+        FileValidationUtil.validateFile(gstDocument, "gstDocument");
+        FileValidationUtil.validateFile(companyDocument, "companyDocument");
+        if (supportingDocument != null && !supportingDocument.isEmpty()) {
+            FileValidationUtil.validateFile(supportingDocument, "supportingDocument");
         }
 
         this.validateRegistration(form, gstDocument, companyDocument);
@@ -258,10 +257,10 @@ public class VendorRegistrationService {
             throw new IllegalArgumentException("Password must be at least 6 characters");
         }
         if (gstDocument == null || gstDocument.isEmpty()) {
-            throw new IllegalArgumentException("GST document is required");
+            throw new FileValidationUtil.FileValidationException("gstDocument", "GST document is required");
         }
         if (companyDocument == null || companyDocument.isEmpty()) {
-            throw new IllegalArgumentException("Company registration document is required");
+            throw new FileValidationUtil.FileValidationException("companyDocument", "Company registration document is required");
         }
     }
 
