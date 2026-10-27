@@ -152,6 +152,71 @@
                 </div>
             </div>
 
+            <!-- Vendor Report Section -->
+            <div class="card portal-card mt-4">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+                        <div>
+                            <h2 class="section-title mb-1" th:text="#{admin.reports.vendor.title}">Vendor Report</h2>
+                            <p class="text-muted small mb-0" th:text="#{admin.reports.vendor.subtitle}">Export comprehensive vendor profiles and ticket summaries.</p>
+                        </div>
+                        <div class="mt-2 mt-md-0">
+                            <button type="button" id="btnDownloadVendorExcel" class="btn btn-success d-flex align-items-center gap-2">
+                                <i class="bi bi-file-earmark-excel"></i>
+                                <span id="vendorExportBtnText" th:text="#{admin.reports.vendor.download}">Download Vendor Excel</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <form id="vendorFilterForm" class="row g-3" onsubmit="return false;">
+                        <div class="col-md-3">
+                            <label class="form-label" th:text="#{admin.reports.vendor.startDate}">Registration Start Date</label>
+                            <input type="date" id="vendorStartDate" name="startDate" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" th:text="#{admin.reports.vendor.endDate}">Registration End Date</label>
+                            <input type="date" id="vendorEndDate" name="endDate" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" th:text="#{admin.reports.vendor.status}">Verification Status</label>
+                            <select id="vendorStatus" name="status" class="form-select">
+                                <option value="ALL" th:text="#{admin.reports.vendor.status.all}">All</option>
+                                <option value="VERIFIED" th:text="#{admin.reports.vendor.status.verified}">Verified</option>
+                                <option value="PENDING" th:text="#{admin.reports.vendor.status.pending}">Pending</option>
+                                <option value="REJECTED" th:text="#{admin.reports.vendor.status.rejected}">Rejected</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" th:text="#{admin.reports.vendor.search}">Search Query</label>
+                            <div class="input-group">
+                                <input type="text" id="vendorSearch" name="search" class="form-control"
+                                    th:placeholder="#{admin.reports.vendor.search.placeholder}" placeholder="Company Name, Full Name, Email, NPWP">
+                                <button class="btn btn-outline-secondary" type="button" id="btnResetVendorFilters" th:title="#{admin.reports.vendor.reset}" title="Reset Filters">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Preview Bar -->
+                    <div class="mt-3 pt-3 border-top d-flex flex-wrap align-items-center gap-3">
+                        <span class="text-muted small fw-semibold">Preview:</span>
+                        <span class="badge bg-light text-dark border">
+                            <span th:text="#{admin.reports.vendor.preview.total}">Total Vendors</span>: <strong id="previewTotal" class="text-primary">0</strong>
+                        </span>
+                        <span class="badge bg-light text-dark border">
+                            <span th:text="#{admin.reports.vendor.preview.verified}">Verified</span>: <strong id="previewVerified" class="text-success">0</strong>
+                        </span>
+                        <span class="badge bg-light text-dark border">
+                            <span th:text="#{admin.reports.vendor.preview.pending}">Pending</span>: <strong id="previewPending" class="text-warning">0</strong>
+                        </span>
+                        <span class="badge bg-light text-dark border">
+                            <span th:text="#{admin.reports.vendor.preview.rejected}">Rejected</span>: <strong id="previewRejected" class="text-danger">0</strong>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Charts Section -->
             <div class="row mt-4" th:if="${weeklyReport != null}">
                 <div class="col-md-8">
@@ -377,6 +442,126 @@
                         });
                 });
             });
+
+            // Vendor Report Logic
+            const btnDownloadVendorExcel = document.getElementById('btnDownloadVendorExcel');
+            const vendorExportBtnText = document.getElementById('vendorExportBtnText');
+            const vendorStartDate = document.getElementById('vendorStartDate');
+            const vendorEndDate = document.getElementById('vendorEndDate');
+            const vendorStatus = document.getElementById('vendorStatus');
+            const vendorSearch = document.getElementById('vendorSearch');
+            const btnResetVendorFilters = document.getElementById('btnResetVendorFilters');
+
+            const previewTotal = document.getElementById('previewTotal');
+            const previewVerified = document.getElementById('previewVerified');
+            const previewPending = document.getElementById('previewPending');
+            const previewRejected = document.getElementById('previewRejected');
+
+            const textDownloadVendor = /*[[#{admin.reports.vendor.download}]]*/ 'Download Vendor Excel';
+            const textDownloadingVendor = /*[[#{admin.reports.vendor.downloading}]]*/ 'Downloading...';
+            const textNoRecords = /*[[#{admin.reports.vendor.noRecords}]]*/ 'No vendors found for the selected filters';
+            const textVendorSuccess = /*[[#{admin.reports.vendor.success}]]*/ 'Vendor Excel report downloaded successfully.';
+            const textVendorError = /*[[#{admin.reports.vendor.error}]]*/ 'Error exporting vendor report file.';
+
+            function getVendorQueryParams() {
+                const params = new URLSearchParams();
+                if (vendorStartDate && vendorStartDate.value) params.append('startDate', vendorStartDate.value);
+                if (vendorEndDate && vendorEndDate.value) params.append('endDate', vendorEndDate.value);
+                if (vendorStatus && vendorStatus.value && vendorStatus.value !== 'ALL') params.append('status', vendorStatus.value);
+                if (vendorSearch && vendorSearch.value.trim()) params.append('search', vendorSearch.value.trim());
+                return params;
+            }
+
+            let previewDebounceTimer = null;
+            function updateVendorPreview() {
+                const params = getVendorQueryParams();
+                fetch('/admin/reports/vendors/preview?' + params.toString())
+                    .then(res => res.json())
+                    .then(data => {
+                        if (previewTotal) previewTotal.textContent = data.total || 0;
+                        if (previewVerified) previewVerified.textContent = data.verified || 0;
+                        if (previewPending) previewPending.textContent = data.pending || 0;
+                        if (previewRejected) previewRejected.textContent = data.rejected || 0;
+                    })
+                    .catch(() => {
+                        // ignore preview errors
+                    });
+            }
+
+            function debounceVendorPreview() {
+                clearTimeout(previewDebounceTimer);
+                previewDebounceTimer = setTimeout(updateVendorPreview, 300);
+            }
+
+            if (vendorStartDate) vendorStartDate.addEventListener('change', updateVendorPreview);
+            if (vendorEndDate) vendorEndDate.addEventListener('change', updateVendorPreview);
+            if (vendorStatus) vendorStatus.addEventListener('change', updateVendorPreview);
+            if (vendorSearch) vendorSearch.addEventListener('input', debounceVendorPreview);
+
+            if (btnResetVendorFilters) {
+                btnResetVendorFilters.addEventListener('click', function () {
+                    if (vendorStartDate) vendorStartDate.value = '';
+                    if (vendorEndDate) vendorEndDate.value = '';
+                    if (vendorStatus) vendorStatus.value = 'ALL';
+                    if (vendorSearch) vendorSearch.value = '';
+                    updateVendorPreview();
+                });
+            }
+
+            // Initial load of vendor preview
+            updateVendorPreview();
+
+            if (btnDownloadVendorExcel) {
+                btnDownloadVendorExcel.addEventListener('click', function (e) {
+                    e.preventDefault();
+
+                    const params = getVendorQueryParams();
+
+                    // Check if current preview says 0
+                    if (previewTotal && parseInt(previewTotal.textContent, 10) === 0) {
+                        toastMsg.textContent = textNoRecords;
+                        toast.show();
+                        return;
+                    }
+
+                    // Loading state
+                    btnDownloadVendorExcel.disabled = true;
+                    vendorExportBtnText.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + textDownloadingVendor;
+
+                    fetch('/admin/reports/vendors/export?' + params.toString())
+                        .then(res => {
+                            if (res.status === 404) {
+                                throw new Error(textNoRecords);
+                            }
+                            if (!res.ok) {
+                                throw new Error(textVendorError);
+                            }
+                            return res.blob();
+                        })
+                        .then(blob => {
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.style.display = 'none';
+                            a.href = url;
+                            const today = new Date().toISOString().slice(0, 10);
+                            a.download = `Vendor_Report_${today}.xlsx`;
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+
+                            toastMsg.textContent = textVendorSuccess;
+                            toast.show();
+                        })
+                        .catch(err => {
+                            toastMsg.textContent = err.message || textVendorError;
+                            toast.show();
+                        })
+                        .finally(() => {
+                            btnDownloadVendorExcel.disabled = false;
+                            vendorExportBtnText.textContent = textDownloadVendor;
+                        });
+                });
+            }
         });
         /*]]>*/
     </script>

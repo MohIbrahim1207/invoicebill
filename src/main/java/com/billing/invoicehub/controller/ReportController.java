@@ -162,6 +162,52 @@ public class ReportController {
                 .body(excel);
     }
 
+    @GetMapping("/admin/reports/vendors/preview")
+    @org.springframework.web.bind.annotation.ResponseBody
+    public ResponseEntity<Map<String, Object>> previewVendorReport(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search) {
+
+        String cleanSearch = cleanParam(search);
+        Map<String, Object> preview = reportService.getVendorPreview(startDate, endDate, status, cleanSearch);
+        return ResponseEntity.ok(preview);
+    }
+
+    @GetMapping("/admin/reports/vendors/export")
+    public ResponseEntity<byte[]> exportVendorReport(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search) throws IOException {
+
+        String cleanSearch = cleanParam(search);
+        List<com.billing.invoicehub.entity.AppUser> vendors = reportService.getFilteredVendors(startDate, endDate, status, cleanSearch);
+
+        if (vendors.isEmpty()) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body("No vendors found for the selected filters".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+
+        Map<String, String> appliedFilters = new HashMap<>();
+        appliedFilters.put("Start Date", startDate != null ? startDate.toString() : "ALL");
+        appliedFilters.put("End Date", endDate != null ? endDate.toString() : "ALL");
+        appliedFilters.put("Status", (status != null && !status.isBlank()) ? status : "ALL");
+        appliedFilters.put("Search", cleanSearch != null ? cleanSearch : "ALL");
+        boolean isFiltered = startDate != null || endDate != null || (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) || cleanSearch != null;
+        appliedFilters.put("isFiltered", String.valueOf(isFiltered));
+
+        byte[] excel = reportService.generateVendorExcelReport(vendors, appliedFilters);
+        String filename = "Vendor_Report_" + LocalDate.now().toString() + ".xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(excel);
+    }
+
     private String cleanParam(String val) {
         if (val == null || val.trim().isEmpty()) {
             return null;

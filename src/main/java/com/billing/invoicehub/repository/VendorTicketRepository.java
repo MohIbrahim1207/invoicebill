@@ -44,6 +44,9 @@ extends JpaRepository<VendorTicket, Long> {
 
     public long countByStatusRequestAndCreatedAtBetween(TicketStatus status, LocalDateTime start, LocalDateTime end);
 
+    @Query("select distinct t from VendorTicket t left join fetch t.vendor")
+    public List<VendorTicket> findAllWithVendor();
+
     @Query(value="select distinct t from VendorTicket t left join fetch t.vendor left join fetch t.client " +
             "where (:startDate is null or t.createdAt >= :startDate) " +
             "and (:endDate is null or t.createdAt <= :endDate) " +
