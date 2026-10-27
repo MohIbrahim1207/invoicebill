@@ -239,8 +239,8 @@
                                                 <div class="file-dropzone" id="gstDropzone">
                                                     <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
                                                     <p class="mb-1 fw-semibold small mt-1">Drag & drop or Click</p>
-                                                    <p class="text-muted small mb-0" style="font-size:0.75rem;">PDF, PNG, JPG (Max 10MB)</p>
-                                                    <input type="file" id="gstDocument" name="gstDocument" class="d-none" accept=".pdf,.png,.jpg,.jpeg">
+                                                    <p class="text-muted small mb-0" style="font-size:0.75rem;">PDF, PNG, JPG, WEBP (Max 10MB)</p>
+                                                    <input type="file" id="gstDocument" name="gstDocument" class="d-none" accept=".pdf,.png,.jpg,.jpeg,.webp">
                                                 </div>
                                                 <!-- Preview -->
                                                 <div class="file-preview-card d-none mt-2 card border p-2 bg-light-subtle" id="gstPreview">
@@ -264,8 +264,8 @@
                                                 <div class="file-dropzone" id="companyDropzone">
                                                     <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
                                                     <p class="mb-1 fw-semibold small mt-1">Drag & drop or Click</p>
-                                                    <p class="text-muted small mb-0" style="font-size:0.75rem;">PDF, PNG, JPG (Max 10MB)</p>
-                                                    <input type="file" id="companyDocument" name="companyDocument" class="d-none" accept=".pdf,.png,.jpg,.jpeg">
+                                                    <p class="text-muted small mb-0" style="font-size:0.75rem;">PDF, PNG, JPG, WEBP (Max 10MB)</p>
+                                                    <input type="file" id="companyDocument" name="companyDocument" class="d-none" accept=".pdf,.png,.jpg,.jpeg,.webp">
                                                 </div>
                                                 <!-- Preview -->
                                                 <div class="file-preview-card d-none mt-2 card border p-2 bg-light-subtle" id="companyPreview">
@@ -289,8 +289,8 @@
                                                 <div class="file-dropzone" id="supportingDropzone">
                                                     <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
                                                     <p class="mb-1 fw-semibold small mt-1">Drag & drop or Click</p>
-                                                    <p class="text-muted small mb-0" style="font-size:0.75rem;">PDF, PNG, JPG (Max 10MB, Optional)</p>
-                                                    <input type="file" id="supportingDocument" name="supportingDocument" class="d-none" accept=".pdf,.png,.jpg,.jpeg">
+                                                    <p class="text-muted small mb-0" style="font-size:0.75rem;">PDF, PNG, JPG, WEBP (Max 10MB, Optional)</p>
+                                                    <input type="file" id="supportingDocument" name="supportingDocument" class="d-none" accept=".pdf,.png,.jpg,.jpeg,.webp">
                                                 </div>
                                                 <!-- Preview -->
                                                 <div class="file-preview-card d-none mt-2 card border p-2 bg-light-subtle" id="supportingPreview">
@@ -839,10 +839,10 @@
                 function handleFileSelection(file) {
                     errorDiv.textContent = "";
                     
-                    const allowedTypes = ['.pdf', '.png', '.jpg', '.jpeg'];
+                    const allowedTypes = ['.pdf', '.png', '.jpg', '.jpeg', '.webp'];
                     const extension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
                     if (!allowedTypes.includes(extension)) {
-                        errorDiv.textContent = "Only PDF, PNG, JPG, and JPEG files are allowed.";
+                        errorDiv.textContent = "Only PDF, PNG, JPG, JPEG and WEBP files are allowed.";
                         return;
                     }
 

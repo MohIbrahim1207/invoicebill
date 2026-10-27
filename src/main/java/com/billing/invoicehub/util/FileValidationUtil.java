@@ -10,19 +10,41 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Locale;
 import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public class FileValidationUtil {
 
     private static final Logger log = LoggerFactory.getLogger(FileValidationUtil.class);
     private static final Tika TIKA = new Tika();
 
-    private static final Set<String> ALLOWED_EXTENSIONS = Set.of("pdf", "png", "jpg", "jpeg");
-    private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
+    // Default / Invoice / Ticket Allowed Extensions & MIME types
+    private static final Set<String> ALLOWED_INVOICE_EXTENSIONS = Set.of(
+            "pdf", "png", "jpg", "jpeg", "docx", "xlsx"
+    );
+    private static final Set<String> ALLOWED_INVOICE_MIME_TYPES = Set.of(
             "application/pdf",
             "image/png",
             "image/jpeg",
-            "image/pjpeg"
+            "image/pjpeg",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
+    private static final String ALLOWED_INVOICE_TYPES_DISPLAY = "PDF, PNG, JPG, JPEG, DOCX, XLSX";
+
+    // Vendor Registration Allowed Extensions & MIME types
+    private static final Set<String> ALLOWED_REGISTRATION_EXTENSIONS = Set.of(
+            "pdf", "png", "jpg", "jpeg", "webp"
+    );
+    private static final Set<String> ALLOWED_REGISTRATION_MIME_TYPES = Set.of(
+            "application/pdf",
+            "image/png",
+            "image/jpeg",
+            "image/pjpeg",
+            "image/webp"
+    );
+    private static final String ALLOWED_REGISTRATION_TYPES_DISPLAY = "PDF, PNG, JPG, JPEG, WEBP";
+
     public static final long MAX_FILE_SIZE_10MB = 10 * 1024 * 1024; // 10 MB
 
     public static class FileValidationException extends IllegalArgumentException {
@@ -63,6 +85,28 @@ public class FileValidationUtil {
     }
 
     public static void validateFile(MultipartFile file, String fieldName, long maxSizeBytes) {
+        validateWithRules(file, fieldName, maxSizeBytes, ALLOWED_INVOICE_EXTENSIONS,
+                ALLOWED_INVOICE_MIME_TYPES, ALLOWED_INVOICE_TYPES_DISPLAY);
+    }
+
+    public static void validateRegistrationFile(MultipartFile file, String fieldName) {
+        validateRegistrationFile(file, fieldName, MAX_FILE_SIZE_10MB);
+    }
+
+    public static void validateRegistrationFileIfPresent(MultipartFile file, String fieldName) {
+        if (file != null && !file.isEmpty()) {
+            validateRegistrationFile(file, fieldName, MAX_FILE_SIZE_10MB);
+        }
+    }
+
+    public static void validateRegistrationFile(MultipartFile file, String fieldName, long maxSizeBytes) {
+        validateWithRules(file, fieldName, maxSizeBytes, ALLOWED_REGISTRATION_EXTENSIONS,
+                ALLOWED_REGISTRATION_MIME_TYPES, ALLOWED_REGISTRATION_TYPES_DISPLAY);
+    }
+
+    private static void validateWithRules(MultipartFile file, String fieldName, long maxSizeBytes,
+                                          Set<String> allowedExtensions, Set<String> allowedMimes,
+                                          String typesDisplay) {
         boolean isId = isIndonesian();
 
         if (file == null || file.isEmpty()) {
@@ -89,10 +133,10 @@ public class FileValidationUtil {
         }
 
         String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
-        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+        if (!allowedExtensions.contains(extension)) {
             String msg = isId
-                    ? "Tipe file tidak diizinkan. Tipe yang diizinkan: PDF, PNG, JPG, JPEG."
-                    : "File type not allowed. Allowed types are: PDF, PNG, JPG, JPEG.";
+                    ? "Tipe file tidak diizinkan. Tipe yang diizinkan: " + typesDisplay + "."
+                    : "File type not allowed. Allowed types are: " + typesDisplay + ".";
             throw new FileValidationException(fieldName, msg);
         }
 
@@ -108,12 +152,60 @@ public class FileValidationUtil {
             throw new FileValidationException(fieldName, msg);
         }
 
-        if (detectedMimeType == null || !ALLOWED_MIME_TYPES.contains(detectedMimeType.toLowerCase())) {
+        if (detectedMimeType == null || !allowedMimes.contains(detectedMimeType.toLowerCase())) {
             log.warn("File rejected by magic-byte detection. File: {}, Extension: {}, Detected MIME: {}",
                     originalFilename, extension, detectedMimeType);
             String msg = isId
-                    ? "Konten file tidak sesuai dengan format yang diizinkan. Terdeteksi: " + detectedMimeType + ". Format yang diizinkan: PDF, PNG, JPG, JPEG."
-                    : "File content does not match allowed types. Detected: " + detectedMimeType + ". Allowed types: PDF, PNG, JPG, JPEG.";
+                    ? "Konten file tidak sesuai dengan format yang diizinkan. Terdeteksi: " + detectedMimeType + ". Format yang diizinkan: " + typesDisplay + "."
+                    : "File content does not match allowed types. Detected: " + detectedMimeType + ". Allowed types: " + typesDisplay + ".";
+            throw new FileValidationException(fieldName, msg);
+        }
+
+        // 4. If DOCX or XLSX, verify that the file is genuine OOXML and does not contain VBA macros
+        if ("docx".equals(extension) || "xlsx".equals(extension)) {
+            validateOpenXmlStructure(file, fieldName, extension, isId);
+        }
+    }
+
+    private static void validateOpenXmlStructure(MultipartFile file, String fieldName, String extension, boolean isId) {
+        boolean hasContentTypes = false;
+        boolean hasDocumentFolder = false;
+        String requiredPrefix = "xlsx".equals(extension) ? "xl/" : "word/";
+
+        try (ZipInputStream zis = new ZipInputStream(file.getInputStream())) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                String entryName = entry.getName();
+                if ("[Content_Types].xml".equalsIgnoreCase(entryName)) {
+                    hasContentTypes = true;
+                }
+                if (entryName.toLowerCase().startsWith(requiredPrefix)) {
+                    hasDocumentFolder = true;
+                }
+                if (entryName.toLowerCase().contains("vbaproject.bin")
+                        || entryName.toLowerCase().contains("vba")
+                        || entryName.toLowerCase().endsWith(".bin")
+                        || entryName.toLowerCase().contains("macros")) {
+                    String msg = isId
+                            ? "File dengan makro (.xlsm/.docm) tidak diizinkan demi alasan keamanan."
+                            : "Macro-enabled files (.xlsm/.docm) are blocked for security reasons.";
+                    throw new FileValidationException(fieldName, msg);
+                }
+                zis.closeEntry();
+            }
+        } catch (FileValidationException e) {
+            throw e;
+        } catch (Exception ex) {
+            String msg = isId
+                    ? "File bukan dokumen Office Open XML (" + extension.toUpperCase() + ") yang valid."
+                    : "The file is not a valid Office Open XML (" + extension.toUpperCase() + ") document.";
+            throw new FileValidationException(fieldName, msg);
+        }
+
+        if (!hasContentTypes || !hasDocumentFolder) {
+            String msg = isId
+                    ? "File bukan dokumen Office Open XML (" + extension.toUpperCase() + ") yang valid (arsip zip tidak sesuai)."
+                    : "The file is not a valid Office Open XML (" + extension.toUpperCase() + ") document (invalid package structure).";
             throw new FileValidationException(fieldName, msg);
         }
     }

@@ -164,7 +164,7 @@
                             <label for="invoiceFile" class="form-label form-section-title"
                                 th:text="#{ticket.new.step3.invoiceFile}">Invoice File</label>
                             <input type="file" id="invoiceFile" name="invoiceFile" class="form-control form-control-lg"
-                                accept=".pdf,image/*" required>
+                                accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx" required>
                             <div class="file-preview" id="invoiceFilePreview"
                                 th:text="${wizardState.invoiceFileOriginalName != null ? wizardState.invoiceFileOriginalName : #messages.msg('common.no.file.selected')}">
                                 No file selected</div>
@@ -177,7 +177,7 @@
                             <label for="taxDocument" class="form-label form-section-title"
                                 th:text="#{ticket.new.step3.taxDocument}">Tax/VAT Document</label>
                             <input type="file" id="taxDocument" name="taxDocument" class="form-control form-control-lg"
-                                accept=".pdf,image/*">
+                                accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx">
                             <div class="file-preview" id="taxFilePreview"
                                 th:text="${wizardState.taxDocumentOriginalName != null ? wizardState.taxDocumentOriginalName : #messages.msg('common.no.file.selected')}">
                                 No file selected</div>
@@ -189,7 +189,7 @@
                             <label for="poCopy" class="form-label form-section-title"
                                 th:text="#{ticket.new.step3.poCopy}">PO Copy</label>
                             <input type="file" id="poCopy" name="poCopy" class="form-control form-control-lg"
-                                accept=".pdf,image/*" required>
+                                accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx" required>
                             <div class="file-preview" id="poCopyPreview"
                                 th:text="${wizardState.poCopyOriginalName != null ? wizardState.poCopyOriginalName : #messages.msg('common.no.file.selected')}">
                                 No file selected</div>
@@ -201,7 +201,7 @@
                             <label for="deliveryNote" class="form-label form-section-title"
                                 th:text="#{ticket.new.step3.deliveryNote}">Delivery Note</label>
                             <input type="file" id="deliveryNote" name="deliveryNote"
-                                class="form-control form-control-lg" accept=".pdf,image/*" required>
+                                class="form-control form-control-lg" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx" required>
                             <div class="file-preview" id="deliveryNotePreview"
                                 th:text="${wizardState.deliveryNoteOriginalName != null ? wizardState.deliveryNoteOriginalName : #messages.msg('common.no.file.selected')}">
                                 No file selected</div>
@@ -215,7 +215,7 @@
                                     class="text-muted"
                                     th:text="'(' + #{common.optional} + ')'">(optional)</span></label>
                             <input type="file" id="otherDocument" name="otherDocument"
-                                class="form-control form-control-lg" accept=".pdf,image/*">
+                                class="form-control form-control-lg" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx">
                             <div class="file-preview" id="otherFilePreview"
                                 th:text="${wizardState.otherDocumentOriginalName != null ? wizardState.otherDocumentOriginalName : #messages.msg('common.no.file.selected')}">
                                 No file selected</div>

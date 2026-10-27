@@ -83,10 +83,10 @@ public class VendorRegistrationService {
                 form.getUsername());
         log.info("=== Starting vendor registration for username: {} ===", form.getUsername());
 
-        FileValidationUtil.validateFile(gstDocument, "gstDocument");
-        FileValidationUtil.validateFile(companyDocument, "companyDocument");
+        FileValidationUtil.validateRegistrationFile(gstDocument, "gstDocument");
+        FileValidationUtil.validateRegistrationFile(companyDocument, "companyDocument");
         if (supportingDocument != null && !supportingDocument.isEmpty()) {
-            FileValidationUtil.validateFile(supportingDocument, "supportingDocument");
+            FileValidationUtil.validateRegistrationFile(supportingDocument, "supportingDocument");
         }
 
         this.validateRegistration(form, gstDocument, companyDocument);
