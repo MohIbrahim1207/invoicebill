@@ -386,7 +386,7 @@
             <i class="bi bi-receipt-cutoff"></i> <span th:text="#{sidebar.billing}">Billing Intake</span>
         </a>
         <a href="/admin/reports" class="sidebar-link" th:classappend="${active == 'reports'} ? ' active' : ''"
-            sec:authorize="hasRole('ADMIN')">
+            sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')">
             <i class="bi bi-bar-chart-line"></i> <span>Reports</span>
         </a>
         <a href="/notifications" class="sidebar-link" th:classappend="${active == 'notifications'} ? ' active' : ''">
@@ -397,7 +397,7 @@
             <i class="bi bi-question-circle"></i> <span th:text="#{sidebar.help}">Help</span>
         </a>
         <a href="/clients" class="sidebar-link" th:classappend="${active == 'clients'} ? ' active' : ''"
-            sec:authorize="hasRole('ADMIN')">
+            sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
             <i class="bi bi-building"></i> <span th:text="#{sidebar.clients}">Vendor Management</span>
         </a>
         <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''"
@@ -405,23 +405,23 @@
             <i class="bi bi-list-task"></i> <span th:text="#{sidebar.vendor.tickets}">Vendor Tickets</span>
         </a>
         <a href="/admin/vendor-tickets" class="sidebar-link"
-            th:classappend="${active == 'admin-tickets'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')">
+            th:classappend="${active == 'admin-tickets'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')">
             <i class="bi bi-list-task"></i> <span th:text="#{sidebar.admin.tickets}">Vendor Tickets</span>
         </a>
         <a href="/admin/vendors" class="sidebar-link" th:classappend="${active == 'vendors'} ? ' active' : ''"
-            sec:authorize="hasRole('ADMIN')">
+            sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')">
             <i class="bi bi-person-badge"></i> <span th:text="#{sidebar.vendor.verification}">Vendor Verification</span>
         </a>
         <a href="/admin/ai-quote-converter" class="sidebar-link"
-            th:classappend="${active == 'ai-quote-converter'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')">
+            th:classappend="${active == 'ai-quote-converter'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
             <i class="bi bi-cpu"></i> <span>AI Quote Converter</span>
         </a>
         <a href="/admin/users/add" class="sidebar-link" th:classappend="${active == 'users-add'} ? ' active' : ''"
-            sec:authorize="hasRole('ADMIN')">
+            sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
             <i class="bi bi-person-plus"></i> <span>Add User</span>
         </a>
         <a href="/admin/audit-logs" class="sidebar-link" th:classappend="${active == 'audit-logs'} ? ' active' : ''"
-            sec:authorize="hasRole('ADMIN')">
+            sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
             <i class="bi bi-shield-check"></i> <span>Audit Log</span>
         </a>
     </aside>
@@ -437,7 +437,7 @@
                 <a href="/invoice" class="sidebar-link" th:classappend="${active == 'billing'} ? ' active' : ''"><i
                         class="bi bi-receipt-cutoff"></i> <span th:text="#{sidebar.billing}">Billing Intake</span></a>
                 <a href="/admin/reports" class="sidebar-link" th:classappend="${active == 'reports'} ? ' active' : ''"
-                    sec:authorize="hasRole('ADMIN')"><i class="bi bi-bar-chart-line"></i> <span>Reports</span></a>
+                    sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')"><i class="bi bi-bar-chart-line"></i> <span>Reports</span></a>
                 <a href="/notifications" class="sidebar-link"
                     th:classappend="${active == 'notifications'} ? ' active' : ''"><i class="bi bi-bell"></i> <span
                         th:text="#{sidebar.notifications}">Notifications</span></a>
@@ -445,25 +445,25 @@
                     sec:authorize="hasRole('VENDOR')"><i class="bi bi-question-circle"></i> <span
                         th:text="#{sidebar.help}">Help</span></a>
                 <a href="/clients" class="sidebar-link" th:classappend="${active == 'clients'} ? ' active' : ''"
-                    sec:authorize="hasRole('ADMIN')"><i class="bi bi-building"></i> <span
+                    sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')"><i class="bi bi-building"></i> <span
                         th:text="#{sidebar.clients}">Vendor Management</span></a>
                 <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''"
                     sec:authorize="hasRole('VENDOR')"><i class="bi bi-list-task"></i> <span
                         th:text="#{sidebar.vendor.tickets}">Vendor Tickets</span></a>
                 <a href="/admin/vendor-tickets" class="sidebar-link"
-                    th:classappend="${active == 'admin-tickets'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i
+                    th:classappend="${active == 'admin-tickets'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')"><i
                         class="bi bi-list-task"></i> <span th:text="#{sidebar.admin.tickets}">Vendor Tickets</span></a>
                 <a href="/admin/vendors" class="sidebar-link" th:classappend="${active == 'vendors'} ? ' active' : ''"
-                    sec:authorize="hasRole('ADMIN')"><i class="bi bi-person-badge"></i> <span
+                    sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')"><i class="bi bi-person-badge"></i> <span
                         th:text="#{sidebar.vendor.verification}">Vendor Verification</span></a>
                 <a href="/admin/ai-quote-converter" class="sidebar-link"
                     th:classappend="${active == 'ai-quote-converter'} ? ' active' : ''"
-                    sec:authorize="hasRole('ADMIN')"><i class="bi bi-cpu"></i> <span>AI Quote Converter</span></a>
+                    sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')"><i class="bi bi-cpu"></i> <span>AI Quote Converter</span></a>
                 <a href="/admin/users/add" class="sidebar-link"
-                    th:classappend="${active == 'users-add'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i
+                    th:classappend="${active == 'users-add'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')"><i
                         class="bi bi-person-plus"></i> <span>Add User</span></a>
                 <a href="/admin/audit-logs" class="sidebar-link"
-                    th:classappend="${active == 'audit-logs'} ? ' active' : ''" sec:authorize="hasRole('ADMIN')"><i
+                    th:classappend="${active == 'audit-logs'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')"><i
                         class="bi bi-shield-check"></i> <span>Audit Log</span></a>
             </div>
         </div>

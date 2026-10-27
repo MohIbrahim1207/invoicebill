@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -133,7 +133,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="card portal-card">
+                <div class="card portal-card" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
                     <div class="card-body">
                         <h2 class="section-title mb-3">Reject Vendor</h2>
                         <form th:action="@{/admin/vendors/{id}/reject(id=${vendor.id})}" method="post" class="vstack gap-3">

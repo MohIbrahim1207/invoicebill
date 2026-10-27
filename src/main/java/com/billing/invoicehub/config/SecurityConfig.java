@@ -72,6 +72,8 @@ public class SecurityConfig {
                         .requestMatchers("/admin/login", "/admin/authenticate",
                                 "/error", "/css/**", "/js/**", "/favicon.ico")
                         .permitAll()
+                        .requestMatchers("/admin/users/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/admin/vendors/*/verify", "/admin/vendors/*/reject").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .anyRequest().hasAnyRole("ADMIN", "ACCOUNTS", "SUPER_ADMIN"))
                 .formLogin(form -> form
                         .loginPage("/admin/login")

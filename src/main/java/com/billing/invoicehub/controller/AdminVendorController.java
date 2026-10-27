@@ -18,6 +18,7 @@ package com.billing.invoicehub.controller;
 
 import com.billing.invoicehub.entity.AppUser;
 import com.billing.invoicehub.service.VendorRegistrationService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -55,6 +56,7 @@ public class AdminVendorController {
     }
 
     @PostMapping(value={"/{id}/verify"})
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public String verifyVendor(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
             AppUser vendor = this.vendorRegistrationService.verifyVendor(id);
@@ -67,6 +69,7 @@ public class AdminVendorController {
     }
 
     @PostMapping(value={"/{id}/reject"})
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public String rejectVendor(@PathVariable Long id, @RequestParam String reason, RedirectAttributes redirectAttributes) {
         try {
             this.vendorRegistrationService.rejectVendor(id, reason);

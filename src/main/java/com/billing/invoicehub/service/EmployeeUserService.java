@@ -119,6 +119,8 @@ public class EmployeeUserService {
         AppUser target = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
+        checkSuperAdminProtection(target, actor, "edit");
+
         if (email != null && !email.isBlank()) {
             String cleanEmail = email.trim().toLowerCase();
             if (!cleanEmail.equalsIgnoreCase(target.getEmail())) {
@@ -172,6 +174,8 @@ public class EmployeeUserService {
         AppUser target = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
+        checkSuperAdminProtection(target, actor, "reset the password of");
+
         target.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(target);
 
@@ -183,6 +187,8 @@ public class EmployeeUserService {
     public boolean toggleUserEnabled(Long userId, AppUser actor) {
         AppUser target = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+
+        checkSuperAdminProtection(target, actor, "modify");
 
         boolean newStatus = !target.isEnabled();
         target.setEnabled(newStatus);
@@ -198,6 +204,8 @@ public class EmployeeUserService {
         AppUser target = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
+        checkSuperAdminProtection(target, actor, "delete");
+
         if (actor != null && actor.getId().equals(userId)) {
             throw new IllegalArgumentException("You cannot delete your own account.");
         }
@@ -205,5 +213,19 @@ public class EmployeeUserService {
         userRepository.delete(target);
         String actorUsername = actor != null ? actor.getUsername() : "SYSTEM";
         auditLogService.log(actorUsername, "ADMIN", "USER_DELETED", "AppUser", userId, "DELETED", target.getEmail());
+    }
+
+    private void checkSuperAdminProtection(AppUser target, AppUser actor, String actionDescription) {
+        if (target != null && target.getRoles() != null) {
+            boolean isTargetSuperAdmin = target.getRoles().stream()
+                    .anyMatch(r -> "ROLE_SUPER_ADMIN".equalsIgnoreCase(r.getName()));
+            if (isTargetSuperAdmin) {
+                boolean isActorSuperAdmin = actor != null && actor.getRoles() != null && actor.getRoles().stream()
+                        .anyMatch(r -> "ROLE_SUPER_ADMIN".equalsIgnoreCase(r.getName()));
+                if (!isActorSuperAdmin) {
+                    throw new AccessDeniedException("Only a SUPER_ADMIN can " + actionDescription + " a SUPER_ADMIN account.");
+                }
+            }
+        }
     }
 }

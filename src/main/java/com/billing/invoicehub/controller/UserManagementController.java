@@ -15,10 +15,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import java.util.List;
 
 @Controller
 @RequestMapping("/admin/users")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 public class UserManagementController {
 
     private static final Logger log = LoggerFactory.getLogger(UserManagementController.class);
@@ -62,6 +66,8 @@ public class UserManagementController {
             AppUser created = userService.createUser(fullName, email, password, role, currentUser);
             redirectAttributes.addFlashAttribute("successMessage", "User account for " + created.getEmail() + " (" + role + ") created successfully.");
             return "redirect:/admin/users/add";
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error creating user: {}", e.getMessage(), e);
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
@@ -88,6 +94,8 @@ public class UserManagementController {
                     "email", updated.getEmail(),
                     "enabled", updated.isEnabled()
             ));
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error updating user {}: {}", id, e.getMessage(), e);
             return org.springframework.http.ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
@@ -103,6 +111,8 @@ public class UserManagementController {
             AppUser currentUser = getCurrentUser(authentication);
             userService.resetPassword(id, password, currentUser);
             return org.springframework.http.ResponseEntity.ok(java.util.Map.of("success", true, "message", "Password reset successfully."));
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error resetting password for user {}: {}", id, e.getMessage(), e);
             return org.springframework.http.ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
@@ -121,6 +131,8 @@ public class UserManagementController {
                     "enabled", newStatus,
                     "message", "User account status changed to " + (newStatus ? "ACTIVE" : "DISABLED") + "."
             ));
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error toggling user status for ID {}: {}", id, e.getMessage(), e);
             return org.springframework.http.ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
@@ -135,6 +147,8 @@ public class UserManagementController {
             AppUser currentUser = getCurrentUser(authentication);
             userService.deleteUser(id, currentUser);
             return org.springframework.http.ResponseEntity.ok(java.util.Map.of("success", true, "message", "User deleted successfully."));
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error deleting user {}: {}", id, e.getMessage(), e);
             return org.springframework.http.ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
