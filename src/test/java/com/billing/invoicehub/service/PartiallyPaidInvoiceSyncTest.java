@@ -145,6 +145,31 @@ class PartiallyPaidInvoiceSyncTest {
                 "Vendor email notification should have newStatus='Partially Paid', but was: " + statusCaptor.getValue());
     }
 
+    @Test
+    @DisplayName("Fix 2 safety check: when mapTicketStatusToInvoiceStatus returns null, no NPE occurs, invoice remains untouched, and no email is sent")
+    void whenMappedInvoiceStatusIsNull_noCrashAndNoEmailSent() {
+        org.junit.jupiter.api.Assertions.assertNull(vendorTicketService.mapTicketStatusToInvoiceStatus(null),
+                "mapTicketStatusToInvoiceStatus(null) must return null");
+
+        // Calling updateTicketStatusAndNotify with null status must not crash
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() ->
+                vendorTicketService.updateTicketStatusAndNotify(ticket, null, "Remarks on null status")
+        );
+
+        // Verify linked invoice is untouched
+        Invoice currentInvoice = invoiceRepository.findById(invoice.getId()).orElseThrow();
+        assertEquals("Pending", currentInvoice.getStatus(),
+                "Invoice status should remain unchanged at 'Pending'");
+
+        // Verify NO email was sent with a blank/null status
+        org.mockito.Mockito.verify(emailService, org.mockito.Mockito.never()).sendInvoiceStatusEmail(
+                anyString(), anyString(), anyString(), org.mockito.ArgumentMatchers.isNull(), anyString(), anyString(), anyString(), anyString()
+        );
+        org.mockito.Mockito.verify(emailService, org.mockito.Mockito.never()).sendInvoiceStatusEmail(
+                anyString(), anyString(), anyString(), eq(""), anyString(), anyString(), anyString(), anyString()
+        );
+    }
+
     @AfterEach
     void tearDown() {
         if (ticket != null && ticket.getId() != null) {

@@ -384,6 +384,12 @@ public class VendorTicketService {
 
     @Transactional
     public void updateTicketStatusAndNotify(VendorTicket ticket, TicketStatus newStatus, String comment) {
+        if (newStatus == null) {
+            log.warn("Null status passed to updateTicketStatusAndNotify for ticket {}. Aborting status update and notification.",
+                    ticket != null ? ticket.getTicketNo() : "null");
+            return;
+        }
+
         TicketStatus oldStatus = ticket.getStatusRequest();
         ticket.setStatusRequest(newStatus);
         vendorTicketRepository.save(ticket);
@@ -505,7 +511,7 @@ public class VendorTicketService {
         return value.trim();
     }
 
-    private String mapTicketStatusToInvoiceStatus(TicketStatus status) {
+    String mapTicketStatusToInvoiceStatus(TicketStatus status) {
         if (status == null) {
             return null;
         }
