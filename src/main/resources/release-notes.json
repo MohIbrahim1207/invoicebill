@@ -4,19 +4,19 @@
     "date": "2026-10-30",
     "audience": "ALL",
     "title": {
-      "en": "InvoiceHub Security & Reliability Update",
-      "id": "Pembaruan Keamanan & Keandalan InvoiceHub"
+      "en": "InvoiceHub Update",
+      "id": "Pembaruan InvoiceHub"
     },
     "notes": {
       "en": [
-        "Stronger Password Rules: Passwords now require at least 12 characters with uppercase, lowercase, number, and special character. Live strength feedback and breached-password verification are now active.",
-        "Duplicate Vendor & Non-PKP Fix: Non-PKP vendors using tax ID placeholders (such as 'No PPN', 'NON PKP', '-') are now handled smoothly without duplicate registration conflicts.",
-        "File Upload Verification: Robust document inspection and magic-byte validation now safeguard all uploaded files (PDF, Word, Excel, and images)."
+        "Stronger passwords: new passwords need at least 12 characters, with a capital letter, a small letter, a number and a symbol.",
+        "Easier registration for Non-PKP vendors: you can now register without a tax number.",
+        "Safer uploads: uploaded documents are checked to keep your data secure."
       ],
       "id": [
-        "Aturan Kata Sandi Lebih Kuat: Kata sandi kini memerlukan minimal 12 karakter (huruf besar, kecil, angka, dan karakter khusus) disertai indikator kekuatan langsung dan deteksi kebocoran kata sandi.",
-        "Perbaikan Vendor & Non-PKP: Vendor non-PKP yang memasukkan nomor pajak pengganti (seperti 'No PPN', 'NON PKP', '-') kini dapat mendaftar tanpa kendala duplikasi.",
-        "Pemeriksaan Unggah Berkas: Pengecekan mendalam dokumen dan validasi magic-byte berkas kini melindungi seluruh dokumen unggahan (PDF, Word, Excel, dan gambar)."
+        "Kata sandi lebih aman: kata sandi baru minimal 12 karakter, dengan huruf besar, huruf kecil, angka, dan simbol.",
+        "Pendaftaran lebih mudah untuk vendor Non-PKP: kini bisa mendaftar tanpa nomor pajak.",
+        "Unggahan lebih aman: dokumen yang diunggah diperiksa untuk menjaga keamanan data Anda."
       ]
     }
   }
