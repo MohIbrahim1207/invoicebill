@@ -208,26 +208,16 @@ public class StartupRoleMigration implements ApplicationRunner {
             }
 
             // -------------------------------------------------------------------------
-            // Domain Separation Migration:
-            // Ensure app_user.user_domain exists and assign VENDOR / INTERNAL domains.
+            // Domain Separation & Security Migration:
+            // Ensure app_user columns exist safely without using "ADD COLUMN IF NOT EXISTS"
+            // (MySQL 8 does NOT support IF NOT EXISTS on ADD COLUMN; check information_schema instead).
             // -------------------------------------------------------------------------
-            try {
-                // 1. Ensure user_domain column exists in app_user
-                Integer colExists = jdbc.queryForObject(
-                    "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND LOWER(TABLE_NAME) = 'app_user' AND LOWER(COLUMN_NAME) = 'user_domain'",
-                    Integer.class
-                );
-                if (colExists == null || colExists == 0) {
-                    log.info("Adding user_domain column to app_user table...");
-                    jdbc.execute("ALTER TABLE app_user ADD COLUMN user_domain VARCHAR(20) NOT NULL DEFAULT 'INTERNAL'");
-                    log.info("Successfully added user_domain column to app_user.");
-                }
-            } catch (Exception ex) {
-                log.debug("Column user_domain check or addition note: {}", ex.getMessage());
-                try {
-                    jdbc.execute("ALTER TABLE app_user ADD COLUMN user_domain VARCHAR(20) NOT NULL DEFAULT 'INTERNAL'");
-                } catch (Exception ignored) {}
-            }
+            addColumnIfNotExists("app_user", "user_domain", "VARCHAR(20) NOT NULL DEFAULT 'INTERNAL'");
+            addColumnIfNotExists("app_user", "force_password_change", "BOOLEAN NOT NULL DEFAULT FALSE");
+            addColumnIfNotExists("app_user", "failed_login_attempts", "INT NOT NULL DEFAULT 0");
+            addColumnIfNotExists("app_user", "lockout_expiry", "DATETIME NULL");
+            addColumnIfNotExists("app_user", "two_factor_enabled", "BOOLEAN NOT NULL DEFAULT FALSE");
+            addColumnIfNotExists("app_user", "two_factor_secret", "VARCHAR(255) NULL");
 
             // 2. Assign user_domain = 'VENDOR' for all accounts holding ROLE_VENDOR
             try {
@@ -306,6 +296,55 @@ public class StartupRoleMigration implements ApplicationRunner {
         }
     }
 
+    /**
+     * Checks if a column exists in the database by querying information_schema.COLUMNS.
+     * Compatible with both MySQL and H2 without throwing exceptions or relying on MariaDB-only syntax.
+     */
+    private boolean columnExists(String tableName, String columnName) {
+        try {
+            Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.COLUMNS " +
+                "WHERE LOWER(TABLE_NAME) = ? AND LOWER(COLUMN_NAME) = ? " +
+                "AND (TABLE_SCHEMA = DATABASE() OR TABLE_SCHEMA = SCHEMA() OR TABLE_SCHEMA = 'PUBLIC')",
+                Integer.class,
+                tableName.toLowerCase(),
+                columnName.toLowerCase()
+            );
+            return count != null && count > 0;
+        } catch (Exception ex) {
+            try {
+                Integer count = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.COLUMNS " +
+                    "WHERE LOWER(TABLE_NAME) = ? AND LOWER(COLUMN_NAME) = ?",
+                    Integer.class,
+                    tableName.toLowerCase(),
+                    columnName.toLowerCase()
+                );
+                return count != null && count > 0;
+            } catch (Exception e) {
+                log.warn("Could not query information_schema.COLUMNS for {}.{}: {}", tableName, columnName, e.getMessage());
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Safely adds a column to a table only if it does not already exist, verified via information_schema.
+     */
+    private void addColumnIfNotExists(String tableName, String columnName, String columnDefinition) {
+        if (!columnExists(tableName, columnName)) {
+            try {
+                log.info("Adding column {} to {}...", columnName, tableName);
+                jdbc.execute(String.format("ALTER TABLE %s ADD COLUMN %s %s", tableName, columnName, columnDefinition));
+                log.info("Successfully added column {} to {}.", columnName, tableName);
+            } catch (Exception e) {
+                log.error("Failed to add column {} to {}: {}", columnName, tableName, e.getMessage());
+            }
+        } else {
+            log.debug("Column {}.{} already exists, skipping addition.", tableName, columnName);
+        }
+    }
+
     private void createIndexIfNotExists(String indexName, String tableName, String columns) {
         try {
             Integer count = jdbc.queryForObject(
@@ -321,5 +360,3 @@ public class StartupRoleMigration implements ApplicationRunner {
         }
     }
 }
-
-

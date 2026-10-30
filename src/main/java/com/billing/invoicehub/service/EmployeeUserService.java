@@ -40,7 +40,7 @@ public class EmployeeUserService {
     }
 
     @Transactional
-    public AppUser createUser(String fullName, String email, String rawPassword, String requestedRole, AppUser creator) {
+    public AppUser createUser(String fullName, String email, String rawPassword, String requestedRole, boolean forcePasswordChange, AppUser creator) {
         if (email == null || email.isBlank()) {
             throw new IllegalArgumentException("Company email address is required.");
         }
@@ -87,6 +87,7 @@ public class EmployeeUserService {
         user.setPassword(passwordEncoder.encode(rawPassword));
         user.setEnabled(true);
         user.setVerified(true);
+        user.setForcePasswordChange(forcePasswordChange);
         user.setRegistrationDate(LocalDateTime.now());
         user.getRoles().add(roleEntity);
 
@@ -108,6 +109,10 @@ public class EmployeeUserService {
         return saved;
     }
 
+    public AppUser createUser(String fullName, String email, String rawPassword, String requestedRole, AppUser creator) {
+        return createUser(fullName, email, rawPassword, requestedRole, false, creator);
+    }
+
     @Transactional(readOnly = true)
     public List<AppUser> getUsersWithRole(String roleName) {
         String normalized = roleName.startsWith("ROLE_") ? roleName : "ROLE_" + roleName;
@@ -115,11 +120,22 @@ public class EmployeeUserService {
     }
 
     @Transactional
-    public AppUser updateUser(Long userId, String fullName, String email, String requestedRole, Boolean enabled, AppUser actor) {
+    public AppUser updateUser(Long userId, String username, String fullName, String email, String requestedRole, Boolean enabled, AppUser actor) {
         AppUser target = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
         checkSuperAdminProtection(target, actor, "edit");
+
+        // Allow changing the username so administrative accounts aren't stuck with default 'admin'
+        if (username != null && !username.isBlank()) {
+            String cleanUsername = username.trim();
+            if (!cleanUsername.equalsIgnoreCase(target.getUsername())) {
+                if (userRepository.findFirstByUsernameAndUserDomain(cleanUsername, target.getUserDomain()).isPresent()) {
+                    throw new IllegalArgumentException("Username '" + cleanUsername + "' is already in use in the " + target.getUserDomain() + " portal.");
+                }
+                target.setUsername(cleanUsername);
+            }
+        }
 
         if (email != null && !email.isBlank()) {
             String cleanEmail = email.trim().toLowerCase();
@@ -128,7 +144,9 @@ public class EmployeeUserService {
                     throw new IllegalArgumentException("Email address " + cleanEmail + " is already in use.");
                 }
                 target.setEmail(cleanEmail);
-                target.setUsername(cleanEmail);
+                if (username == null || username.isBlank()) {
+                    target.setUsername(cleanEmail);
+                }
             }
         }
 
@@ -141,23 +159,28 @@ public class EmployeeUserService {
         }
 
         if (requestedRole != null && !requestedRole.isBlank()) {
-            boolean isSuperAdmin = actor != null && actor.getRoles().stream()
-                    .anyMatch(r -> "ROLE_SUPER_ADMIN".equalsIgnoreCase(r.getName()));
-
             String normalizedRole = requestedRole.startsWith("ROLE_") ? requestedRole : "ROLE_" + requestedRole;
-            if (!isSuperAdmin && ("ROLE_ADMIN".equalsIgnoreCase(normalizedRole) || "ROLE_SUPER_ADMIN".equalsIgnoreCase(normalizedRole))) {
-                throw new AccessDeniedException("Only Super Admins can assign ADMIN or SUPER_ADMIN roles.");
+            boolean alreadyHasRole = target.getRoles().stream()
+                    .anyMatch(r -> normalizedRole.equalsIgnoreCase(r.getName()));
+
+            if (!alreadyHasRole) {
+                boolean isSuperAdmin = actor != null && actor.getRoles().stream()
+                        .anyMatch(r -> "ROLE_SUPER_ADMIN".equalsIgnoreCase(r.getName()));
+
+                if (!isSuperAdmin && ("ROLE_ADMIN".equalsIgnoreCase(normalizedRole) || "ROLE_SUPER_ADMIN".equalsIgnoreCase(normalizedRole))) {
+                    throw new AccessDeniedException("Only Super Admins can assign ADMIN or SUPER_ADMIN roles.");
+                }
+
+                AppRole roleEntity = roleRepository.findFirstByName(normalizedRole)
+                        .orElseGet(() -> {
+                            AppRole newRole = new AppRole();
+                            newRole.setName(normalizedRole);
+                            return roleRepository.save(newRole);
+                        });
+
+                target.getRoles().clear();
+                target.getRoles().add(roleEntity);
             }
-
-            AppRole roleEntity = roleRepository.findFirstByName(normalizedRole)
-                    .orElseGet(() -> {
-                        AppRole newRole = new AppRole();
-                        newRole.setName(normalizedRole);
-                        return roleRepository.save(newRole);
-                    });
-
-            target.getRoles().clear();
-            target.getRoles().add(roleEntity);
         }
 
         AppUser updated = userRepository.save(target);
@@ -166,8 +189,12 @@ public class EmployeeUserService {
         return updated;
     }
 
+    public AppUser updateUser(Long userId, String fullName, String email, String requestedRole, Boolean enabled, AppUser actor) {
+        return updateUser(userId, null, fullName, email, requestedRole, enabled, actor);
+    }
+
     @Transactional
-    public void resetPassword(Long userId, String newPassword, AppUser actor) {
+    public void resetPassword(Long userId, String newPassword, boolean forcePasswordChange, AppUser actor) {
         if (newPassword == null || newPassword.length() < 6) {
             throw new IllegalArgumentException("Password must be at least 6 characters long.");
         }
@@ -177,10 +204,15 @@ public class EmployeeUserService {
         checkSuperAdminProtection(target, actor, "reset the password of");
 
         target.setPassword(passwordEncoder.encode(newPassword));
+        target.setForcePasswordChange(forcePasswordChange);
         userRepository.save(target);
 
         String actorUsername = actor != null ? actor.getUsername() : "SYSTEM";
         auditLogService.log(actorUsername, "ADMIN", "USER_PASSWORD_RESET", "AppUser", target.getId(), "PASSWORD_RESET", "Reset password for user");
+    }
+
+    public void resetPassword(Long userId, String newPassword, AppUser actor) {
+        resetPassword(userId, newPassword, false, actor);
     }
 
     @Transactional

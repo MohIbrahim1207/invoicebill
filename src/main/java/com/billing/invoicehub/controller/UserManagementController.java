@@ -3,22 +3,29 @@ package com.billing.invoicehub.controller;
 import com.billing.invoicehub.entity.AppRole;
 import com.billing.invoicehub.entity.AppUser;
 import com.billing.invoicehub.repository.AppUserRepository;
+import com.billing.invoicehub.service.CustomUserDetailsService;
 import com.billing.invoicehub.service.EmployeeUserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/admin/users")
@@ -29,10 +36,14 @@ public class UserManagementController {
 
     private final EmployeeUserService userService;
     private final AppUserRepository userRepository;
+    private final CustomUserDetailsService userDetailsService;
 
-    public UserManagementController(EmployeeUserService userService, AppUserRepository userRepository) {
+    public UserManagementController(EmployeeUserService userService,
+                                  AppUserRepository userRepository,
+                                  CustomUserDetailsService userDetailsService) {
         this.userService = userService;
         this.userRepository = userRepository;
+        this.userDetailsService = userDetailsService;
     }
 
     @GetMapping("/add")
@@ -59,11 +70,12 @@ public class UserManagementController {
                              @RequestParam("email") String email,
                              @RequestParam("password") String password,
                              @RequestParam("role") String role,
+                             @RequestParam(value = "forcePasswordChange", defaultValue = "false") boolean forcePasswordChange,
                              Authentication authentication,
                              RedirectAttributes redirectAttributes) {
         try {
             AppUser currentUser = getCurrentUser(authentication);
-            AppUser created = userService.createUser(fullName, email, password, role, currentUser);
+            AppUser created = userService.createUser(fullName, email, password, role, forcePasswordChange, currentUser);
             redirectAttributes.addFlashAttribute("successMessage", "User account for " + created.getEmail() + " (" + role + ") created successfully.");
             return "redirect:/admin/users/add";
         } catch (AccessDeniedException e) {
@@ -76,8 +88,9 @@ public class UserManagementController {
     }
 
     @PostMapping("/{id}/update")
-    @org.springframework.web.bind.annotation.ResponseBody
-    public org.springframework.http.ResponseEntity<?> updateUser(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<?> updateUser(@PathVariable("id") Long id,
+                                                                 @RequestParam(value = "username", required = false) String username,
                                                                  @RequestParam(value = "fullName", required = false) String fullName,
                                                                  @RequestParam(value = "email", required = false) String email,
                                                                  @RequestParam(value = "role", required = false) String role,
@@ -85,11 +98,26 @@ public class UserManagementController {
                                                                  Authentication authentication) {
         try {
             AppUser currentUser = getCurrentUser(authentication);
-            AppUser updated = userService.updateUser(id, fullName, email, role, enabled, currentUser);
-            return org.springframework.http.ResponseEntity.ok(java.util.Map.of(
+            AppUser updated = userService.updateUser(id, username, fullName, email, role, enabled, currentUser);
+
+            // If the currently logged-in admin changed their own username, update the security context
+            if (currentUser != null && currentUser.getId().equals(id) && username != null && !username.isBlank()
+                    && !username.equalsIgnoreCase(currentUser.getUsername())) {
+                try {
+                    UserDetails updatedDetails = userDetailsService.loadUserByUsernameAndDomain(updated.getUsername(), updated.getUserDomain());
+                    Authentication newAuth = new UsernamePasswordAuthenticationToken(
+                            updatedDetails, authentication.getCredentials(), updatedDetails.getAuthorities());
+                    SecurityContextHolder.getContext().setAuthentication(newAuth);
+                } catch (Exception ex) {
+                    log.warn("Could not refresh security context after username update: {}", ex.getMessage());
+                }
+            }
+
+            return org.springframework.http.ResponseEntity.ok(Map.of(
                     "success", true,
-                    "message", "User " + updated.getEmail() + " updated successfully.",
+                    "message", "User " + updated.getUsername() + " updated successfully.",
                     "userId", updated.getId(),
+                    "username", updated.getUsername(),
                     "fullName", updated.getFullName(),
                     "email", updated.getEmail(),
                     "enabled", updated.isEnabled()
@@ -98,35 +126,36 @@ public class UserManagementController {
             throw e;
         } catch (Exception e) {
             log.error("Error updating user {}: {}", id, e.getMessage(), e);
-            return org.springframework.http.ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+            return org.springframework.http.ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     @PostMapping("/{id}/reset-password")
-    @org.springframework.web.bind.annotation.ResponseBody
-    public org.springframework.http.ResponseEntity<?> resetPassword(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<?> resetPassword(@PathVariable("id") Long id,
                                                                     @RequestParam("password") String password,
+                                                                    @RequestParam(value = "forcePasswordChange", defaultValue = "false") boolean forcePasswordChange,
                                                                     Authentication authentication) {
         try {
             AppUser currentUser = getCurrentUser(authentication);
-            userService.resetPassword(id, password, currentUser);
-            return org.springframework.http.ResponseEntity.ok(java.util.Map.of("success", true, "message", "Password reset successfully."));
+            userService.resetPassword(id, password, forcePasswordChange, currentUser);
+            return org.springframework.http.ResponseEntity.ok(Map.of("success", true, "message", "Password reset successfully."));
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
             log.error("Error resetting password for user {}: {}", id, e.getMessage(), e);
-            return org.springframework.http.ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+            return org.springframework.http.ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     @PostMapping("/{id}/toggle-status")
-    @org.springframework.web.bind.annotation.ResponseBody
-    public org.springframework.http.ResponseEntity<?> toggleUserStatus(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<?> toggleUserStatus(@PathVariable("id") Long id,
                                                                        Authentication authentication) {
         try {
             AppUser currentUser = getCurrentUser(authentication);
             boolean newStatus = userService.toggleUserEnabled(id, currentUser);
-            return org.springframework.http.ResponseEntity.ok(java.util.Map.of(
+            return org.springframework.http.ResponseEntity.ok(Map.of(
                     "success", true,
                     "enabled", newStatus,
                     "message", "User account status changed to " + (newStatus ? "ACTIVE" : "DISABLED") + "."
@@ -135,23 +164,23 @@ public class UserManagementController {
             throw e;
         } catch (Exception e) {
             log.error("Error toggling user status for ID {}: {}", id, e.getMessage(), e);
-            return org.springframework.http.ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+            return org.springframework.http.ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
-    @org.springframework.web.bind.annotation.ResponseBody
-    public org.springframework.http.ResponseEntity<?> deleteUser(@org.springframework.web.bind.annotation.PathVariable("id") Long id,
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<?> deleteUser(@PathVariable("id") Long id,
                                                                  Authentication authentication) {
         try {
             AppUser currentUser = getCurrentUser(authentication);
             userService.deleteUser(id, currentUser);
-            return org.springframework.http.ResponseEntity.ok(java.util.Map.of("success", true, "message", "User deleted successfully."));
+            return org.springframework.http.ResponseEntity.ok(Map.of("success", true, "message", "User deleted successfully."));
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
             log.error("Error deleting user {}: {}", id, e.getMessage(), e);
-            return org.springframework.http.ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+            return org.springframework.http.ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 

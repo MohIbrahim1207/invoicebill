@@ -13,6 +13,12 @@ import org.springframework.web.servlet.i18n.SessionLocaleResolver;
 @Configuration
 public class LocaleConfig implements WebMvcConfigurer {
 
+    private final ForcePasswordChangeInterceptor forcePasswordChangeInterceptor;
+
+    public LocaleConfig(ForcePasswordChangeInterceptor forcePasswordChangeInterceptor) {
+        this.forcePasswordChangeInterceptor = forcePasswordChangeInterceptor;
+    }
+
     @Bean
     public LocaleResolver localeResolver() {
         SessionLocaleResolver resolver = new SessionLocaleResolver();
@@ -30,5 +36,6 @@ public class LocaleConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(localeChangeInterceptor());
+        registry.addInterceptor(forcePasswordChangeInterceptor);
     }
 }

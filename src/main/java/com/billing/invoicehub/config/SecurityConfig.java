@@ -1,6 +1,7 @@
 package com.billing.invoicehub.config;
 
 import com.billing.invoicehub.entity.PortalType;
+import com.billing.invoicehub.repository.AppUserRepository;
 import com.billing.invoicehub.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -14,10 +15,16 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.crypto.password.StandardPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 @Configuration
@@ -30,12 +37,23 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+        String defaultId = "bcrypt";
+        Map<String, PasswordEncoder> encoders = new HashMap<>();
+        encoders.put("bcrypt", new BCryptPasswordEncoder());
+        encoders.put("noop", NoOpPasswordEncoder.getInstance());
+        encoders.put("sha256", new StandardPasswordEncoder());
+
+        DelegatingPasswordEncoder delegatingPasswordEncoder =
+                new DelegatingPasswordEncoder(defaultId, encoders);
+        // Requirement 1: existing hashes in the DB are unprefixed BCrypt hashes ($2a$ / $2b$).
+        // Setting default password encoder for matches ensures all existing users authenticate without issue.
+        delegatingPasswordEncoder.setDefaultPasswordEncoderForMatches(new BCryptPasswordEncoder());
+        return delegatingPasswordEncoder;
     }
 
     @Bean
     public DaoAuthenticationProvider baseDaoProvider(CustomUserDetailsService userDetailsService,
-                                                       PasswordEncoder passwordEncoder) {
+                                                     PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
@@ -56,11 +74,13 @@ public class SecurityConfig {
             RoleBasedAuthenticationFailureHandler failureHandler,
             RoleBasedLogoutSuccessHandler logoutSuccessHandler,
             CustomUserDetailsService userDetailsService,
-            PasswordEncoder passwordEncoder) throws Exception {
+            PasswordEncoder passwordEncoder,
+            AppUserRepository userRepository) throws Exception {
 
         AuthenticationProvider adminProvider = new PortalAwareAuthenticationProvider(
                 userDetailsService,
                 passwordEncoder,
+                userRepository,
                 PortalType.ADMIN,
                 "INTERNAL",
                 Set.of("ROLE_ADMIN", "ROLE_ACCOUNTS", "ROLE_SUPER_ADMIN"),
@@ -72,6 +92,7 @@ public class SecurityConfig {
                         .requestMatchers("/admin/login", "/admin/authenticate",
                                 "/error", "/css/**", "/js/**", "/favicon.ico")
                         .permitAll()
+                        .requestMatchers("/admin/change-password").authenticated()
                         .requestMatchers("/admin/users/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/admin/vendors/*/verify", "/admin/vendors/*/reject").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .anyRequest().hasAnyRole("ADMIN", "ACCOUNTS", "SUPER_ADMIN"))
@@ -115,11 +136,13 @@ public class SecurityConfig {
             RoleBasedAuthenticationFailureHandler failureHandler,
             RoleBasedLogoutSuccessHandler logoutSuccessHandler,
             CustomUserDetailsService userDetailsService,
-            PasswordEncoder passwordEncoder) throws Exception {
+            PasswordEncoder passwordEncoder,
+            AppUserRepository userRepository) throws Exception {
 
         AuthenticationProvider vendorProvider = new PortalAwareAuthenticationProvider(
                 userDetailsService,
                 passwordEncoder,
+                userRepository,
                 PortalType.VENDOR,
                 "VENDOR",
                 Set.of("ROLE_VENDOR"),
@@ -147,6 +170,7 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/favicon.ico")
                         .permitAll()
+                        .requestMatchers("/change-password").authenticated()
                         .requestMatchers("/clients", "/clients/**", "/saveClient", "/updateClient", "/deleteClient/**", "/dashboard").hasRole("ADMIN")
                         .requestMatchers("/vendor-tickets", "/vendor-tickets/**").hasRole("VENDOR")
                         .requestMatchers("/invoice", "/invoice/**",

@@ -279,6 +279,15 @@
                                     </select>
                                 </div>
                             </div>
+
+                            <div class="col-12 mt-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="forcePasswordChange" id="createForcePasswordChange" value="true" checked>
+                                    <label class="form-check-label small fw-semibold text-secondary" for="createForcePasswordChange">
+                                        <i class="bi bi-shield-lock-fill text-warning me-1"></i>Force user to change password on next login
+                                    </label>
+                                </div>
+                            </div>
                         </div>
 
                         <hr class="my-4 text-muted opacity-25">
@@ -334,10 +343,12 @@
                                 <tr th:each="user : ${allUsers}" class="user-row"
                                     th:id="'user-row-' + ${user.id}"
                                     th:data-id="${user.id}"
+                                    th:data-username="${user.username}"
                                     th:data-name="${user.fullName != null && !user.fullName.isBlank() ? user.fullName : user.username}"
                                     th:data-email="${user.email != null && !user.email.isBlank() ? user.email : user.username}"
                                     th:data-role="${user.roles != null && !user.roles.isEmpty() ? user.roles[0].name : 'ROLE_ACCOUNTS'}"
-                                    th:data-enabled="${user.enabled}">
+                                    th:data-enabled="${user.enabled}"
+                                    th:data-force-change="${user.forcePasswordChange}">
                                     <td class="ps-4">
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="avatar-circle bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width:36px; height:36px; font-size:0.85rem;">
@@ -347,8 +358,12 @@
                                                 <div class="d-flex align-items-center gap-2">
                                                     <span class="fw-semibold text-dark user-name" th:text="${user.fullName != null && !user.fullName.isBlank() ? user.fullName : user.username}">Name</span>
                                                     <span th:if="${!user.enabled}" class="badge bg-danger-subtle text-danger border border-danger-subtle user-disabled-tag" style="font-size:0.65rem;">Disabled</span>
+                                                    <span th:if="${user.forcePasswordChange}" class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle user-force-badge" style="font-size:0.65rem;"><i class="bi bi-shield-exclamation me-1"></i>Must Change PW</span>
                                                 </div>
-                                                <div class="small text-muted user-email" th:text="${user.email != null && !user.email.isBlank() ? user.email : user.username}">email@company.com</div>
+                                                <div class="small text-muted user-email d-flex align-items-center gap-1 flex-wrap">
+                                                    <span class="badge bg-light text-secondary border user-username-tag" style="font-size:0.7rem;" th:text="${user.username}">username</span>
+                                                    <span class="user-email-text" th:text="${user.email != null && !user.email.isBlank() ? user.email : user.username}">email@company.com</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
@@ -428,6 +443,14 @@
                 <form id="editUserForm">
                     <input type="hidden" id="editUserId">
                     <div class="mb-3">
+                        <label class="form-label fw-semibold small text-secondary">Username <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="bi bi-person-badge text-muted"></i></span>
+                            <input type="text" id="editUsername" class="form-control" required placeholder="Account username">
+                        </div>
+                        <div class="form-text extra-small text-muted">Customize account username (e.g. rename 'admin' to custom handle).</div>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label fw-semibold small text-secondary">Full Name <span class="text-danger">*</span></label>
                         <input type="text" id="editFullName" class="form-control form-control-sm" required>
                     </div>
@@ -497,6 +520,12 @@
                             </button>
                         </div>
                         <div id="modalMatchError" class="text-danger small mt-1 d-none"><i class="bi bi-exclamation-circle me-1"></i> Passwords do not match.</div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input class="form-check-input" type="checkbox" id="resetForcePasswordChange" checked>
+                        <label class="form-check-label fw-semibold small text-secondary" for="resetForcePasswordChange">
+                            <i class="bi bi-shield-lock-fill text-warning me-1"></i>Force user to change password on next login
+                        </label>
                     </div>
                 </form>
             </div>
@@ -679,6 +708,7 @@
         if (!row) return;
 
         document.getElementById('editUserId').value = userId;
+        document.getElementById('editUsername').value = row.getAttribute('data-username') || '';
         document.getElementById('editFullName').value = row.getAttribute('data-name') || '';
         document.getElementById('editEmail').value = row.getAttribute('data-email') || '';
         document.getElementById('editRole').value = row.getAttribute('data-role') || 'ROLE_ACCOUNTS';
@@ -690,13 +720,14 @@
 
     async function submitUserEdit() {
         const userId = document.getElementById('editUserId').value;
+        const username = document.getElementById('editUsername').value.trim();
         const fullName = document.getElementById('editFullName').value.trim();
         const email = document.getElementById('editEmail').value.trim();
         const role = document.getElementById('editRole').value;
         const enabled = document.getElementById('editEnabled').checked;
 
-        if (!fullName || !email) {
-            showToast('Full name and email are required.', true);
+        if (!username || !fullName || !email) {
+            showToast('Username, full name and email are required.', true);
             return;
         }
 
@@ -710,6 +741,7 @@
 
         try {
             const formData = new URLSearchParams();
+            formData.append('username', username);
             formData.append('fullName', fullName);
             formData.append('email', email);
             formData.append('role', role);
@@ -735,6 +767,7 @@
                 // Update DOM row
                 const row = document.getElementById('user-row-' + userId);
                 if (row) {
+                    row.setAttribute('data-username', username);
                     row.setAttribute('data-name', fullName);
                     row.setAttribute('data-email', email);
                     row.setAttribute('data-role', role);
@@ -743,7 +776,10 @@
                     const nameEl = row.querySelector('.user-name');
                     if (nameEl) nameEl.innerText = fullName;
 
-                    const emailEl = row.querySelector('.user-email');
+                    const usernameTag = row.querySelector('.user-username-tag');
+                    if (usernameTag) usernameTag.innerText = username;
+
+                    const emailEl = row.querySelector('.user-email-text');
                     if (emailEl) emailEl.innerText = email;
 
                     const disabledTag = row.querySelector('.user-disabled-tag');
@@ -777,6 +813,7 @@
         document.getElementById('resetUserDisplayName').innerText = row.getAttribute('data-name') + ' (' + row.getAttribute('data-email') + ')';
         document.getElementById('resetNewPassword').value = '';
         document.getElementById('resetConfirmPassword').value = '';
+        document.getElementById('resetForcePasswordChange').checked = true;
         document.getElementById('modalMatchError').classList.add('d-none');
 
         const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
@@ -787,6 +824,7 @@
         const userId = document.getElementById('resetUserId').value;
         const pass1 = document.getElementById('resetNewPassword').value;
         const pass2 = document.getElementById('resetConfirmPassword').value;
+        const forcePasswordChange = document.getElementById('resetForcePasswordChange').checked;
         const matchError = document.getElementById('modalMatchError');
 
         if (!pass1 || pass1.length < 6) {
@@ -811,6 +849,7 @@
         try {
             const formData = new URLSearchParams();
             formData.append('password', pass1);
+            formData.append('forcePasswordChange', forcePasswordChange);
 
             const res = await fetch(`/admin/users/${userId}/reset-password`, {
                 method: 'POST',
@@ -827,6 +866,20 @@
                 const modalEl = document.getElementById('resetPasswordModal');
                 const modal = bootstrap.Modal.getInstance(modalEl);
                 if (modal) modal.hide();
+
+                const row = document.getElementById('user-row-' + userId);
+                if (row) {
+                    row.setAttribute('data-force-change', forcePasswordChange ? 'true' : 'false');
+                    let forceBadge = row.querySelector('.user-force-badge');
+                    if (forcePasswordChange) {
+                        if (!forceBadge) {
+                            const nameContainer = row.querySelector('.user-name').parentNode;
+                            nameContainer.insertAdjacentHTML('beforeend', '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle user-force-badge" style="font-size:0.65rem;"><i class="bi bi-shield-exclamation me-1"></i>Must Change PW</span>');
+                        }
+                    } else if (forceBadge) {
+                        forceBadge.remove();
+                    }
+                }
             } else {
                 showToast(data.error || 'Failed to reset password.', true);
             }

@@ -24,6 +24,22 @@ public class AppUser {
     private String email;
     @jakarta.persistence.Column(name = "user_domain", nullable = false, columnDefinition = "VARCHAR(20) DEFAULT 'INTERNAL'")
     private String userDomain = "INTERNAL";
+
+    @jakarta.persistence.Column(name = "force_password_change", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean forcePasswordChange = false;
+
+    @jakarta.persistence.Column(name = "failed_login_attempts", nullable = false, columnDefinition = "INT DEFAULT 0")
+    private int failedLoginAttempts = 0;
+
+    @jakarta.persistence.Column(name = "lockout_expiry")
+    private LocalDateTime lockoutExpiry;
+
+    @jakarta.persistence.Column(name = "two_factor_enabled", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean twoFactorEnabled = false;
+
+    @jakarta.persistence.Column(name = "two_factor_secret")
+    private String twoFactorSecret;
+
     private boolean enabled;
     private boolean verified;
     private String vendorCode;
@@ -215,5 +231,45 @@ public class AppUser {
 
     public void setUserDomain(String userDomain) {
         this.userDomain = userDomain;
+    }
+
+    public boolean isForcePasswordChange() {
+        return this.forcePasswordChange;
+    }
+
+    public void setForcePasswordChange(boolean forcePasswordChange) {
+        this.forcePasswordChange = forcePasswordChange;
+    }
+
+    public int getFailedLoginAttempts() {
+        return this.failedLoginAttempts;
+    }
+
+    public void setFailedLoginAttempts(int failedLoginAttempts) {
+        this.failedLoginAttempts = failedLoginAttempts;
+    }
+
+    public LocalDateTime getLockoutExpiry() {
+        return this.lockoutExpiry;
+    }
+
+    public void setLockoutExpiry(LocalDateTime lockoutExpiry) {
+        this.lockoutExpiry = lockoutExpiry;
+    }
+
+    public boolean isTwoFactorEnabled() {
+        return this.twoFactorEnabled;
+    }
+
+    public void setTwoFactorEnabled(boolean twoFactorEnabled) {
+        this.twoFactorEnabled = twoFactorEnabled;
+    }
+
+    public String getTwoFactorSecret() {
+        return this.twoFactorSecret;
+    }
+
+    public void setTwoFactorSecret(String twoFactorSecret) {
+        this.twoFactorSecret = twoFactorSecret;
     }
 }
