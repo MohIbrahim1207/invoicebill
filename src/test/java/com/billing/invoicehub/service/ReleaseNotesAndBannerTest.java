@@ -145,4 +145,34 @@ class ReleaseNotesAndBannerTest {
         assertTrue(appVersionService.getVersionFormatted().startsWith("v1.4.0"),
                 "Formatted version should start with 'v1.4.0'");
     }
+
+    @Test
+    @DisplayName("POM version parsed directly from pom.xml matches project version and release notes")
+    void testPomVersionMatchesReleaseNotes() throws Exception {
+        java.io.File pomFile = new java.io.File("pom.xml");
+        assertTrue(pomFile.exists(), "pom.xml must exist");
+
+        javax.xml.parsers.DocumentBuilderFactory factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        org.w3c.dom.Document doc = factory.newDocumentBuilder().parse(pomFile);
+        org.w3c.dom.Element root = doc.getDocumentElement();
+
+        String pomVersion = null;
+        org.w3c.dom.NodeList children = root.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            org.w3c.dom.Node node = children.item(i);
+            if ("version".equals(node.getLocalName())) {
+                pomVersion = node.getTextContent().trim();
+                break;
+            }
+        }
+
+        System.out.println("Detected POM project version: " + pomVersion);
+        assertEquals("1.4.0", pomVersion, "Project version in pom.xml must be 1.4.0");
+
+        List<ReleaseNoteDto> allNotes = releaseNotesService.getAllNotes();
+        final String expectedVersion = pomVersion;
+        boolean foundInNotes = allNotes.stream().anyMatch(n -> n.getVersion().equalsIgnoreCase(expectedVersion));
+        assertTrue(foundInNotes, "release-notes.json must contain entry for pom version: " + pomVersion);
+    }
 }
