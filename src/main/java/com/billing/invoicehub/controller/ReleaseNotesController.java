@@ -106,7 +106,7 @@ public class ReleaseNotesController {
     }
 
     @PostMapping("/admin/api/maintenance-banner")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> updateMaintenanceBanner(
             @RequestParam("enabled") boolean enabled,
             @RequestParam(value = "messageEn", required = false) String messageEn,
@@ -126,3 +126,4 @@ public class ReleaseNotesController {
         return ResponseEntity.ok(response);
     }
 }
+

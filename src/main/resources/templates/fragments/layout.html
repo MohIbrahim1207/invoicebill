@@ -54,7 +54,7 @@
                     </div>
                     <button class="btn btn-light btn-sm d-inline-flex align-items-center gap-1" type="button"
                         onclick="openMaintenanceBannerModal()" title="Maintenance Banner"
-                        sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
+                        sec:authorize="hasRole('SUPER_ADMIN')">
                         <i class="bi bi-broadcast" th:classappend="${@maintenanceBannerService.isBannerActive()} ? ' text-danger' : ' text-secondary'"></i>
                         <span class="d-none d-xl-inline small">Banner</span>
                     </button>
@@ -586,7 +586,7 @@
     </div>
 
     <!-- Admin Maintenance Banner Modal -->
-    <div sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')" class="modal fade" id="maintenanceBannerModal" tabindex="-1" aria-hidden="true">
+    <div sec:authorize="hasRole('SUPER_ADMIN')" class="modal fade" id="maintenanceBannerModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content shadow border-0 rounded-4">
                 <div class="modal-header border-bottom px-4 py-3 bg-light rounded-top-4">
@@ -867,7 +867,7 @@
                         liveBanner.className = `alert alert-${data.type} border-0 rounded-0 mb-0 py-2 px-3 text-center d-flex align-items-center justify-content-center gap-2 shadow-sm`;
                         liveBanner.innerHTML = `
                             <i class="bi bi-tools text-warning-emphasis"></i>
-                            <span>${text}</span>
+                            <span>${escapeHtml(text)}</span>
                             <button type="button" class="btn-close btn-close-sm ms-2" onclick="this.parentElement.remove();" aria-label="Close" style="font-size: 0.65rem;"></button>
                         `;
                     } else if (liveBanner) {
