@@ -96,7 +96,7 @@ public class VendorRegistrationService {
         String cleanUsername = form.getUsername().trim();
         String cleanEmail = form.getEmail().trim().toLowerCase();
         String cleanCompany = form.getCompanyName().trim();
-        String cleanGst = form.getGstNumber().trim().toUpperCase();
+        String normalizedGst = normalizeGstNumber(form.getGstNumber());
 
         if (this.userRepository.existsByUsernameAndUserDomain(cleanUsername, "VENDOR")) {
             throw new IllegalArgumentException("Username already exists");
@@ -105,9 +105,9 @@ public class VendorRegistrationService {
             throw new IllegalArgumentException("Email already exists");
         }
         if (this.userRepository.findFirstByCompanyNameIgnoreCase(cleanCompany).isPresent()) {
-            throw new IllegalArgumentException("Company Name already exists");
+            log.warn("Vendor registration note: company name '{}' is already in use by another vendor; proceeding anyway.", cleanCompany);
         }
-        if (this.userRepository.findFirstByGstNumberIgnoreCase(cleanGst).isPresent()) {
+        if (normalizedGst != null && this.userRepository.findFirstByGstNumberIgnoreCase(normalizedGst).isPresent()) {
             throw new IllegalArgumentException("GST Number already exists");
         }
         AppRole userRole = (AppRole) this.roleRepository.findByName("ROLE_VENDOR")
@@ -121,7 +121,7 @@ public class VendorRegistrationService {
         user.setAddress(form.getAddress().trim());
         user.setFullName(form.getFullName().trim());
         user.setPhone(form.getPhone().trim());
-        user.setGstNumber(cleanGst);
+        user.setGstNumber(normalizedGst);
         user.setVerified(false);
         user.setEnabled(true);
         user.setVendorCode(null);
@@ -255,7 +255,7 @@ public class VendorRegistrationService {
         if (this.isBlank(form.getUsername()) || this.isBlank(form.getPassword())
                 || this.isBlank(form.getConfirmPassword()) || this.isBlank(form.getCompanyName())
                 || this.isBlank(form.getAddress()) || this.isBlank(form.getFullName()) || this.isBlank(form.getEmail())
-                || this.isBlank(form.getPhone()) || this.isBlank(form.getGstNumber())) {
+                || this.isBlank(form.getPhone())) {
             throw new IllegalArgumentException("Please fill all required fields");
         }
         if (!form.getPassword().equals(form.getConfirmPassword())) {
@@ -324,10 +324,36 @@ public class VendorRegistrationService {
         return !this.userRepository.existsByEmailIgnoreCase(email.trim());
     }
 
+    /**
+     * Normalizes a GST/Tax number. Non-PKP placeholders (e.g. "No PPN", "NON PKP", "-", "0")
+     * and empty or whitespace strings are normalized to null (treated as no GST).
+     */
+    public static String normalizeGstNumber(String gst) {
+        if (gst == null) {
+            return null;
+        }
+        String trimmed = gst.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        String upper = trimmed.toUpperCase();
+        if (upper.equals("-") || upper.equals("--") || upper.equals("0") || upper.equals("00")
+                || upper.equals("NO PPN") || upper.equals("NOPPN") || upper.equals("NO-PPN")
+                || upper.equals("NON PKP") || upper.equals("NON-PKP") || upper.equals("NONPKP")
+                || upper.equals("NA") || upper.equals("N/A") || upper.equals("NOT APPLICABLE")
+                || upper.equals("NONE") || upper.equals("NIL") || upper.equals("NULL")
+                || upper.equals("TIDAK ADA") || upper.equals("BELUM ADA") || upper.equals("TIDAK PUNYA")) {
+            return null;
+        }
+        return upper;
+    }
+
     @Transactional(readOnly = true)
     public boolean isGstAvailable(String gstNumber) {
-        if (gstNumber == null || gstNumber.trim().isEmpty())
-            return false;
-        return !this.userRepository.existsByGstNumberIgnoreCase(gstNumber.trim());
+        String normalized = normalizeGstNumber(gstNumber);
+        if (normalized == null) {
+            return true;
+        }
+        return !this.userRepository.existsByGstNumberIgnoreCase(normalized);
     }
 }

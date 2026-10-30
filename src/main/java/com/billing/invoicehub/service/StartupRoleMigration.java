@@ -290,11 +290,24 @@ public class StartupRoleMigration implements ApplicationRunner {
             createIndexIfNotExists("idx_app_user_usr_dom", "app_user", "username, user_domain");
             createIndexIfNotExists("idx_app_user_email_dom", "app_user", "email, user_domain");
 
-            // Normalize empty gst_number strings to NULL so UNIQUE index permits multiple non-vendor accounts
+            // Normalize empty and placeholder gst_number strings to NULL before creating unique index
             try {
-                jdbc.update("UPDATE app_user SET gst_number = NULL WHERE gst_number IS NOT NULL AND TRIM(gst_number) = ''");
+                int cleanedGst = jdbc.update(
+                    "UPDATE app_user SET gst_number = NULL " +
+                    "WHERE gst_number IS NOT NULL AND (" +
+                    "   TRIM(gst_number) = '' " +
+                    "   OR UPPER(TRIM(gst_number)) IN (" +
+                    "       '-', '--', '0', '00', 'NO PPN', 'NOPPN', 'NO-PPN', " +
+                    "       'NON PKP', 'NON-PKP', 'NONPKP', 'NA', 'N/A', 'NOT APPLICABLE', " +
+                    "       'NONE', 'NIL', 'NULL', 'TIDAK ADA', 'BELUM ADA', 'TIDAK PUNYA'" +
+                    "   )" +
+                    ")"
+                );
+                if (cleanedGst > 0) {
+                    log.info("Normalized {} placeholder/empty GST numbers to NULL in app_user.", cleanedGst);
+                }
             } catch (Exception ex) {
-                log.debug("GST empty cleanup: {}", ex.getMessage());
+                log.warn("GST placeholder cleanup note: {}", ex.getMessage());
             }
             createUniqueIndexIfNotExists("uq_app_user_gst_number", "app_user", "gst_number");
 
@@ -375,11 +388,16 @@ public class StartupRoleMigration implements ApplicationRunner {
                 Integer.class, tableName.toLowerCase(), indexName.toLowerCase()
             );
             if (count == null || count == 0) {
-                jdbc.execute("CREATE UNIQUE INDEX " + indexName + " ON " + tableName + " (" + columns + ")");
-                log.info("Successfully created unique index {} on {}({})", indexName, tableName, columns);
+                try {
+                    jdbc.execute("CREATE UNIQUE INDEX " + indexName + " ON " + tableName + " (" + columns + ")");
+                    log.info("Successfully created unique index {} on {}({})", indexName, tableName, columns);
+                } catch (Exception ex) {
+                    log.warn("Could not create unique index {} on {}({}) - possibly due to existing duplicate records. Continuing startup without unique index. Cause: {}",
+                            indexName, tableName, columns, ex.getMessage());
+                }
             }
         } catch (Exception ex) {
-            log.debug("Unique index {} check or creation note: {}", indexName, ex.getMessage());
+            log.warn("Failed checking/creating unique index {} on {}: {}. Continuing startup.", indexName, tableName, ex.getMessage());
         }
     }
 }

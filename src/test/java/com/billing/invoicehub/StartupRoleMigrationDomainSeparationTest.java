@@ -85,8 +85,8 @@ public class StartupRoleMigrationDomainSeparationTest {
 
     private void cleanupTestUsers() {
         try {
-            jdbcTemplate.update("DELETE FROM app_user_roles WHERE user_id IN (SELECT id FROM app_user WHERE username LIKE 'legacy_%' OR username LIKE 'attr_%' OR username LIKE 'idemp_%')");
-            jdbcTemplate.update("DELETE FROM app_user WHERE username LIKE 'legacy_%' OR username LIKE 'attr_%' OR username LIKE 'idemp_%'");
+            jdbcTemplate.update("DELETE FROM app_user_roles WHERE user_id IN (SELECT id FROM app_user WHERE username LIKE 'legacy_%' OR username LIKE 'attr_%' OR username LIKE 'idemp_%' OR username LIKE 'nonpkp_%')");
+            jdbcTemplate.update("DELETE FROM app_user WHERE username LIKE 'legacy_%' OR username LIKE 'attr_%' OR username LIKE 'idemp_%' OR username LIKE 'nonpkp_%'");
         } catch (Exception ignored) {}
     }
 
@@ -262,6 +262,59 @@ public class StartupRoleMigrationDomainSeparationTest {
             AppUser a = userRepository.findFirstByUsername("idemp_admin_" + i).orElseThrow();
             assertEquals("INTERNAL", a.getUserDomain());
             assertTrue(passwordEncoder.matches("SecretAdminPass" + i, a.getPassword()));
+        }
+    }
+
+    @Test
+    @DisplayName("VendorRegistrationService.normalizeGstNumber converts non-PKP placeholders and empty strings to null")
+    void testNormalizeGstNumber() {
+        assertNull(com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber(null));
+        assertNull(com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber(""));
+        assertNull(com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber("   "));
+        assertNull(com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber("-"));
+        assertNull(com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber("--"));
+        assertNull(com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber("0"));
+        assertNull(com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber("00"));
+        assertNull(com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber("No PPN"));
+        assertNull(com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber("NO PPN"));
+        assertNull(com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber("NON PKP"));
+        assertNull(com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber("non-pkp"));
+        assertNull(com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber("NA"));
+        assertNull(com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber("N/A"));
+        assertNull(com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber("NONE"));
+        assertNull(com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber("Tidak Ada"));
+
+        // Valid GST remains uppercase string
+        assertEquals("012345678901000", com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber(" 012345678901000 "));
+        assertEquals("29AABCU9603R1ZM", com.billing.invoicehub.service.VendorRegistrationService.normalizeGstNumber("29aabcu9603r1zm"));
+    }
+
+    @Test
+    @DisplayName("StartupRoleMigration normalizes non-PKP GST placeholders in DB to NULL")
+    void testNonPkpPlaceholdersNormalizedToNullDuringStartupMigration() {
+        String[] placeholders = {"-", "0", "No PPN", "NON PKP", "   "};
+        for (int i = 0; i < placeholders.length; i++) {
+            AppUser u = new AppUser();
+            u.setUsername("nonpkp_user_" + i);
+            u.setEmail("nonpkp" + i + "@example.com");
+            u.setPassword(passwordEncoder.encode("SecretPass" + i));
+            u.setUserDomain("VENDOR");
+            u.setEnabled(true);
+            u.setGstNumber(placeholders[i]);
+            u.setRoles(new HashSet<>(Set.of(roleVendor)));
+            userRepository.save(u);
+        }
+        userRepository.flush();
+
+        // Run migration
+        entityManager.flush();
+        assertDoesNotThrow(() -> startupRoleMigration.run(null));
+        entityManager.clear();
+
+        // Verify all have null gstNumber now
+        for (int i = 0; i < placeholders.length; i++) {
+            AppUser u = userRepository.findFirstByUsername("nonpkp_user_" + i).orElseThrow();
+            assertNull(u.getGstNumber(), "Placeholder '" + placeholders[i] + "' should have been normalized to null");
         }
     }
 }
