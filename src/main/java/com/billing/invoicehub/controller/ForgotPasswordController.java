@@ -14,6 +14,7 @@
  */
 package com.billing.invoicehub.controller;
 
+import com.billing.invoicehub.exception.InvalidPasswordException;
 import com.billing.invoicehub.service.PasswordResetService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
@@ -122,15 +123,21 @@ public class ForgotPasswordController {
             model.addAttribute("error", (Object) "Passwords do not match.");
             return "reset-password";
         }
-        boolean updated = this.passwordResetService.resetPassword(sessionUsername, email, newPassword, confirmPassword);
-        if (updated) {
-            session.removeAttribute("resetEmail");
-            session.removeAttribute("resetUsername");
-            redirectAttributes.addFlashAttribute("message", (Object) "Password updated successfully. Please log in.");
-            return "redirect:/login";
+        try {
+            boolean updated = this.passwordResetService.resetPassword(sessionUsername, email, newPassword, confirmPassword);
+            if (updated) {
+                session.removeAttribute("resetEmail");
+                session.removeAttribute("resetUsername");
+                redirectAttributes.addFlashAttribute("message", (Object) "Password updated successfully. Please log in.");
+                return "redirect:/login";
+            }
+            model.addAttribute("email", (Object) email);
+            model.addAttribute("error", (Object) "Failed to update password. Please ensure it meets password requirements.");
+            return "reset-password";
+        } catch (IllegalArgumentException ex) {
+            model.addAttribute("email", (Object) email);
+            model.addAttribute("error", (Object) ex.getMessage());
+            return "reset-password";
         }
-        model.addAttribute("email", (Object) email);
-        model.addAttribute("error", (Object) "Failed to update password. Password must be at least 8 characters and contain at least one digit.");
-        return "reset-password";
     }
 }

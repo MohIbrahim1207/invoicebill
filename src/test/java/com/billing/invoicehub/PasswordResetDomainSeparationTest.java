@@ -9,6 +9,7 @@ import com.billing.invoicehub.repository.PasswordResetTokenRepository;
 import com.billing.invoicehub.service.EmailService;
 import com.billing.invoicehub.service.PasswordResetService;
 import org.junit.jupiter.api.BeforeEach;
+import com.billing.invoicehub.exception.InvalidPasswordException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestPropertySource(properties = {
         "spring.profiles.active=dev",
         "app.seed.enabled=false",
-        "rate-limiting.enabled=false"
+        "rate-limiting.enabled=false",
+        "app.security.hibp.enabled=false"
 })
 @Transactional
 public class PasswordResetDomainSeparationTest {
@@ -54,7 +56,7 @@ public class PasswordResetDomainSeparationTest {
     private static final String VENDOR_USER = "vendor_reset_user";
     private static final String ADMIN_USER = "admin_reset_user";
     private static final String INITIAL_PASSWORD = "InitialPassword123!";
-    private static final String NEW_PASSWORD = "NewPassword1234!";
+    private static final String NEW_PASSWORD = "Str0ng#ResetPassword2026";
 
     @BeforeEach
     void setupDualDomainUsers() {
@@ -182,13 +184,16 @@ public class PasswordResetDomainSeparationTest {
     @Test
     @DisplayName("Security: Password policy rejects short passwords and passwords missing numbers")
     void resetPassword_enforcesPasswordPolicy() {
-        // Less than 8 chars
-        assertFalse(passwordResetService.resetPassword(VENDOR_USER, SHARED_EMAIL, "Short1", "Short1"));
+        // Less than 12 chars
+        assertThrows(InvalidPasswordException.class, () ->
+                passwordResetService.resetPassword(VENDOR_USER, SHARED_EMAIL, "Short1!", "Short1!"));
 
         // No digit
-        assertFalse(passwordResetService.resetPassword(VENDOR_USER, SHARED_EMAIL, "NoDigitsHere!", "NoDigitsHere!"));
+        assertThrows(InvalidPasswordException.class, () ->
+                passwordResetService.resetPassword(VENDOR_USER, SHARED_EMAIL, "NoDigitsHereInThisPassword!", "NoDigitsHereInThisPassword!"));
 
         // Passwords do not match
-        assertFalse(passwordResetService.resetPassword(VENDOR_USER, SHARED_EMAIL, NEW_PASSWORD, "DifferentPassword123!"));
+        assertThrows(IllegalArgumentException.class, () ->
+                passwordResetService.resetPassword(VENDOR_USER, SHARED_EMAIL, NEW_PASSWORD, "DifferentPassword123!"));
     }
 }

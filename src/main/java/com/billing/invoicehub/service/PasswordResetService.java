@@ -23,15 +23,18 @@ public class PasswordResetService {
     private final AppUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final PasswordStrengthService passwordStrengthService;
 
     public PasswordResetService(PasswordResetTokenRepository tokenRepository,
                                 AppUserRepository userRepository,
                                 PasswordEncoder passwordEncoder,
-                                EmailService emailService) {
+                                EmailService emailService,
+                                PasswordStrengthService passwordStrengthService) {
         this.tokenRepository = tokenRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+        this.passwordStrengthService = passwordStrengthService;
     }
 
     @Transactional
@@ -43,7 +46,7 @@ public class PasswordResetService {
         // Domain-safe lookup: matches account having BOTH username and email
         Optional<AppUser> userOpt = this.userRepository.findFirstByUsernameAndEmailIgnoreCase(username.trim(), email.trim());
 
-        // Generic check — never reveal whether username or email exists
+        // Generic check â€” never reveal whether username or email exists
         if (userOpt.isEmpty()) {
             return "USER_NOT_FOUND";
         }
@@ -63,7 +66,7 @@ public class PasswordResetService {
         }
     }
 
-    /** Result codes for OTP verification — avoids ambiguity between wrong OTP and locked token. */
+    /** Result codes for OTP verification â€” avoids ambiguity between wrong OTP and locked token. */
     public enum OtpVerificationResult {
         SUCCESS, INVALID, LOCKED, EXPIRED, NOT_FOUND
     }
@@ -77,7 +80,7 @@ public class PasswordResetService {
         if (unusedToken.isPresent()) {
             PasswordResetToken resetToken = unusedToken.get();
 
-            // SEC-004: Reject if already at the attempt limit (defensive — should not normally occur
+            // SEC-004: Reject if already at the attempt limit (defensive â€” should not normally occur
             // since the 5th failure sets used=true, but guards against any concurrent edge case).
             if (resetToken.getAttemptCount() >= PasswordResetToken.MAX_ATTEMPTS) {
                 resetToken.setUsed(true);
@@ -92,7 +95,7 @@ public class PasswordResetService {
                 // SEC-004: Increment failure counter; lock token if limit reached.
                 int attempts = resetToken.incrementAttempts();
                 if (attempts >= PasswordResetToken.MAX_ATTEMPTS) {
-                    resetToken.setUsed(true);  // Brute-force locked — mark used to invalidate.
+                    resetToken.setUsed(true);  // Brute-force locked â€” mark used to invalidate.
                     log.warn("OTP token brute-force locked for '{}' after {} failed attempts", email, attempts);
                     this.tokenRepository.save(resetToken);
                     return OtpVerificationResult.LOCKED;
@@ -101,7 +104,7 @@ public class PasswordResetService {
                 return OtpVerificationResult.INVALID;
             }
 
-            // Correct OTP — mark as used to prevent replay.
+            // Correct OTP â€” mark as used to prevent replay.
             resetToken.setUsed(true);
             this.tokenRepository.save(resetToken);
             return OtpVerificationResult.SUCCESS;
@@ -114,12 +117,12 @@ public class PasswordResetService {
 
         if (latestToken.isPresent()) {
             PasswordResetToken t = latestToken.get();
-            // used=true AND attempt_count >= MAX_ATTEMPTS → brute-force locked
+            // used=true AND attempt_count >= MAX_ATTEMPTS â†’ brute-force locked
             if (t.getAttemptCount() >= PasswordResetToken.MAX_ATTEMPTS) {
                 log.warn("OTP verification rejected for '{}': token is brute-force locked (attempts={})", email, t.getAttemptCount());
                 return OtpVerificationResult.LOCKED;
             }
-            // used=true with attemptCount < MAX_ATTEMPTS → legitimately consumed (successful reset)
+            // used=true with attemptCount < MAX_ATTEMPTS â†’ legitimately consumed (successful reset)
             // Fall through to NOT_FOUND so the user is prompted to request a new OTP.
         }
 
@@ -128,13 +131,11 @@ public class PasswordResetService {
 
     @Transactional
     public boolean resetPassword(String username, String email, String newPassword, String confirmPassword) {
-        // Password policy: min 8 chars, at least one number
-        if (newPassword == null || newPassword.length() < 8 || !newPassword.matches(".*\\d.*")) {
-            return false;
+        if (newPassword == null || newPassword.isBlank()) {
+            throw new IllegalArgumentException("Password cannot be empty.");
         }
-
         if (!newPassword.equals(confirmPassword)) {
-            return false;
+            throw new IllegalArgumentException("Passwords do not match.");
         }
 
         if (email == null || email.isBlank()) {
@@ -163,7 +164,9 @@ public class PasswordResetService {
         }
 
         AppUser user = userOpt.get();
+        passwordStrengthService.validatePassword(newPassword, user.getUsername(), user.getEmail());
         user.setPassword(this.passwordEncoder.encode(newPassword));
+        user.setForcePasswordChange(false);
         this.userRepository.save(user);
         log.info("Password successfully reset for user '{}' in domain '{}'", user.getUsername(), user.getUserDomain());
         return true;

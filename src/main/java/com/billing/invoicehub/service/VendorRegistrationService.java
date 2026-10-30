@@ -47,19 +47,22 @@ public class VendorRegistrationService {
     private final FileStorageService fileStorageService;
     private final NotificationService notificationService;
     private final EmailService emailService;
+    private final PasswordStrengthService passwordStrengthService;
 
     @org.springframework.beans.factory.annotation.Autowired
     private AuditLogService auditLogService;
 
     public VendorRegistrationService(AppUserRepository userRepository, AppRoleRepository roleRepository,
             PasswordEncoder passwordEncoder, FileStorageService fileStorageService,
-            NotificationService notificationService, EmailService emailService) {
+            NotificationService notificationService, EmailService emailService,
+            PasswordStrengthService passwordStrengthService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileStorageService = fileStorageService;
         this.notificationService = notificationService;
         this.emailService = emailService;
+        this.passwordStrengthService = passwordStrengthService;
     }
 
     @Transactional(readOnly = true)
@@ -253,9 +256,7 @@ public class VendorRegistrationService {
         if (!form.getPassword().equals(form.getConfirmPassword())) {
             throw new IllegalArgumentException("Passwords do not match");
         }
-        if (form.getPassword().length() < 6) {
-            throw new IllegalArgumentException("Password must be at least 6 characters");
-        }
+        passwordStrengthService.validatePassword(form.getPassword(), form.getUsername(), form.getEmail());
         if (gstDocument == null || gstDocument.isEmpty()) {
             throw new FileValidationUtil.FileValidationException("gstDocument", "GST document is required");
         }

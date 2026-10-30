@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@org.springframework.test.context.TestPropertySource(properties = {"rate-limiting.enabled=false"})
+@org.springframework.test.context.TestPropertySource(properties = {"rate-limiting.enabled=false", "app.security.hibp.enabled=false"})
 class PortalSeparationIntegrationTest {
 
     @Autowired

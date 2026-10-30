@@ -23,6 +23,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import java.util.ArrayList;
 
 import java.util.List;
 import java.util.Map;
@@ -37,13 +39,16 @@ public class UserManagementController {
     private final EmployeeUserService userService;
     private final AppUserRepository userRepository;
     private final CustomUserDetailsService userDetailsService;
+    private final PasswordEncoder passwordEncoder;
 
     public UserManagementController(EmployeeUserService userService,
                                   AppUserRepository userRepository,
-                                  CustomUserDetailsService userDetailsService) {
+                                  CustomUserDetailsService userDetailsService,
+                                  PasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.userRepository = userRepository;
         this.userDetailsService = userDetailsService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @GetMapping("/add")
@@ -182,6 +187,45 @@ public class UserManagementController {
             log.error("Error deleting user {}: {}", id, e.getMessage(), e);
             return org.springframework.http.ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @GetMapping("/audit-weak-passwords")
+    @ResponseBody
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @org.springframework.transaction.annotation.Transactional
+    public org.springframework.http.ResponseEntity<?> auditWeakPasswords(
+            @RequestParam(value = "autoForceReset", defaultValue = "false") boolean autoForceReset) {
+        List<AppUser> users = userRepository.findAll();
+        List<Map<String, Object>> flaggedUsers = new ArrayList<>();
+        String[] weakPasswords = {"admin123", "vendor123"};
+
+        for (AppUser user : users) {
+            String storedHash = user.getPassword();
+            if (storedHash == null) continue;
+            for (String weak : weakPasswords) {
+                if (passwordEncoder.matches(weak, storedHash)) {
+                    if (autoForceReset && !Boolean.TRUE.equals(user.isForcePasswordChange())) {
+                        user.setForcePasswordChange(true);
+                        userRepository.save(user);
+                    }
+                    flaggedUsers.add(Map.of(
+                            "id", user.getId(),
+                            "username", user.getUsername(),
+                            "email", user.getEmail() != null ? user.getEmail() : "",
+                            "domain", user.getUserDomain() != null ? user.getUserDomain() : "INTERNAL",
+                            "matchedPassword", weak,
+                            "forcePasswordChange", user.isForcePasswordChange()
+                    ));
+                    break;
+                }
+            }
+        }
+
+        return org.springframework.http.ResponseEntity.ok(Map.of(
+                "totalFlagged", flaggedUsers.size(),
+                "autoForceResetApplied", autoForceReset,
+                "users", flaggedUsers
+        ));
     }
 
     private AppUser getCurrentUser(Authentication authentication) {

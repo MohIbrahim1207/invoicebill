@@ -131,7 +131,9 @@ public class AuthController {
             log.warn("Registration validation error for username {}: {}", form.getUsername(), ex.getMessage());
             String msg = ex.getMessage();
             Map<String, String> errors = new HashMap<>();
-            if (ex instanceof com.billing.invoicehub.util.FileValidationUtil.FileValidationException fve && fve.getFieldName() != null) {
+            if (ex instanceof com.billing.invoicehub.exception.InvalidPasswordException) {
+                errors.put("password", msg);
+            } else if (ex instanceof com.billing.invoicehub.util.FileValidationUtil.FileValidationException fve && fve.getFieldName() != null) {
                 errors.put(fve.getFieldName(), fve.getMessage());
             } else if (msg.contains("GST document") || msg.contains("gstDocument")) {
                 errors.put("gstDocument", msg);

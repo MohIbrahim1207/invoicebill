@@ -255,14 +255,14 @@
                                 <label class="form-label fw-semibold small text-secondary">Initial Password <span class="text-danger">*</span></label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><i class="bi bi-lock text-muted"></i></span>
-                                    <input type="password" name="password" id="inputPassword" class="form-control" placeholder="Min. 6 chars" required minlength="6" oninput="checkPasswordStrength(this.value)">
+                                    <input type="password" name="password" id="inputPassword" class="form-control" placeholder="Min. 12 chars (upper, lower, num, symbol)" required minlength="12" oninput="checkPasswordStrength(this.value)">
                                     <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility()"><i class="bi bi-eye" id="toggleIcon"></i></button>
                                 </div>
                                 <div class="password-strength-meter mt-2">
                                     <div class="password-strength-bar" id="strengthBar"></div>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mt-1">
-                                    <span class="form-text text-muted small" style="font-size:0.75rem;" id="strengthText">Must be at least 6 characters.</span>
+                                    <span class="form-text text-muted small" style="font-size:0.75rem;" id="strengthText">Min. 12 chars with uppercase, lowercase, number, and symbol.</span>
                                 </div>
                             </div>
 
@@ -501,7 +501,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold small text-secondary">New Password <span class="text-danger">*</span></label>
                         <div class="input-group input-group-sm">
-                            <input type="password" id="resetNewPassword" class="form-control" placeholder="Min 6 characters" required minlength="6" oninput="checkModalPasswordStrength(this.value)">
+                            <input type="password" id="resetNewPassword" class="form-control" placeholder="Min 12 chars (upper, lower, num, symbol)" required minlength="12" oninput="checkModalPasswordStrength(this.value)">
                             <button class="btn btn-outline-secondary" type="button" onclick="toggleModalPasswordVisibility('resetNewPassword', 'modalToggleIcon1')">
                                 <i class="bi bi-eye" id="modalToggleIcon1"></i>
                             </button>
@@ -509,7 +509,7 @@
                         <div class="password-strength-meter mt-2">
                             <div class="password-strength-bar" id="modalStrengthBar"></div>
                         </div>
-                        <span class="form-text text-muted small" style="font-size:0.75rem;" id="modalStrengthText">Must be at least 6 characters.</span>
+                        <span class="form-text text-muted small" style="font-size:0.75rem;" id="modalStrengthText">Min. 12 chars with uppercase, lowercase, number, and symbol.</span>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold small text-secondary">Confirm New Password <span class="text-danger">*</span></label>
@@ -646,31 +646,42 @@
         }
     }
 
+    function calculateScore(val) {
+        let score = 0;
+        if (!val) return score;
+        if (val.length >= 12) score += 20;
+        if (/[A-Z]/.test(val)) score += 20;
+        if (/[a-z]/.test(val)) score += 20;
+        if (/[0-9]/.test(val)) score += 20;
+        if (/[^A-Za-z0-9]/.test(val)) score += 20;
+        return score;
+    }
+
     function checkPasswordStrength(val) {
         const bar = document.getElementById('strengthBar');
         const text = document.getElementById('strengthText');
         if (!val) {
             bar.style.width = '0%';
-            text.innerText = 'Must be at least 6 characters.';
+            text.innerText = 'Min. 12 chars with uppercase, lowercase, number, and symbol.';
             text.className = 'form-text text-muted small';
             return;
         }
 
-        if (val.length < 6) {
-            bar.style.width = '30%';
+        const score = calculateScore(val);
+        bar.style.width = score + '%';
+
+        if (score < 60) {
             bar.style.backgroundColor = '#dc3545';
-            text.innerText = 'Weak: Minimum 6 characters required.';
-            text.className = 'form-text text-danger small';
-        } else if (val.length >= 6 && val.length < 10) {
-            bar.style.width = '65%';
+            text.innerText = 'Weak: Needs 12+ chars, uppercase, lowercase, number, symbol.';
+            text.className = 'form-text text-danger small fw-medium';
+        } else if (score < 100) {
             bar.style.backgroundColor = '#ffc107';
-            text.innerText = 'Moderate password strength.';
-            text.className = 'form-text text-warning-emphasis small';
+            text.innerText = 'Moderate: Add missing requirements (upper, lower, number, symbol).';
+            text.className = 'form-text text-warning-emphasis small fw-medium';
         } else {
-            bar.style.width = '100%';
             bar.style.backgroundColor = '#198754';
-            text.innerText = 'Strong password.';
-            text.className = 'form-text text-success small';
+            text.innerText = (val.length >= 16) ? 'Very strong password.' : 'Strong password (all requirements met).';
+            text.className = 'form-text text-success small fw-medium';
         }
     }
 
@@ -679,26 +690,26 @@
         const text = document.getElementById('modalStrengthText');
         if (!val) {
             bar.style.width = '0%';
-            text.innerText = 'Must be at least 6 characters.';
+            text.innerText = 'Min. 12 chars with uppercase, lowercase, number, and symbol.';
             text.className = 'form-text text-muted small';
             return;
         }
 
-        if (val.length < 6) {
-            bar.style.width = '30%';
+        const score = calculateScore(val);
+        bar.style.width = score + '%';
+
+        if (score < 60) {
             bar.style.backgroundColor = '#dc3545';
-            text.innerText = 'Weak: Minimum 6 characters required.';
-            text.className = 'form-text text-danger small';
-        } else if (val.length >= 6 && val.length < 10) {
-            bar.style.width = '65%';
+            text.innerText = 'Weak: Needs 12+ chars, uppercase, lowercase, number, symbol.';
+            text.className = 'form-text text-danger small fw-medium';
+        } else if (score < 100) {
             bar.style.backgroundColor = '#ffc107';
-            text.innerText = 'Moderate password strength.';
-            text.className = 'form-text text-warning-emphasis small';
+            text.innerText = 'Moderate: Add missing requirements (upper, lower, number, symbol).';
+            text.className = 'form-text text-warning-emphasis small fw-medium';
         } else {
-            bar.style.width = '100%';
             bar.style.backgroundColor = '#198754';
-            text.innerText = 'Strong password.';
-            text.className = 'form-text text-success small';
+            text.innerText = (val.length >= 16) ? 'Very strong password.' : 'Strong password (all requirements met).';
+            text.className = 'form-text text-success small fw-medium';
         }
     }
 
@@ -827,8 +838,8 @@
         const forcePasswordChange = document.getElementById('resetForcePasswordChange').checked;
         const matchError = document.getElementById('modalMatchError');
 
-        if (!pass1 || pass1.length < 6) {
-            showToast('Password must be at least 6 characters long.', true);
+        if (!pass1 || pass1.length < 12) {
+            showToast('Password must be at least 12 characters long.', true);
             return;
         }
 

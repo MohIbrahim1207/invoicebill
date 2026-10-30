@@ -27,16 +27,20 @@ public class EmployeeUserService {
     private final AuditLogService auditLogService;
     private final NotificationService notificationService;
 
+    private final PasswordStrengthService passwordStrengthService;
+
     public EmployeeUserService(AppUserRepository userRepository,
                                AppRoleRepository roleRepository,
                                PasswordEncoder passwordEncoder,
                                AuditLogService auditLogService,
-                               NotificationService notificationService) {
+                               NotificationService notificationService,
+                               PasswordStrengthService passwordStrengthService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditLogService = auditLogService;
         this.notificationService = notificationService;
+        this.passwordStrengthService = passwordStrengthService;
     }
 
     @Transactional
@@ -60,6 +64,11 @@ public class EmployeeUserService {
                 || userRepository.findFirstByEmailIgnoreCaseAndUserDomain(cleanEmail, "VENDOR").isPresent()) {
             throw new IllegalArgumentException("This email is already registered as a Vendor account. Each email may only be associated with one portal domain.");
         }
+
+        if (rawPassword == null || rawPassword.isBlank()) {
+            throw new IllegalArgumentException("Password is required.");
+        }
+        passwordStrengthService.validatePassword(rawPassword, cleanEmail, cleanEmail);
 
         // Validate Role Assignment Security Restrictions
         boolean isCreatorSuperAdmin = creator != null && creator.getRoles().stream()
@@ -195,11 +204,9 @@ public class EmployeeUserService {
 
     @Transactional
     public void resetPassword(Long userId, String newPassword, boolean forcePasswordChange, AppUser actor) {
-        if (newPassword == null || newPassword.length() < 6) {
-            throw new IllegalArgumentException("Password must be at least 6 characters long.");
-        }
         AppUser target = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+        passwordStrengthService.validatePassword(newPassword, target.getUsername(), target.getEmail());
 
         checkSuperAdminProtection(target, actor, "reset the password of");
 

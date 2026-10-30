@@ -18,11 +18,11 @@ public class VendorRegistrationForm {
     private String username;
 
     @NotBlank(message = "{validation.password.required}")
-    @Size(min = 8, max = 100, message = "{validation.password.size}")
+    @Size(min = 12, max = 100, message = "{validation.password.size}")
     private String password;
 
     @NotBlank(message = "{validation.confirmPassword.required}")
-    @Size(min = 8, max = 100, message = "{validation.confirmPassword.size}")
+    @Size(min = 12, max = 100, message = "{validation.confirmPassword.size}")
     private String confirmPassword;
 
     @NotBlank(message = "{validation.companyName.required}")
