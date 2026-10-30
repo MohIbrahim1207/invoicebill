@@ -28,3 +28,4 @@ public class InvalidPasswordException extends IllegalArgumentException {
         return errorMessages;
     }
 }
+

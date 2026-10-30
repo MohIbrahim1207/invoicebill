@@ -9,13 +9,17 @@ import org.springframework.data.repository.query.Param;
 
 public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
-    Optional<AppUser> findByUsername(String username);
+    default Optional<AppUser> findByUsername(String username) {
+        return findFirstByUsername(username);
+    }
 
     Optional<AppUser> findFirstByUsername(String username);
 
     Optional<AppUser> findFirstByUsernameAndUserDomain(String username, String userDomain);
 
-    Optional<AppUser> findByEmailIgnoreCase(String email);
+    default Optional<AppUser> findByEmailIgnoreCase(String email) {
+        return findFirstByEmailIgnoreCase(email);
+    }
 
     Optional<AppUser> findFirstByEmailIgnoreCase(String email);
 
@@ -33,13 +37,21 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
     Optional<AppUser> findFirstByVendorCode(String vendorCode);
 
-    Optional<AppUser> findByCompanyNameIgnoreCase(String companyName);
+    default Optional<AppUser> findByCompanyNameIgnoreCase(String companyName) {
+        return findFirstByCompanyNameIgnoreCase(companyName);
+    }
 
     Optional<AppUser> findFirstByCompanyNameIgnoreCase(String companyName);
 
-    Optional<AppUser> findByGstNumber(String gstNumber);
+    default Optional<AppUser> findByGstNumber(String gstNumber) {
+        return findFirstByGstNumberIgnoreCase(gstNumber);
+    }
 
     Optional<AppUser> findFirstByGstNumber(String gstNumber);
+
+    Optional<AppUser> findFirstByGstNumberIgnoreCase(String gstNumber);
+
+    boolean existsByGstNumberIgnoreCase(String gstNumber);
 
     boolean existsByEmailIgnoreCase(String email);
 

@@ -290,6 +290,14 @@ public class StartupRoleMigration implements ApplicationRunner {
             createIndexIfNotExists("idx_app_user_usr_dom", "app_user", "username, user_domain");
             createIndexIfNotExists("idx_app_user_email_dom", "app_user", "email, user_domain");
 
+            // Normalize empty gst_number strings to NULL so UNIQUE index permits multiple non-vendor accounts
+            try {
+                jdbc.update("UPDATE app_user SET gst_number = NULL WHERE gst_number IS NOT NULL AND TRIM(gst_number) = ''");
+            } catch (Exception ex) {
+                log.debug("GST empty cleanup: {}", ex.getMessage());
+            }
+            createUniqueIndexIfNotExists("uq_app_user_gst_number", "app_user", "gst_number");
+
             log.info("Startup role migration completed.");
         } catch (Exception ex) {
             log.warn("Startup role migration failed - continuing startup. Cause: {}", ex.getMessage());
@@ -348,7 +356,7 @@ public class StartupRoleMigration implements ApplicationRunner {
     private void createIndexIfNotExists(String indexName, String tableName, String columns) {
         try {
             Integer count = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND LOWER(TABLE_NAME) = ? AND LOWER(INDEX_NAME) = ?",
+                "SELECT COUNT(*) FROM information_schema.STATISTICS WHERE (TABLE_SCHEMA = DATABASE() OR TABLE_SCHEMA = SCHEMA() OR TABLE_SCHEMA = 'PUBLIC') AND LOWER(TABLE_NAME) = ? AND LOWER(INDEX_NAME) = ?",
                 Integer.class, tableName.toLowerCase(), indexName.toLowerCase()
             );
             if (count == null || count == 0) {
@@ -357,6 +365,21 @@ public class StartupRoleMigration implements ApplicationRunner {
             }
         } catch (Exception ex) {
             log.debug("Index {} check or creation note: {}", indexName, ex.getMessage());
+        }
+    }
+
+    private void createUniqueIndexIfNotExists(String indexName, String tableName, String columns) {
+        try {
+            Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.STATISTICS WHERE (TABLE_SCHEMA = DATABASE() OR TABLE_SCHEMA = SCHEMA() OR TABLE_SCHEMA = 'PUBLIC') AND LOWER(TABLE_NAME) = ? AND LOWER(INDEX_NAME) = ?",
+                Integer.class, tableName.toLowerCase(), indexName.toLowerCase()
+            );
+            if (count == null || count == 0) {
+                jdbc.execute("CREATE UNIQUE INDEX " + indexName + " ON " + tableName + " (" + columns + ")");
+                log.info("Successfully created unique index {} on {}({})", indexName, tableName, columns);
+            }
+        } catch (Exception ex) {
+            log.debug("Unique index {} check or creation note: {}", indexName, ex.getMessage());
         }
     }
 }

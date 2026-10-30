@@ -26,7 +26,6 @@ public class EmployeeUserService {
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
     private final NotificationService notificationService;
-
     private final PasswordStrengthService passwordStrengthService;
 
     public EmployeeUserService(AppUserRepository userRepository,
@@ -80,6 +79,11 @@ public class EmployeeUserService {
             log.warn("Unauthorized attempt by user {} to assign restricted role {}", creator != null ? creator.getUsername() : "UNKNOWN", normalizedRole);
             throw new AccessDeniedException("Only Super Admins can assign ADMIN or SUPER_ADMIN roles.");
         }
+
+        if (rawPassword == null || rawPassword.isBlank()) {
+            throw new IllegalArgumentException("Password is required.");
+        }
+        passwordStrengthService.validatePassword(rawPassword, cleanEmail, cleanEmail);
 
         AppRole roleEntity = roleRepository.findFirstByName(normalizedRole)
                 .orElseGet(() -> {

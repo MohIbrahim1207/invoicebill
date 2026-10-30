@@ -1061,10 +1061,17 @@
                 e.stopPropagation();
             });
 
-            // Submit Button Click Handler
+            // Submit Button Click Handler with Double-Submit Prevention
+            let isSubmitting = false;
             submitBtn.addEventListener("click", async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                if (isSubmitting) {
+                    return;
+                }
+                isSubmitting = true;
+                submitBtn.disabled = true;
+                prevBtn.disabled = true;
                 
                 const globalAlert = document.getElementById("globalAlert");
                 globalAlert.classList.add("d-none");
@@ -1090,6 +1097,9 @@
                 }
 
                 if (!isStep1Valid || !isStep2Valid || !isStep3Valid) {
+                    isSubmitting = false;
+                    submitBtn.disabled = false;
+                    prevBtn.disabled = false;
                     if (!isStep1Valid) {
                         currentStep = 1;
                     } else if (!isStep2Valid) {
@@ -1101,10 +1111,8 @@
                     return;
                 }
 
-                submitBtn.disabled = true;
                 document.getElementById("submitSpinner").classList.remove("d-none");
                 document.getElementById("submitBtnText").textContent = "Registering...";
-                prevBtn.disabled = true;
 
                 const formData = new FormData(form);
 
@@ -1129,6 +1137,7 @@
                     if (response.ok && result.success) {
                         window.location.assign(result.redirect);
                     } else {
+                        isSubmitting = false;
                         submitBtn.disabled = false;
                         document.getElementById("submitSpinner").classList.add("d-none");
                         document.getElementById("submitBtnText").innerHTML = `<i class="bi bi-send me-2"></i> Submit Registration`;
@@ -1172,6 +1181,7 @@
                         }
                     }
                 } catch (error) {
+                    isSubmitting = false;
                     submitBtn.disabled = false;
                     document.getElementById("submitSpinner").classList.add("d-none");
                     document.getElementById("submitBtnText").innerHTML = `<i class="bi bi-send me-2"></i> Submit Registration`;

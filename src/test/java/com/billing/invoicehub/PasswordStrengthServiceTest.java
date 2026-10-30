@@ -125,3 +125,4 @@ public class PasswordStrengthServiceTest {
         assertFalse(passwordStrengthService.isCommonPassword("Xy9#qL2$mK8!vP4"));
     }
 }
+

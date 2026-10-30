@@ -96,17 +96,17 @@ public class UserManagementAuditTest {
         strongUser.setRoles(new java.util.HashSet<>());
         userRepository.save(strongUser);
 
-        // Run audit with autoForceReset = true
-        ResponseEntity<?> response = userManagementController.auditWeakPasswords(true);
-        assertEquals(200, response.getStatusCode().value());
+        // 1. Run audit preview (GET - read only)
+        ResponseEntity<?> previewResponse = userManagementController.auditWeakPasswords();
+        assertEquals(200, previewResponse.getStatusCode().value());
 
         @SuppressWarnings("unchecked")
-        Map<String, Object> body = (Map<String, Object>) response.getBody();
-        assertNotNull(body);
-        assertTrue((Integer) body.get("totalFlagged") >= 2);
+        Map<String, Object> previewBody = (Map<String, Object>) previewResponse.getBody();
+        assertNotNull(previewBody);
+        assertTrue((Integer) previewBody.get("totalFlagged") >= 2);
 
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> flagged = (List<Map<String, Object>>) body.get("users");
+        List<Map<String, Object>> flagged = (List<Map<String, Object>>) previewBody.get("users");
         boolean foundWeak1 = flagged.stream().anyMatch(u -> "test_weak_admin".equals(u.get("username")));
         boolean foundWeak2 = flagged.stream().anyMatch(u -> "test_weak_vendor".equals(u.get("username")));
         boolean foundStrong = flagged.stream().anyMatch(u -> "test_strong_user".equals(u.get("username")));
@@ -115,9 +115,23 @@ public class UserManagementAuditTest {
         assertTrue(foundWeak2, "Expected test_weak_vendor to be flagged");
         assertFalse(foundStrong, "Did not expect test_strong_user to be flagged");
 
+        // Verify matchedPassword is NOT returned and weakDefaultPassword is true
+        Map<String, Object> weak1Map = flagged.stream().filter(u -> "test_weak_admin".equals(u.get("username"))).findFirst().orElseThrow();
+        assertFalse(weak1Map.containsKey("matchedPassword"), "matchedPassword must not be present in response");
+        assertEquals(Boolean.TRUE, weak1Map.get("weakDefaultPassword"));
+
+        // Verify GET preview did NOT mutate forcePasswordChange in DB
+        AppUser unmutatedWeak1 = userRepository.findByUsername("test_weak_admin").orElseThrow();
+        assertFalse(Boolean.TRUE.equals(unmutatedWeak1.isForcePasswordChange()),
+                "GET audit preview must NOT mutate forcePasswordChange");
+
+        // 2. Run POST force-reset
+        ResponseEntity<?> resetResponse = userManagementController.forceResetWeakPasswords();
+        assertEquals(200, resetResponse.getStatusCode().value());
+
         // Verify that forcePasswordChange was set to true on the flagged users in database
         AppUser refreshedWeak1 = userRepository.findByUsername("test_weak_admin").orElseThrow();
         assertTrue(Boolean.TRUE.equals(refreshedWeak1.isForcePasswordChange()),
-                "Expected forcePasswordChange to be true for weak admin user");
+                "Expected forcePasswordChange to be true after POST force-reset");
     }
 }

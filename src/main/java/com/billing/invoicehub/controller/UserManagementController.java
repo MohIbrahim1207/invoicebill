@@ -192,9 +192,8 @@ public class UserManagementController {
     @GetMapping("/audit-weak-passwords")
     @ResponseBody
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    @org.springframework.transaction.annotation.Transactional
-    public org.springframework.http.ResponseEntity<?> auditWeakPasswords(
-            @RequestParam(value = "autoForceReset", defaultValue = "false") boolean autoForceReset) {
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public org.springframework.http.ResponseEntity<?> auditWeakPasswords() {
         List<AppUser> users = userRepository.findAll();
         List<Map<String, Object>> flaggedUsers = new ArrayList<>();
         String[] weakPasswords = {"admin123", "vendor123"};
@@ -204,16 +203,12 @@ public class UserManagementController {
             if (storedHash == null) continue;
             for (String weak : weakPasswords) {
                 if (passwordEncoder.matches(weak, storedHash)) {
-                    if (autoForceReset && !Boolean.TRUE.equals(user.isForcePasswordChange())) {
-                        user.setForcePasswordChange(true);
-                        userRepository.save(user);
-                    }
                     flaggedUsers.add(Map.of(
                             "id", user.getId(),
                             "username", user.getUsername(),
                             "email", user.getEmail() != null ? user.getEmail() : "",
                             "domain", user.getUserDomain() != null ? user.getUserDomain() : "INTERNAL",
-                            "matchedPassword", weak,
+                            "weakDefaultPassword", true,
                             "forcePasswordChange", user.isForcePasswordChange()
                     ));
                     break;
@@ -223,8 +218,48 @@ public class UserManagementController {
 
         return org.springframework.http.ResponseEntity.ok(Map.of(
                 "totalFlagged", flaggedUsers.size(),
-                "autoForceResetApplied", autoForceReset,
                 "users", flaggedUsers
+        ));
+    }
+
+    @PostMapping("/audit-weak-passwords/force-reset")
+    @ResponseBody
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @org.springframework.transaction.annotation.Transactional
+    public org.springframework.http.ResponseEntity<?> forceResetWeakPasswords() {
+        List<AppUser> users = userRepository.findAll();
+        List<Map<String, Object>> affectedUsers = new ArrayList<>();
+        String[] weakPasswords = {"admin123", "vendor123"};
+        int resetCount = 0;
+
+        for (AppUser user : users) {
+            String storedHash = user.getPassword();
+            if (storedHash == null) continue;
+            for (String weak : weakPasswords) {
+                if (passwordEncoder.matches(weak, storedHash)) {
+                    if (!Boolean.TRUE.equals(user.isForcePasswordChange())) {
+                        user.setForcePasswordChange(true);
+                        userRepository.save(user);
+                        resetCount++;
+                    }
+                    affectedUsers.add(Map.of(
+                            "id", user.getId(),
+                            "username", user.getUsername(),
+                            "email", user.getEmail() != null ? user.getEmail() : "",
+                            "domain", user.getUserDomain() != null ? user.getUserDomain() : "INTERNAL",
+                            "weakDefaultPassword", true,
+                            "forcePasswordChange", true
+                    ));
+                    break;
+                }
+            }
+        }
+
+        return org.springframework.http.ResponseEntity.ok(Map.of(
+                "success", true,
+                "totalFlagged", affectedUsers.size(),
+                "newlyResetCount", resetCount,
+                "users", affectedUsers
         ));
     }
 

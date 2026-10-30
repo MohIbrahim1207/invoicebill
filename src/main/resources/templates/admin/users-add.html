@@ -164,7 +164,10 @@
                 <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-people-fill text-primary me-2"></i>User Account Management</h4>
                 <p class="text-muted small mb-0">Create new staff credentials, manage roles, and review active portal accounts.</p>
             </div>
-            <div>
+            <div class="d-flex align-items-center gap-2">
+                <button th:if="${isSuperAdmin}" type="button" class="btn btn-outline-warning btn-sm rounded-2" onclick="openWeakPasswordAuditModal()">
+                    <i class="bi bi-shield-exclamation me-1"></i> Audit Weak Passwords
+                </button>
                 <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm rounded-2"><i class="bi bi-arrow-left me-1"></i> Dashboard</a>
             </div>
         </div>
@@ -587,6 +590,63 @@
                 <button type="button" class="btn btn-sm btn-danger fw-bold px-4" id="btnSubmitDelete" onclick="submitDeleteUser()">
                     <span class="spinner-border spinner-border-sm me-1 d-none" id="deleteSpinner" role="status"></span>
                     <i class="bi bi-trash me-1" id="deleteTrashIcon"></i> Delete User
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 5. Weak Password Audit Modal (Super Admin Only) -->
+<div th:if="${isSuperAdmin}" class="modal fade" id="weakPasswordAuditModal" tabindex="-1" aria-labelledby="auditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h6 class="modal-title fw-bold" id="auditModalLabel">
+                    <i class="bi bi-shield-exclamation me-2 text-warning"></i>Audit Default &amp; Breached Passwords
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <p class="text-muted small mb-0">
+                        Scans all accounts against default passwords (<code class="text-danger">admin123</code>, <code class="text-danger">vendor123</code>).
+                    </p>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadWeakPasswordAudit()">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                    </button>
+                </div>
+                
+                <div id="auditLoadingSpinner" class="text-center py-4 d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Scanning...</span>
+                    </div>
+                    <div class="small text-muted mt-2">Checking password hashes...</div>
+                </div>
+
+                <div id="auditContent">
+                    <div id="auditSummaryAlert" class="alert alert-info py-2 small mb-3">Loading preview...</div>
+                    <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle mb-0" id="auditTable">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th style="font-size: 0.75rem;">USER</th>
+                                    <th style="font-size: 0.75rem;">EMAIL</th>
+                                    <th style="font-size: 0.75rem;">DOMAIN</th>
+                                    <th style="font-size: 0.75rem;">STATUS</th>
+                                    <th style="font-size: 0.75rem;">FORCE CHANGE</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light justify-content-between">
+                <button type="button" class="btn btn-sm btn-light border" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-sm btn-danger fw-bold px-3 d-none" id="btnForceResetAll" onclick="submitForceResetWeakPasswords()">
+                    <span class="spinner-border spinner-border-sm me-1 d-none" id="auditForceSpinner" role="status"></span>
+                    <i class="bi bi-shield-lock-fill me-1" id="auditForceIcon"></i> Force Password Change For All Flagged
                 </button>
             </div>
         </div>
@@ -1120,6 +1180,109 @@
     function changePage(page) {
         currentPage = page;
         renderTable();
+    }
+
+    // 5. Weak Password Audit & Force Reset (Super Admin Only)
+    async function openWeakPasswordAuditModal() {
+        const modalEl = document.getElementById('weakPasswordAuditModal');
+        if (!modalEl) return;
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+        await loadWeakPasswordAudit();
+    }
+
+    async function loadWeakPasswordAudit() {
+        const spinner = document.getElementById('auditLoadingSpinner');
+        const content = document.getElementById('auditContent');
+        const alertBox = document.getElementById('auditSummaryAlert');
+        const tbody = document.getElementById('auditTableBody');
+        const forceBtn = document.getElementById('btnForceResetAll');
+
+        if (!spinner || !content) return;
+        spinner.classList.remove('d-none');
+        content.classList.add('d-none');
+        forceBtn.classList.add('d-none');
+        tbody.innerHTML = '';
+
+        try {
+            const res = await fetch('/admin/users/audit-weak-passwords');
+            const data = await res.json();
+            spinner.classList.add('d-none');
+            content.classList.remove('d-none');
+
+            if (res.ok && data.users) {
+                if (data.users.length === 0) {
+                    alertBox.className = 'alert alert-success py-2 small mb-3';
+                    alertBox.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> No accounts are using weak default passwords!';
+                } else {
+                    alertBox.className = 'alert alert-warning py-2 small mb-3';
+                    alertBox.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>${data.totalFlagged}</strong> account(s) detected using default passwords.`;
+                    forceBtn.classList.remove('d-none');
+
+                    data.users.forEach(u => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><strong class="text-dark">${escapeHtml(u.username)}</strong></td>
+                            <td class="text-muted small">${escapeHtml(u.email || '-')}</td>
+                            <td><span class="badge ${u.domain === 'VENDOR' ? 'bg-secondary-subtle text-secondary' : 'bg-primary-subtle text-primary'}">${escapeHtml(u.domain)}</span></td>
+                            <td><span class="badge bg-danger-subtle text-danger"><i class="bi bi-exclamation-octagon me-1"></i>Weak Default</span></td>
+                            <td>${u.forcePasswordChange ? '<span class="badge bg-warning-subtle text-warning-emphasis">Pending Reset</span>' : '<span class="badge bg-secondary-subtle text-muted">Not Enforced</span>'}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } else {
+                alertBox.className = 'alert alert-danger py-2 small mb-3';
+                alertBox.innerText = data.error || 'Failed to load audit.';
+            }
+        } catch (e) {
+            spinner.classList.add('d-none');
+            content.classList.remove('d-none');
+            alertBox.className = 'alert alert-danger py-2 small mb-3';
+            alertBox.innerText = 'Error loading audit: ' + e.message;
+        }
+    }
+
+    async function submitForceResetWeakPasswords() {
+        const btn = document.getElementById('btnForceResetAll');
+        const spinner = document.getElementById('auditForceSpinner');
+        const icon = document.getElementById('auditForceIcon');
+
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        icon.classList.add('d-none');
+
+        try {
+            const res = await fetch('/admin/users/audit-weak-passwords/force-reset', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': getCsrfToken()
+                }
+            });
+            const data = await res.json();
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+            icon.classList.remove('d-none');
+
+            if (res.ok && data.success) {
+                showToast(`Successfully enforced password change for ${data.newlyResetCount} user(s).`);
+                await loadWeakPasswordAudit();
+            } else {
+                showToast(data.error || 'Failed to enforce password reset.', true);
+            }
+        } catch (e) {
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+            icon.classList.remove('d-none');
+            showToast('Error: ' + e.message, true);
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     document.addEventListener('DOMContentLoaded', () => {

@@ -93,30 +93,35 @@ public class VendorRegistrationService {
         }
 
         this.validateRegistration(form, gstDocument, companyDocument);
-        if (this.userRepository.findFirstByUsernameAndUserDomain(form.getUsername().trim(), "VENDOR").isPresent()) {
+        String cleanUsername = form.getUsername().trim();
+        String cleanEmail = form.getEmail().trim().toLowerCase();
+        String cleanCompany = form.getCompanyName().trim();
+        String cleanGst = form.getGstNumber().trim().toUpperCase();
+
+        if (this.userRepository.existsByUsernameAndUserDomain(cleanUsername, "VENDOR")) {
             throw new IllegalArgumentException("Username already exists");
         }
-        if (this.userRepository.findFirstByEmailIgnoreCaseAndUserDomain(form.getEmail().trim(), "VENDOR").isPresent()) {
+        if (this.userRepository.existsByEmailIgnoreCase(cleanEmail)) {
             throw new IllegalArgumentException("Email already exists");
         }
-        if (this.userRepository.findByCompanyNameIgnoreCase(form.getCompanyName().trim()).isPresent()) {
+        if (this.userRepository.findFirstByCompanyNameIgnoreCase(cleanCompany).isPresent()) {
             throw new IllegalArgumentException("Company Name already exists");
         }
-        if (this.userRepository.findByGstNumber(form.getGstNumber().trim()).isPresent()) {
+        if (this.userRepository.findFirstByGstNumberIgnoreCase(cleanGst).isPresent()) {
             throw new IllegalArgumentException("GST Number already exists");
         }
         AppRole userRole = (AppRole) this.roleRepository.findByName("ROLE_VENDOR")
                 .orElseThrow(() -> new IllegalStateException("ROLE_VENDOR not found"));
         AppUser user = new AppUser();
         user.setUserDomain("VENDOR");
-        user.setUsername(form.getUsername().trim());
+        user.setUsername(cleanUsername);
         user.setPassword(this.passwordEncoder.encode((CharSequence) form.getPassword()));
-        user.setEmail(form.getEmail().trim());
-        user.setCompanyName(form.getCompanyName().trim());
+        user.setEmail(cleanEmail);
+        user.setCompanyName(cleanCompany);
         user.setAddress(form.getAddress().trim());
         user.setFullName(form.getFullName().trim());
         user.setPhone(form.getPhone().trim());
-        user.setGstNumber(form.getGstNumber().trim());
+        user.setGstNumber(cleanGst);
         user.setVerified(false);
         user.setEnabled(true);
         user.setVendorCode(null);
@@ -309,20 +314,20 @@ public class VendorRegistrationService {
     public boolean isUsernameAvailable(String username) {
         if (username == null || username.trim().isEmpty())
             return false;
-        return this.userRepository.findByUsername(username.trim()).isEmpty();
+        return !this.userRepository.existsByUsername(username.trim());
     }
 
     @Transactional(readOnly = true)
     public boolean isEmailAvailable(String email) {
         if (email == null || email.trim().isEmpty())
             return false;
-        return this.userRepository.findByEmailIgnoreCase(email.trim()).isEmpty();
+        return !this.userRepository.existsByEmailIgnoreCase(email.trim());
     }
 
     @Transactional(readOnly = true)
     public boolean isGstAvailable(String gstNumber) {
         if (gstNumber == null || gstNumber.trim().isEmpty())
             return false;
-        return this.userRepository.findByGstNumber(gstNumber.trim()).isEmpty();
+        return !this.userRepository.existsByGstNumberIgnoreCase(gstNumber.trim());
     }
 }
