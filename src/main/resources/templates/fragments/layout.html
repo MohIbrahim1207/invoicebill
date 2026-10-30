@@ -3,6 +3,16 @@
 
 <body>
     <div th:fragment="topbar(title)">
+        <!-- Maintenance Banner -->
+        <div id="maintenanceBanner" th:if="${@maintenanceBannerService.isBannerActive()}"
+            th:class="'alert alert-' + ${@maintenanceBannerService.bannerType} + ' border-0 rounded-0 mb-0 py-2 px-3 text-center d-flex align-items-center justify-content-center gap-2 shadow-sm'"
+            role="alert" style="z-index: 1055; font-size: 0.88rem; font-weight: 500;">
+            <i class="bi bi-tools text-warning-emphasis"></i>
+            <span th:text="${#locale.language == 'id' ? @maintenanceBannerService.bannerMessageId : @maintenanceBannerService.bannerMessageEn}">
+                System update today at 20:00 WIB, the site may be unavailable for 1 minute
+            </span>
+            <button type="button" class="btn-close btn-close-sm ms-2" onclick="document.getElementById('maintenanceBanner').remove();" aria-label="Close" style="font-size: 0.65rem;"></button>
+        </div>
         <nav class="navbar navbar-expand-lg portal-topbar sticky-top">
             <div class="container-fluid px-3 px-lg-4">
                 <button class="btn btn-light d-lg-none me-2" type="button" data-bs-toggle="offcanvas"
@@ -13,8 +23,41 @@
                     <span class="brand-dot"></span> <span th:text="#{nav.brand}">InvoiceHub Portal</span>
                 </a>
                 <div class="ms-auto d-flex align-items-center gap-2 flex-wrap justify-content-end">
-                    <a href="/faq" class="btn btn-light btn-sm" th:title="#{nav.faq}"><i
-                            class="bi bi-question-circle"></i></a>
+                    <div class="dropdown">
+                        <button class="btn btn-light btn-sm dropdown-toggle d-inline-flex align-items-center gap-1" type="button" id="helpDropdown"
+                            data-bs-toggle="dropdown" aria-expanded="false" th:title="#{nav.help}">
+                            <i class="bi bi-question-circle"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="helpDropdown">
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="#" onclick="openWhatsNewModal(true); return false;">
+                                    <i class="bi bi-stars text-primary"></i> <span th:text="#{nav.whats.new}">What's New</span>
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="/faq">
+                                    <i class="bi bi-question-circle"></i> <span th:text="#{nav.faq}">FAQ</span>
+                                </a>
+                            </li>
+                            <li sec:authorize="hasRole('VENDOR')">
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="/help">
+                                    <i class="bi bi-book"></i> <span th:text="#{sidebar.help}">User Manual</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="/contact">
+                                    <i class="bi bi-envelope"></i> <span th:text="#{nav.contact}">Contact</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <button class="btn btn-light btn-sm d-inline-flex align-items-center gap-1" type="button"
+                        onclick="openMaintenanceBannerModal()" title="Maintenance Banner"
+                        sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
+                        <i class="bi bi-broadcast" th:classappend="${@maintenanceBannerService.isBannerActive()} ? ' text-danger' : ' text-secondary'"></i>
+                        <span class="d-none d-xl-inline small">Banner</span>
+                    </button>
                     <a href="/contact" class="btn btn-light btn-sm" th:title="#{nav.contact}"><i
                             class="bi bi-envelope"></i></a>
                     <a href="tel:+918972779588" class="btn btn-light btn-sm" th:title="#{nav.helpline}"><i
@@ -424,6 +467,16 @@
             sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
             <i class="bi bi-shield-check"></i> <span>Audit Log</span>
         </a>
+        <div class="mt-auto p-3 border-top text-muted" style="font-size: 0.78rem;">
+            <a href="#" onclick="openWhatsNewModal(true); return false;" class="text-decoration-none text-muted d-flex align-items-center justify-content-between mb-1">
+                <span class="fw-semibold text-primary"><i class="bi bi-stars me-1"></i><span th:text="#{nav.whats.new}">What's New</span></span>
+                <span class="badge bg-light text-secondary border font-monospace" th:text="${@appVersionService.versionFormatted}">v1.4.0 · 30 Oct 2026</span>
+            </a>
+            <div class="d-flex align-items-center justify-content-between text-secondary" style="font-size: 0.72rem;">
+                <span>InvoiceHub</span>
+                <span th:if="${@appVersionService.gitCommitShort != null and !@appVersionService.gitCommitShort.isEmpty()}" class="font-monospace text-muted" th:text="${@appVersionService.gitCommitShort}"></span>
+            </div>
+        </div>
     </aside>
 
     <div th:fragment="sidebarMobile(active)" class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMobile"
@@ -465,9 +518,402 @@
                 <a href="/admin/audit-logs" class="sidebar-link"
                     th:classappend="${active == 'audit-logs'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')"><i
                         class="bi bi-shield-check"></i> <span>Audit Log</span></a>
+                <div class="mt-auto p-3 border-top text-muted" style="font-size: 0.78rem;">
+                    <a href="#" onclick="openWhatsNewModal(true); return false;" class="text-decoration-none text-muted d-flex align-items-center justify-content-between mb-1">
+                        <span class="fw-semibold text-primary"><i class="bi bi-stars me-1"></i><span th:text="#{nav.whats.new}">What's New</span></span>
+                        <span class="badge bg-light text-secondary border" th:text="${@appVersionService.versionFormatted}">v1.4.0 · 30 Oct 2026</span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Portal Small Footer Fragment -->
+    <footer th:fragment="footer" class="portal-footer py-2 text-center text-muted border-top mt-auto" style="font-size: 0.78rem;">
+        <div class="container-fluid px-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <span>&copy; <span th:text="${#calendars.format(#calendars.createNow(), 'yyyy')}">2026</span> InvoiceHub. All rights reserved.</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <a href="#" onclick="openWhatsNewModal(true); return false;" class="text-decoration-none text-muted d-inline-flex align-items-center gap-1">
+                    <i class="bi bi-stars text-primary"></i>
+                    <span th:text="${@appVersionService.versionFormatted}">v1.4.0 · 30 Oct 2026</span>
+                </a>
+                <span th:if="${@appVersionService.gitCommitShort != null and !@appVersionService.gitCommitShort.isEmpty()}"
+                      class="badge bg-light text-secondary border font-monospace"
+                      th:text="${@appVersionService.gitCommitShort}">
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- What's New Modal -->
+    <div class="modal fade" id="whatsNewModal" tabindex="-1" aria-labelledby="whatsNewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+            <div class="modal-content shadow-lg border-0 rounded-4">
+                <div class="modal-header border-bottom px-4 py-3 bg-light rounded-top-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="rounded-circle bg-primary-subtle p-2 text-primary d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                            <i class="bi bi-stars fs-5"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" id="whatsNewModalLabel" th:text="#{whatsnew.modal.title}">What's New in InvoiceHub</h5>
+                            <span class="text-muted small" id="whatsNewModalSubtitle">Latest improvements & updates</span>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="whatsNewLangBtn" onclick="toggleWhatsNewLocale()">ID / EN</button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                </div>
+                <div class="modal-body px-4 py-3" id="whatsNewModalBody">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top px-4 py-3 bg-white rounded-bottom-4 d-flex justify-content-between align-items-center">
+                    <a href="#" class="text-decoration-none small text-muted" id="whatsNewHistoryLink" onclick="toggleWhatsNewHistoryView(); return false;">
+                        <i class="bi bi-clock-history me-1"></i><span id="whatsNewHistoryLinkText" th:text="#{whatsnew.all.versions}">Release History</span>
+                    </a>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-primary px-4 fw-semibold rounded-pill" id="whatsNewGotItBtn" onclick="acknowledgeWhatsNew()">
+                            <i class="bi bi-check2 me-1"></i><span th:text="#{whatsnew.got.it}">Got it</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Maintenance Banner Modal -->
+    <div sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')" class="modal fade" id="maintenanceBannerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow border-0 rounded-4">
+                <div class="modal-header border-bottom px-4 py-3 bg-light rounded-top-4">
+                    <h5 class="modal-title fw-bold" th:text="#{admin.maintenance.banner.title}">Broadcast Maintenance Banner</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="mbEnabled" th:checked="${@maintenanceBannerService.isBannerActive()}">
+                        <label class="form-check-label fw-semibold" for="mbEnabled" th:text="#{admin.maintenance.banner.enable}">Enable Banner</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" th:text="#{admin.maintenance.banner.msg.en}">Message (English)</label>
+                        <textarea class="form-control" id="mbMessageEn" rows="2" th:text="${@maintenanceBannerService.bannerMessageEn}"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" th:text="#{admin.maintenance.banner.msg.id}">Message (Bahasa Indonesia)</label>
+                        <textarea class="form-control" id="mbMessageId" rows="2" th:text="${@maintenanceBannerService.bannerMessageId}"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" th:text="#{admin.maintenance.banner.type}">Banner Type</label>
+                        <select class="form-select" id="mbType">
+                            <option value="warning" th:selected="${@maintenanceBannerService.bannerType == 'warning'}">Warning (Yellow)</option>
+                            <option value="info" th:selected="${@maintenanceBannerService.bannerType == 'info'}">Info (Blue)</option>
+                            <option value="danger" th:selected="${@maintenanceBannerService.bannerType == 'danger'}">Critical / Alert (Red)</option>
+                        </select>
+                    </div>
+                    <div id="mbFeedback" class="small mt-2" style="display: none;"></div>
+                </div>
+                <div class="modal-footer border-top px-4 py-3 bg-white rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary btn-sm px-3" onclick="saveMaintenanceBanner()">
+                        <span th:text="#{admin.maintenance.banner.save}">Save Banner</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- What's New & Maintenance Banner Script -->
+    <script>
+        let currentWhatsNewData = null;
+        let currentWhatsNewAllNotes = null;
+        let whatsNewDisplayLocale = document.documentElement.lang === 'id' || (window.location.search.includes('lang=id')) ? 'id' : 'en';
+        let isHistoryView = false;
+        let currentTargetVersion = null;
+
+        function getCsrfInfo() {
+            const token = document.querySelector('input[name="_csrf"]')?.value || '';
+            const header = document.querySelector('meta[name="_csrf_header"]')?.content || 'X-CSRF-TOKEN';
+            return { token, header };
+        }
+
+        async function checkLatestUnreadReleaseNotes() {
+            try {
+                const res = await fetch('/api/release-notes/latest-unread');
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.hasUnread && data.releaseNote) {
+                    currentWhatsNewData = data.releaseNote;
+                    currentTargetVersion = data.releaseNote.version;
+                    renderWhatsNewContent(data.releaseNote, false);
+                    showWhatsNewModalInstance();
+                }
+            } catch (err) {
+                console.debug('Check unread release notes note:', err);
+            }
+        }
+
+        async function openWhatsNewModal(historyMode = false) {
+            isHistoryView = historyMode;
+            try {
+                const res = await fetch('/api/release-notes/all');
+                if (!res.ok) return;
+                const data = await res.json();
+                currentWhatsNewAllNotes = data.notes || [];
+                if (currentWhatsNewAllNotes.length > 0) {
+                    currentWhatsNewData = currentWhatsNewAllNotes[0];
+                    currentTargetVersion = currentWhatsNewData.version;
+                }
+                if (historyMode) {
+                    renderWhatsNewHistory(currentWhatsNewAllNotes);
+                } else {
+                    renderWhatsNewContent(currentWhatsNewData, false);
+                }
+                showWhatsNewModalInstance();
+            } catch (err) {
+                console.error('Error fetching release notes:', err);
+            }
+        }
+
+        function showWhatsNewModalInstance() {
+            const modalEl = document.getElementById('whatsNewModal');
+            if (!modalEl) return;
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+
+        function toggleWhatsNewLocale() {
+            whatsNewDisplayLocale = (whatsNewDisplayLocale === 'id') ? 'en' : 'id';
+            document.getElementById('whatsNewLangBtn').innerText = whatsNewDisplayLocale.toUpperCase();
+            if (isHistoryView && currentWhatsNewAllNotes) {
+                renderWhatsNewHistory(currentWhatsNewAllNotes);
+            } else if (currentWhatsNewData) {
+                renderWhatsNewContent(currentWhatsNewData, false);
+            }
+        }
+
+        function toggleWhatsNewHistoryView() {
+            isHistoryView = !isHistoryView;
+            if (isHistoryView) {
+                if (currentWhatsNewAllNotes) {
+                    renderWhatsNewHistory(currentWhatsNewAllNotes);
+                } else {
+                    openWhatsNewModal(true);
+                }
+            } else {
+                if (currentWhatsNewData) {
+                    renderWhatsNewContent(currentWhatsNewData, false);
+                }
+            }
+        }
+
+        function renderWhatsNewContent(note, isHistoric = false) {
+            const body = document.getElementById('whatsNewModalBody');
+            const historyLinkText = document.getElementById('whatsNewHistoryLinkText');
+            const gotItBtn = document.getElementById('whatsNewGotItBtn');
+            const langBtn = document.getElementById('whatsNewLangBtn');
+
+            if (langBtn) langBtn.innerText = whatsNewDisplayLocale.toUpperCase();
+            if (historyLinkText) historyLinkText.innerText = whatsNewDisplayLocale === 'id' ? 'Riwayat Pembaruan' : 'Release History';
+
+            if (!note) {
+                body.innerHTML = '<p class="text-muted text-center py-4">No release notes available.</p>';
+                return;
+            }
+
+            const title = (whatsNewDisplayLocale === 'id') ? (note.titleId || note.titleEn) : (note.titleEn || note.titleId);
+            const notesList = (whatsNewDisplayLocale === 'id') ? (note.notesId || note.notesEn || []) : (note.notesEn || note.notesId || []);
+
+            let notesHtml = '';
+            notesList.forEach(item => {
+                notesHtml += `
+                    <div class="d-flex align-items-start gap-3 p-3 mb-2 rounded-3 bg-light border-start border-primary border-3">
+                        <i class="bi bi-check-circle-fill text-primary mt-1"></i>
+                        <div class="text-secondary small lh-base">${item}</div>
+                    </div>
+                `;
+            });
+
+            body.innerHTML = `
+                <div class="mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary fs-6 px-3 py-1">v${note.version}</span>
+                        <span class="badge bg-light text-secondary border">${note.date}</span>
+                    </div>
+                    <span class="badge bg-light text-muted border text-uppercase" style="font-size: 0.72rem;">Audience: ${note.audience}</span>
+                </div>
+                <h6 class="fw-bold text-dark mb-3">${title}</h6>
+                <div class="release-notes-container">
+                    ${notesHtml}
+                </div>
+            `;
+        }
+
+        function renderWhatsNewHistory(notes) {
+            const body = document.getElementById('whatsNewModalBody');
+            const historyLinkText = document.getElementById('whatsNewHistoryLinkText');
+            if (historyLinkText) historyLinkText.innerText = whatsNewDisplayLocale === 'id' ? 'Kembali ke Terbaru' : 'Back to Latest';
+
+            if (!notes || notes.length === 0) {
+                body.innerHTML = '<p class="text-muted text-center py-4">No release notes history found.</p>';
+                return;
+            }
+
+            let html = '<div class="accordion accordion-flush" id="releaseNotesAccordion">';
+            notes.forEach((note, idx) => {
+                const title = (whatsNewDisplayLocale === 'id') ? (note.titleId || note.titleEn) : (note.titleEn || note.titleId);
+                const notesList = (whatsNewDisplayLocale === 'id') ? (note.notesId || note.notesEn || []) : (note.notesEn || note.notesId || []);
+                let itemsHtml = '<ul class="list-unstyled mb-0">';
+                notesList.forEach(it => {
+                    itemsHtml += `<li class="d-flex align-items-start gap-2 mb-2 small text-secondary"><i class="bi bi-chevron-right text-primary mt-1"></i> <span>${it}</span></li>`;
+                });
+                itemsHtml += '</ul>';
+
+                html += `
+                    <div class="accordion-item border rounded-3 mb-2 overflow-hidden">
+                        <h2 class="accordion-header" id="headingNote${idx}">
+                            <button class="accordion-button ${idx === 0 ? '' : 'collapsed'} py-2 px-3 fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNote${idx}" aria-expanded="${idx === 0}">
+                                <div class="d-flex align-items-center gap-2 flex-grow-1 me-3">
+                                    <span class="badge bg-primary">v${note.version}</span>
+                                    <span class="text-dark small">${title}</span>
+                                    <span class="text-muted ms-auto small">${note.date}</span>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapseNote${idx}" class="accordion-collapse collapse ${idx === 0 ? 'show' : ''}" data-bs-parent="#releaseNotesAccordion">
+                            <div class="accordion-body bg-light-subtle py-3 px-3">
+                                ${itemsHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            body.innerHTML = html;
+        }
+
+        async function acknowledgeWhatsNew() {
+            if (!currentTargetVersion) {
+                bootstrap.Modal.getInstance(document.getElementById('whatsNewModal'))?.hide();
+                return;
+            }
+            const { token } = getCsrfInfo();
+            const formData = new URLSearchParams();
+            formData.append('version', currentTargetVersion);
+            if (token) formData.append('_csrf', token);
+
+            try {
+                await fetch('/api/release-notes/acknowledge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData.toString()
+                });
+            } catch (err) {
+                console.error('Failed to acknowledge release notes:', err);
+            }
+            bootstrap.Modal.getInstance(document.getElementById('whatsNewModal'))?.hide();
+        }
+
+        function openMaintenanceBannerModal() {
+            const modalEl = document.getElementById('maintenanceBannerModal');
+            if (modalEl) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            }
+        }
+
+        async function saveMaintenanceBanner() {
+            const enabled = document.getElementById('mbEnabled').checked;
+            const msgEn = document.getElementById('mbMessageEn').value;
+            const msgId = document.getElementById('mbMessageId').value;
+            const type = document.getElementById('mbType').value;
+            const feedback = document.getElementById('mbFeedback');
+
+            const { token } = getCsrfInfo();
+            const formData = new URLSearchParams();
+            formData.append('enabled', enabled);
+            formData.append('messageEn', msgEn);
+            formData.append('messageId', msgId);
+            formData.append('type', type);
+            if (token) formData.append('_csrf', token);
+
+            try {
+                const res = await fetch('/admin/api/maintenance-banner', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData.toString()
+                });
+                const data = await res.json();
+                if (data.success) {
+                    feedback.className = 'small mt-2 text-success';
+                    feedback.innerText = 'Banner updated successfully!';
+                    feedback.style.display = 'block';
+
+                    let liveBanner = document.getElementById('maintenanceBanner');
+                    if (data.active) {
+                        const currentLang = document.documentElement.lang === 'id' ? 'id' : 'en';
+                        const text = (currentLang === 'id') ? data.messageId : data.messageEn;
+                        if (!liveBanner) {
+                            liveBanner = document.createElement('div');
+                            liveBanner.id = 'maintenanceBanner';
+                            liveBanner.style.cssText = 'z-index: 1055; font-size: 0.88rem; font-weight: 500;';
+                            const topbar = document.querySelector('.portal-topbar');
+                            if (topbar && topbar.parentElement) {
+                                topbar.parentElement.insertBefore(liveBanner, topbar);
+                            }
+                        }
+                        liveBanner.className = `alert alert-${data.type} border-0 rounded-0 mb-0 py-2 px-3 text-center d-flex align-items-center justify-content-center gap-2 shadow-sm`;
+                        liveBanner.innerHTML = `
+                            <i class="bi bi-tools text-warning-emphasis"></i>
+                            <span>${text}</span>
+                            <button type="button" class="btn-close btn-close-sm ms-2" onclick="this.parentElement.remove();" aria-label="Close" style="font-size: 0.65rem;"></button>
+                        `;
+                    } else if (liveBanner) {
+                        liveBanner.remove();
+                    }
+
+                    setTimeout(() => {
+                        bootstrap.Modal.getInstance(document.getElementById('maintenanceBannerModal'))?.hide();
+                        feedback.style.display = 'none';
+                    }, 800);
+                } else {
+                    feedback.className = 'small mt-2 text-danger';
+                    feedback.innerText = 'Failed to update banner';
+                    feedback.style.display = 'block';
+                }
+            } catch (err) {
+                feedback.className = 'small mt-2 text-danger';
+                feedback.innerText = 'Error: ' + err.message;
+                feedback.style.display = 'block';
+            }
+        }
+
+        // Auto-inject footer into portal-main if not statically present
+        document.addEventListener('DOMContentLoaded', function () {
+            checkLatestUnreadReleaseNotes();
+
+            const portalMain = document.querySelector('.portal-main');
+            if (portalMain && !document.querySelector('.portal-footer')) {
+                const footer = document.createElement('footer');
+                footer.className = 'portal-footer py-2 text-center text-muted border-top mt-4';
+                footer.style.fontSize = '0.78rem';
+                footer.innerHTML = `
+                    <div class="container-fluid d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <span>&copy; ${new Date().getFullYear()} InvoiceHub. All rights reserved.</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="#" onclick="openWhatsNewModal(true); return false;" class="text-decoration-none text-muted d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-stars text-primary"></i>
+                                <span>${document.querySelector('.portal-sidebar .badge')?.innerText || 'v1.4.0'}</span>
+                            </a>
+                        </div>
+                    </div>
+                `;
+                portalMain.appendChild(footer);
+            }
+        });
+    </script>
 </body>
 
 </html>

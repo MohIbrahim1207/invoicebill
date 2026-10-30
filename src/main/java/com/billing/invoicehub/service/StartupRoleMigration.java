@@ -218,6 +218,19 @@ public class StartupRoleMigration implements ApplicationRunner {
             addColumnIfNotExists("app_user", "lockout_expiry", "DATETIME NULL");
             addColumnIfNotExists("app_user", "two_factor_enabled", "BOOLEAN NOT NULL DEFAULT FALSE");
             addColumnIfNotExists("app_user", "two_factor_secret", "VARCHAR(255) NULL");
+            addColumnIfNotExists("app_user", "last_seen_version", "VARCHAR(50) NULL");
+
+            // Ensure system_settings table exists for maintenance banners and configuration
+            try {
+                jdbc.execute("CREATE TABLE IF NOT EXISTS system_settings (" +
+                        "setting_key VARCHAR(100) NOT NULL PRIMARY KEY, " +
+                        "setting_value TEXT, " +
+                        "updated_at DATETIME NULL, " +
+                        "updated_by VARCHAR(100) NULL)");
+                log.debug("Verified system_settings table exists.");
+            } catch (Exception ex) {
+                log.warn("system_settings table verification: {}", ex.getMessage());
+            }
 
             // 2. Assign user_domain = 'VENDOR' for all accounts holding ROLE_VENDOR
             try {

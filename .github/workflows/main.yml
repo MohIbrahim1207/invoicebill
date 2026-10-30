@@ -6,9 +6,58 @@ on:
       - main
 
 jobs:
-  deploy:
+  validate-and-deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify Release Notes Exist For Current Version
+        run: |
+          # Extract project version from pom.xml
+          PROJECT_VERSION=$(grep -m 1 '<version>' pom.xml | sed -E 's/.*<version>([^<]+)<\/version>/\1/')
+          echo "Detected project version: $PROJECT_VERSION"
+
+          if [ -z "$PROJECT_VERSION" ]; then
+            echo "::error::Could not determine project version from pom.xml!"
+            exit 1
+          fi
+
+          if [ ! -f "src/main/resources/release-notes.json" ]; then
+            echo "::error::src/main/resources/release-notes.json is missing!"
+            exit 1
+          fi
+
+          # Python check for matching version entry
+          python3 -c "
+          import json, sys
+
+          version = '$PROJECT_VERSION'.strip()
+          clean_version = version.replace('-SNAPSHOT', '').strip()
+
+          try:
+              with open('src/main/resources/release-notes.json', 'r', encoding='utf-8') as f:
+                  data = json.load(f)
+              
+              if not isinstance(data, list):
+                  print('::error::release-notes.json must contain a JSON array!')
+                  sys.exit(1)
+              
+              versions = [entry.get('version', '').strip() for entry in data]
+              print(f'Configured versions in release-notes.json: {versions}')
+
+              if version in versions or clean_version in versions:
+                  print(f'Successfully verified release notes for version: {version}')
+                  sys.exit(0)
+              else:
+                  print(f'::error::No release notes found for version {version}! Available versions: {versions}')
+                  print('::error::Please add release notes for this version to src/main/resources/release-notes.json before deploying.')
+                  sys.exit(1)
+          except Exception as e:
+              print(f'::error::Failed to read or parse release-notes.json: {e}')
+              sys.exit(1)
+          "
+
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:

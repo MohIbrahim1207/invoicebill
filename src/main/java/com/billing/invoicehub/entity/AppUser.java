@@ -40,6 +40,9 @@ public class AppUser {
     @jakarta.persistence.Column(name = "two_factor_secret")
     private String twoFactorSecret;
 
+    @jakarta.persistence.Column(name = "last_seen_version", length = 50)
+    private String lastSeenVersion;
+
     private boolean enabled;
     private boolean verified;
     private String vendorCode;
@@ -263,6 +266,14 @@ public class AppUser {
 
     public void setTwoFactorEnabled(boolean twoFactorEnabled) {
         this.twoFactorEnabled = twoFactorEnabled;
+    }
+
+    public String getLastSeenVersion() {
+        return this.lastSeenVersion;
+    }
+
+    public void setLastSeenVersion(String lastSeenVersion) {
+        this.lastSeenVersion = lastSeenVersion;
     }
 
     public String getTwoFactorSecret() {
