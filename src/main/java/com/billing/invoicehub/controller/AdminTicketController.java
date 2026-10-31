@@ -163,7 +163,11 @@ public class AdminTicketController {
     private Map<String, String> createDocumentEntry(String name, String url, String originalFilename) {
         Map<String, String> entry = new HashMap<>();
         entry.put("name", name);
-        entry.put("url", url);
+        String securedUrl = (url != null && !url.isBlank())
+                ? "/documents/view?url=" + java.net.URLEncoder.encode(url, java.nio.charset.StandardCharsets.UTF_8)
+                : url;
+        entry.put("url", securedUrl);
+        entry.put("rawUrl", url);
         entry.put("fileType", extractFileType(url, originalFilename));
         entry.put("icon", getIconForFileType(entry.get("fileType")));
         return entry;

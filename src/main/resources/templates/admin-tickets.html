@@ -103,7 +103,11 @@
                                     th:each="ticket, row : ${tickets}">
                                     <tr>
                                         <td th:text="${row.index + 1}"></td>
-                                        <td><strong th:text="${ticket.ticketNo}"></strong></td>
+                                        <td>
+                                            <strong th:text="${ticket.ticketNo}"></strong>
+                                            <span th:if="${ticket.invoice == null}" class="badge bg-warning text-dark ms-1" style="font-size: 0.7rem;"
+                                                  th:title="#{ticket.unsynced.tooltip}" th:text="#{ticket.unsynced.badge}">Unsynced</span>
+                                        </td>
                                         <td th:text="${ticket.invoiceNo}"></td>
                                         <td th:text="${ticket.poNumber != null and !ticket.poNumber.isEmpty() ? ticket.poNumber : '-'}"></td>
                                         <td th:text="${ticket.vendor != null ? ticket.vendor.username : '-'}"></td>

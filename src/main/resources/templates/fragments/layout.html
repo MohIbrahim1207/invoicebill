@@ -410,20 +410,29 @@
                     document.addEventListener('DOMContentLoaded', function () {
                         loadNotifications();
 
-                        // Subscribe to admin WebSocket if user is ADMIN
-                        const isAdmin = [[${ #authorization.expression('hasRole("ROLE_ADMIN")') }]];
-                        if (isAdmin) {
+                        // Subscribe to live WebSocket notifications:
+                        // Staff (ADMIN, SUPER_ADMIN, ACCOUNTS) subscribe to /topic/admin-notifications
+                        // Authenticated users (vendors & staff) subscribe to private /user/queue/notifications
+                        const isStaff = [[${ #authorization.expression('hasAnyRole("ROLE_ADMIN", "ROLE_SUPER_ADMIN", "ROLE_ACCOUNTS")') }]];
+                        const isAuth = [[${ #authorization.expression('isAuthenticated()') }]];
+                        if (isAuth) {
                             try {
                                 const socket = new SockJS('/ws');
                                 const stompClient = Stomp.over(socket);
                                 stompClient.debug = null;
                                 stompClient.connect({}, function (frame) {
-                                    stompClient.subscribe('/topic/admin-notifications', function (message) {
+                                    if (isStaff) {
+                                        stompClient.subscribe('/topic/admin-notifications', function (message) {
+                                            const notif = JSON.parse(message.body);
+                                            handleIncomingNotification(notif);
+                                        });
+                                    }
+                                    stompClient.subscribe('/user/queue/notifications', function (message) {
                                         const notif = JSON.parse(message.body);
                                         handleIncomingNotification(notif);
                                     });
                                 }, function (err) {
-                                    console.warn('STOMP connection failed, retrying in 10s', err);
+                                    console.warn('STOMP connection failed', err);
                                 });
                             } catch (e) {
                                 console.error('Failed to configure WebSockets:', e);
@@ -537,7 +546,6 @@
         <div class="mt-auto p-3 border-top text-muted" style="font-size: 0.78rem;">
             <a href="#" onclick="openWhatsNewModal(true); return false;" class="text-decoration-none text-muted d-flex align-items-center justify-content-between mb-1">
                 <span class="fw-semibold text-primary"><i class="bi bi-stars me-1"></i><span th:text="#{nav.whats.new}">What's New</span></span>
-                <span class="badge bg-light text-secondary border font-monospace" th:text="${@appVersionService.versionFormatted}">v1.5.0 &middot; 30 Oct 2026</span>
             </a>
             <div class="d-flex align-items-center justify-content-between text-secondary" style="font-size: 0.72rem;">
                 <span>InvoiceHub</span>
@@ -625,7 +633,6 @@
                 <div class="mt-auto p-3 border-top text-muted" style="font-size: 0.78rem;">
                     <a href="#" onclick="openWhatsNewModal(true); return false;" class="text-decoration-none text-muted d-flex align-items-center justify-content-between mb-1">
                         <span class="fw-semibold text-primary"><i class="bi bi-stars me-1"></i><span th:text="#{nav.whats.new}">What's New</span></span>
-                        <span class="badge bg-light text-secondary border font-monospace" th:text="${@appVersionService.versionFormatted}">v1.5.0 &middot; 30 Oct 2026</span>
                     </a>
                 </div>
             </div>

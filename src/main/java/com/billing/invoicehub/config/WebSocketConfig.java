@@ -35,8 +35,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic");
+        config.enableSimpleBroker("/topic", "/queue");
         config.setApplicationDestinationPrefixes("/app");
+        config.setUserDestinationPrefix("/user");
     }
 
     @Override
@@ -89,7 +90,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             List<String> authorities = auth.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .toList();
-            return authorities.contains("ROLE_ADMIN") || authorities.contains("ROLE_SUPER_ADMIN");
+            return authorities.contains("ROLE_ADMIN")
+                    || authorities.contains("ROLE_SUPER_ADMIN")
+                    || authorities.contains("ROLE_ACCOUNTS");
         }
         return false;
     }

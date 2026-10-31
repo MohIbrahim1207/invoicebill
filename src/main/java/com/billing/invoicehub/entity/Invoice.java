@@ -5,7 +5,11 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Transient;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Entity
 public class Invoice {
@@ -17,15 +21,19 @@ public class Invoice {
     private String fileUrl; // Cloudinary secure URL
 
     private String invoiceNumber;
-    private String invoiceDate;
-    private java.math.BigDecimal amount;
+    private LocalDate invoiceDate;
+    private BigDecimal amount;
     private String currency = "IDR";
     private String status = "Pending";
 
     @ManyToOne(fetch = FetchType.LAZY)
     private Client client;
 
-    @jakarta.persistence.Transient
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendor_ticket_id")
+    private VendorTicket vendorTicket;
+
+    @Transient
     private String poNumber;
 
     public String getPoNumber() {
@@ -41,7 +49,7 @@ public class Invoice {
     }
 
     public Invoice(String fileName, String fileUrl, String invoiceNumber,
-            String invoiceDate, java.math.BigDecimal amount, Client client) {
+            LocalDate invoiceDate, BigDecimal amount, Client client) {
         this.fileName = fileName;
         this.fileUrl = fileUrl;
         this.invoiceNumber = invoiceNumber;
@@ -83,19 +91,19 @@ public class Invoice {
         this.invoiceNumber = invoiceNumber;
     }
 
-    public String getInvoiceDate() {
+    public LocalDate getInvoiceDate() {
         return this.invoiceDate;
     }
 
-    public void setInvoiceDate(String invoiceDate) {
+    public void setInvoiceDate(LocalDate invoiceDate) {
         this.invoiceDate = invoiceDate;
     }
 
-    public java.math.BigDecimal getAmount() {
+    public BigDecimal getAmount() {
         return this.amount;
     }
 
-    public void setAmount(java.math.BigDecimal amount) {
+    public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
 
@@ -121,5 +129,13 @@ public class Invoice {
 
     public void setClient(Client client) {
         this.client = client;
+    }
+
+    public VendorTicket getVendorTicket() {
+        return this.vendorTicket;
+    }
+
+    public void setVendorTicket(VendorTicket vendorTicket) {
+        this.vendorTicket = vendorTicket;
     }
 }

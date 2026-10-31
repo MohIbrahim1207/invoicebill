@@ -66,6 +66,7 @@ public class CloudinaryService {
                     ObjectUtils.asMap(
                             "public_id", uniqueFilename,
                             "resource_type", "auto",
+                            "type", "authenticated",
                             "overwrite", false));
             return (String) result.get("secure_url");
         } catch (IOException e) {
@@ -84,6 +85,7 @@ public class CloudinaryService {
                     ObjectUtils.asMap(
                             "public_id", uniqueFilename,
                             "resource_type", "auto",
+                            "type", "authenticated",
                             "overwrite", false));
             return (String) result.get("secure_url");
         } catch (IOException e) {
@@ -96,7 +98,6 @@ public class CloudinaryService {
         validateFile(file);
 
         try {
-
             String uniqueFilename = folder + "/" + UUID.randomUUID();
 
             @SuppressWarnings("unchecked")
@@ -105,11 +106,12 @@ public class CloudinaryService {
                     ObjectUtils.asMap(
                             "public_id", uniqueFilename,
                             "resource_type", "auto",
+                            "type", "authenticated",
                             "overwrite", false));
 
             String secureUrl = (String) result.get("secure_url");
 
-            logger.info("File uploaded successfully to Cloudinary: {}", uniqueFilename);
+            logger.info("File uploaded successfully to Cloudinary (authenticated): {}", uniqueFilename);
 
             return secureUrl;
 
@@ -117,6 +119,72 @@ public class CloudinaryService {
             logger.error("Failed to upload file to Cloudinary: {}", e.getMessage(), e);
             throw new IOException("Failed to upload file to Cloudinary: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Generates a signed Cloudinary URL valid for the specified duration (default 900s / 15 mins).
+     * For legacy public files (uploaded prior to v1.6.0 via /upload/), returns the URL directly
+     * for seamless backward compatibility.
+     */
+    public String generateSignedDownloadUrl(String fileUrl, int expirySeconds) {
+        if (fileUrl == null || fileUrl.isBlank()) {
+            return fileUrl;
+        }
+
+        // Backward compatibility: If the file was uploaded as public (legacy /upload/),
+        // serve the existing URL directly so old files continue working seamlessly.
+        if (fileUrl.contains("/upload/")) {
+            logger.debug("Serving legacy public file directly: {}", fileUrl);
+            return fileUrl;
+        }
+
+        try {
+            String publicId = extractPublicId(fileUrl);
+            if (publicId == null) {
+                return fileUrl;
+            }
+
+            String resourceType = extractResourceType(fileUrl);
+            long expiresAt = (System.currentTimeMillis() / 1000L) + (expirySeconds > 0 ? expirySeconds : 900L);
+
+            return cloudinary.privateDownload(
+                    publicId,
+                    null,
+                    ObjectUtils.asMap(
+                            "resource_type", resourceType,
+                            "type", "authenticated",
+                            "expires_at", expiresAt
+                    )
+            );
+        } catch (Exception e) {
+            logger.warn("Failed to generate Cloudinary signed URL for {}: {}. Falling back to stored URL.", fileUrl, e.getMessage());
+            return fileUrl;
+        }
+    }
+
+    public String extractPublicId(String url) {
+        if (url == null) return null;
+        int idx = url.indexOf("/authenticated/");
+        if (idx == -1) {
+            idx = url.indexOf("/upload/");
+            if (idx == -1) return null;
+            idx += "/upload/".length();
+        } else {
+            idx += "/authenticated/".length();
+        }
+        String path = url.substring(idx);
+        // Strip signature if present (e.g. s--abc123--/)
+        path = path.replaceAll("^s--[^/]+--/", "");
+        // Strip version prefix if present (e.g. v1234567890/)
+        path = path.replaceAll("^v\\d+/", "");
+        return path;
+    }
+
+    public String extractResourceType(String url) {
+        if (url == null) return "image";
+        if (url.contains("/raw/")) return "raw";
+        if (url.contains("/video/")) return "video";
+        return "image";
     }
 
     private void validateFile(MultipartFile file) {
@@ -136,12 +204,14 @@ public class CloudinaryService {
                 return false;
             }
 
-            String publicId = extractPublicIdFromUrl(fileUrl);
+            String publicId = extractPublicId(fileUrl);
             if (publicId == null) {
                 return false;
             }
 
-            cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            String type = fileUrl.contains("/authenticated/") ? "authenticated" : "upload";
+            String resourceType = extractResourceType(fileUrl);
+            cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("type", type, "resource_type", resourceType));
 
             logger.info("File deleted successfully from Cloudinary: {}", publicId);
             return true;
@@ -153,20 +223,6 @@ public class CloudinaryService {
     }
 
     public String extractPublicIdFromUrl(String secureUrl) {
-        try {
-            String[] parts = secureUrl.split("/upload/");
-            if (parts.length != 2) {
-                return null;
-            }
-
-            String pathPart = parts[1];
-            pathPart = pathPart.replaceAll("^v\\d+/", "");
-
-            return pathPart;
-
-        } catch (Exception e) {
-            logger.warn("Failed to extract public_id from URL: {}", secureUrl);
-            return null;
-        }
+        return extractPublicId(secureUrl);
     }
 }

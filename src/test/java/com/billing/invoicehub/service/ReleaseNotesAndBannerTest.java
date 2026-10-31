@@ -142,8 +142,8 @@ class ReleaseNotesAndBannerTest {
     void testAppVersionService() {
         assertNotNull(appVersionService.getVersion());
         assertNotNull(appVersionService.getVersionFormatted());
-        assertTrue(appVersionService.getVersionFormatted().startsWith("v1.5.0"),
-                "Formatted version should start with 'v1.5.0'");
+        assertTrue(appVersionService.getVersionFormatted().startsWith("v1.6.0"),
+                "Formatted version should start with 'v1.6.0'");
     }
 
     @Test
@@ -168,7 +168,7 @@ class ReleaseNotesAndBannerTest {
         }
 
         System.out.println("Detected POM project version: " + pomVersion);
-        assertEquals("1.5.0", pomVersion, "Project version in pom.xml must be 1.5.0");
+        assertEquals("1.6.0", pomVersion, "Project version in pom.xml must be 1.6.0");
 
         List<ReleaseNoteDto> allNotes = releaseNotesService.getAllNotes();
         final String expectedVersion = pomVersion;

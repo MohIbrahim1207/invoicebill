@@ -62,9 +62,9 @@
                 <div class="d-flex flex-wrap gap-2">
                     <a href="/admin/ai-quote-converter" class="btn btn-light border"><i class="bi bi-arrow-left"></i>
                         Back to History</a>
-                    <a th:if="${conversion.generatedQuoteFileUrl != null}" th:href="${conversion.generatedQuoteFileUrl}" target="_blank" class="btn btn-success"><i
+                    <a th:if="${conversion.generatedQuoteFileUrl != null}" th:href="@{/documents/view(url=${conversion.generatedQuoteFileUrl})}" target="_blank" class="btn btn-success"><i
                             class="bi bi-file-earmark-pdf me-1"></i> Download Flow Force PDF</a>
-                    <a th:if="${conversion.generatedDocxFileUrl != null}" th:href="${conversion.generatedDocxFileUrl}" target="_blank" class="btn btn-primary"><i
+                    <a th:if="${conversion.generatedDocxFileUrl != null}" th:href="@{/documents/view(url=${conversion.generatedDocxFileUrl})}" target="_blank" class="btn btn-primary"><i
                             class="bi bi-file-earmark-word me-1"></i> Download Flow Force Word</a>
                 </div>
             </div>
@@ -319,13 +319,13 @@
                             <div class="mb-3">
                                 <div class="detail-label mb-1">Stored Documents</div>
                                 <div class="d-flex flex-column gap-2">
-                                    <a th:if="${conversion.originalFileUrl != null}" th:href="${conversion.originalFileUrl}" target="_blank"
+                                    <a th:if="${conversion.originalFileUrl != null}" th:href="@{/documents/view(url=${conversion.originalFileUrl})}" target="_blank"
                                         class="btn btn-outline-danger btn-sm text-start"><i
                                             class="bi bi-file-pdf me-1"></i> Original Supplier Quote</a>
-                                    <a th:if="${conversion.generatedQuoteFileUrl != null}" th:href="${conversion.generatedQuoteFileUrl}" target="_blank"
+                                    <a th:if="${conversion.generatedQuoteFileUrl != null}" th:href="@{/documents/view(url=${conversion.generatedQuoteFileUrl})}" target="_blank"
                                         class="btn btn-outline-success btn-sm text-start"><i
                                             class="bi bi-file-earmark-pdf me-1"></i> Generated Flow Force Quote PDF</a>
-                                    <a th:if="${conversion.generatedDocxFileUrl != null}" th:href="${conversion.generatedDocxFileUrl}" target="_blank"
+                                    <a th:if="${conversion.generatedDocxFileUrl != null}" th:href="@{/documents/view(url=${conversion.generatedDocxFileUrl})}" target="_blank"
                                         class="btn btn-outline-primary btn-sm text-start"><i
                                             class="bi bi-file-earmark-word me-1"></i> Generated Flow Force Quote Word</a>
                                 </div>

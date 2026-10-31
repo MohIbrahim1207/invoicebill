@@ -47,7 +47,7 @@ public class NotificationService {
     public Notification createNotification(String title, String message, NotificationType type, AppUser user) {
         Notification notification = new Notification(title, message, type, user);
         Notification saved = this.notificationRepository.save(notification);
-        // Optional: Broadcast if needed, but standard single user notification
+        sendPrivateNotification(saved, user);
         return saved;
     }
 
@@ -63,7 +63,9 @@ public class NotificationService {
             notification.setReferenceId(invoiceId);
             notification.setReferenceType("INVOICE");
         }
-        return this.notificationRepository.save(notification);
+        Notification saved = this.notificationRepository.save(notification);
+        sendPrivateNotification(saved, user);
+        return saved;
     }
 
     @Transactional
@@ -78,15 +80,26 @@ public class NotificationService {
         }
         Notification saved = this.notificationRepository.save(notification);
         
-        if ("ROLE_ADMIN".equals(recipientRole)) {
+        if ("ROLE_ADMIN".equals(recipientRole) || "ROLE_SUPER_ADMIN".equals(recipientRole) || "ROLE_ACCOUNTS".equals(recipientRole)) {
             try {
                 messagingTemplate.convertAndSend("/topic/admin-notifications", new NotificationDto(saved));
-                log.info("Successfully broadcasted notification to /topic/admin-notifications");
+                log.info("Successfully broadcasted notification to /topic/admin-notifications for role {}", recipientRole);
             } catch (Exception ex) {
                 log.error("Failed to broadcast notification: {}", ex.getMessage(), ex);
             }
         }
         return saved;
+    }
+
+    private void sendPrivateNotification(Notification saved, AppUser user) {
+        if (user != null && user.getUsername() != null && !user.getUsername().isBlank()) {
+            try {
+                messagingTemplate.convertAndSendToUser(user.getUsername(), "/queue/notifications", new NotificationDto(saved));
+                log.info("Successfully sent private notification to user '{}' on /user/queue/notifications", user.getUsername());
+            } catch (Exception ex) {
+                log.warn("Failed to send private notification to user '{}': {}", user.getUsername(), ex.getMessage());
+            }
+        }
     }
 
     @Transactional(readOnly=true)

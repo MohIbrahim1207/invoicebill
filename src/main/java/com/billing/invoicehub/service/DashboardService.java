@@ -71,6 +71,7 @@ public class DashboardService {
         statusCountsMap.put("Partially Paid", 0L);
         statusCountsMap.put("Revised", 0L);
         statusCountsMap.put("Released", 0L);
+        statusCountsMap.put("Rejected", 0L);
 
         List<Invoice> allInvoices = invoiceRepository.findAll();
         for (Invoice inv : allInvoices) {
@@ -78,17 +79,14 @@ public class DashboardService {
             String status = inv.getStatus() != null && !inv.getStatus().isBlank() ? inv.getStatus().trim() : "Pending";
             statusCountsMap.put(status, statusCountsMap.getOrDefault(status, 0L) + 1L);
 
-            // Tally monthly volume
-            String dateStr = inv.getInvoiceDate();
-            if (dateStr != null && !dateStr.isBlank()) {
-                try {
-                    YearMonth ym = parseYearMonth(dateStr.trim());
-                    if (ym != null && countsByMonth.containsKey(ym)) {
-                        countsByMonth.put(ym, countsByMonth.get(ym) + 1L);
-                        BigDecimal amt = inv.getAmount() != null ? inv.getAmount() : BigDecimal.ZERO;
-                        amountsByMonth.put(ym, amountsByMonth.get(ym).add(amt));
-                    }
-                } catch (Exception ignored) {
+            // Tally monthly volume using LocalDate
+            LocalDate date = inv.getInvoiceDate();
+            if (date != null) {
+                YearMonth ym = YearMonth.from(date);
+                if (countsByMonth.containsKey(ym)) {
+                    countsByMonth.put(ym, countsByMonth.get(ym) + 1L);
+                    BigDecimal amt = inv.getAmount() != null ? inv.getAmount() : BigDecimal.ZERO;
+                    amountsByMonth.put(ym, amountsByMonth.get(ym).add(amt));
                 }
             }
         }
@@ -107,8 +105,9 @@ public class DashboardService {
         statusColorPalette.put("Pending", "#f59e0b");       // amber
         statusColorPalette.put("Approved", "#10b981");      // green
         statusColorPalette.put("Partially Paid", "#6366f1");// indigo
-        statusColorPalette.put("Revised", "#ef4444");       // red
+        statusColorPalette.put("Revised", "#f97316");       // orange
         statusColorPalette.put("Released", "#3b82f6");      // blue
+        statusColorPalette.put("Rejected", "#ef4444");      // distinct red for Rejected
 
         for (Map.Entry<String, Long> entry : statusCountsMap.entrySet()) {
             if (entry.getValue() > 0 || (total == 0 && (entry.getKey().equals("Pending") || entry.getKey().equals("Approved")))) {
@@ -138,6 +137,7 @@ public class DashboardService {
             case "partially paid" -> "invoice.filter.partially_paid";
             case "revised" -> "invoice.filter.revised";
             case "released" -> "invoice.filter.released";
+            case "rejected" -> "invoice.filter.rejected";
             default -> null;
         };
         if (key != null) {
@@ -145,20 +145,4 @@ public class DashboardService {
         }
         return status;
     }
-
-    private YearMonth parseYearMonth(String str) {
-        if (str.length() >= 7) {
-            String sub = str.substring(0, 7);
-            if (sub.matches("\\d{4}-\\d{2}")) {
-                return YearMonth.parse(sub);
-            }
-        }
-        try {
-            LocalDate d = LocalDate.parse(str);
-            return YearMonth.from(d);
-        } catch (Exception e) {
-            return null;
-        }
-    }
 }
-

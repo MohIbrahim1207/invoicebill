@@ -325,6 +325,12 @@ public class StartupRoleMigration implements ApplicationRunner {
             createUniqueIndexIfNotExists("uq_app_user_gst_number", "app_user", "gst_number");
             createLowerEmailUniqueIndexIfNotExists();
 
+            // Version 1.6.0: Ensure FK column invoice_id exists on vendor_ticket and vendor_ticket_id on invoice
+            addColumnIfNotExists("vendor_ticket", "invoice_id", "BIGINT NULL");
+            addColumnIfNotExists("invoice", "vendor_ticket_id", "BIGINT NULL");
+            migrateInvoiceDateColumn();
+            backfillVendorTicketsAndInvoices();
+
             log.info("Startup role migration completed.");
         } catch (Exception ex) {
             log.warn("Startup role migration failed - continuing startup. Cause: {}", ex.getMessage());
@@ -441,6 +447,124 @@ public class StartupRoleMigration implements ApplicationRunner {
             }
         } catch (Exception ex) {
             log.warn("Failed checking/creating functional unique index {} on {}: {}. Continuing startup safely.", indexName, tableName, ex.getMessage());
+        }
+    }
+
+    private void migrateInvoiceDateColumn() {
+        try {
+            String dataType = null;
+            try {
+                dataType = jdbc.queryForObject(
+                    "SELECT LOWER(DATA_TYPE) FROM information_schema.COLUMNS " +
+                    "WHERE LOWER(TABLE_NAME) = 'invoice' AND LOWER(COLUMN_NAME) = 'invoice_date' " +
+                    "AND (TABLE_SCHEMA = DATABASE() OR TABLE_SCHEMA = SCHEMA() OR TABLE_SCHEMA = 'PUBLIC') LIMIT 1",
+                    String.class
+                );
+            } catch (Exception ex) {
+                log.debug("information_schema query for invoice.invoice_date data type note: {}", ex.getMessage());
+            }
+
+            if (dataType != null && (dataType.contains("char") || dataType.contains("text"))) {
+                log.info("Migrating invoice.invoice_date from {} to DATE...", dataType);
+                try {
+                    jdbc.execute("UPDATE invoice SET invoice_date = NULL WHERE invoice_date IS NOT NULL AND (TRIM(invoice_date) = '' OR invoice_date NOT REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')");
+                } catch (Exception exClean) {
+                    log.debug("Regex cleanup note (might be non-mysql): {}", exClean.getMessage());
+                }
+                try {
+                    jdbc.execute("ALTER TABLE invoice MODIFY COLUMN invoice_date DATE NULL");
+                    log.info("Successfully converted invoice.invoice_date to DATE NULL");
+                } catch (Exception exAlter) {
+                    log.warn("Could not alter invoice.invoice_date to DATE: {}. Continuing startup.", exAlter.getMessage());
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Failed checking/migrating invoice.invoice_date: {}. Continuing startup.", ex.getMessage());
+        }
+    }
+
+    public void backfillVendorTicketsAndInvoices() {
+        try {
+            if (!columnExists("vendor_ticket", "invoice_id")) {
+                log.warn("Cannot backfill tickets: vendor_ticket.invoice_id column not present.");
+                return;
+            }
+
+            List<Map<String, Object>> tickets = jdbc.queryForList(
+                "SELECT vt.id, vt.ticket_no, vt.invoice_no, vt.owner_id, vt.client_id, vt.vendor_id " +
+                "FROM vendor_ticket vt WHERE vt.invoice_id IS NULL"
+            );
+
+            if (tickets.isEmpty()) {
+                log.info("Invoice <-> VendorTicket sync: All tickets already have linked invoice records.");
+                return;
+            }
+
+            int matchedCount = 0;
+            int unmatchedCount = 0;
+
+            for (Map<String, Object> t : tickets) {
+                Long ticketId = ((Number) t.get("id")).longValue();
+                String ticketNo = (String) t.get("ticket_no");
+                String invoiceNo = (String) t.get("invoice_no");
+                Long ownerId = t.get("owner_id") != null ? ((Number) t.get("owner_id")).longValue() : null;
+                Long clientId = t.get("client_id") != null ? ((Number) t.get("client_id")).longValue() : null;
+                Long vendorId = t.get("vendor_id") != null ? ((Number) t.get("vendor_id")).longValue() : null;
+
+                if (invoiceNo == null || invoiceNo.isBlank()) {
+                    log.warn("UNSYNCED_TICKET: Ticket {} (id={}) has no invoice number specified.", ticketNo, ticketId);
+                    unmatchedCount++;
+                    continue;
+                }
+
+                Long matchedInvoiceId = null;
+                try {
+                    if (clientId != null) {
+                        List<Long> ids = jdbc.queryForList(
+                            "SELECT id FROM invoice WHERE LOWER(TRIM(invoice_number)) = LOWER(TRIM(?)) AND client_id = ? ORDER BY id DESC LIMIT 1",
+                            Long.class, invoiceNo, clientId
+                        );
+                        if (!ids.isEmpty()) {
+                            matchedInvoiceId = ids.get(0);
+                        }
+                    }
+                    if (matchedInvoiceId == null && (ownerId != null || vendorId != null)) {
+                        Long effOwner = ownerId != null ? ownerId : vendorId;
+                        List<Long> ids = jdbc.queryForList(
+                            "SELECT i.id FROM invoice i JOIN client c ON i.client_id = c.id WHERE LOWER(TRIM(i.invoice_number)) = LOWER(TRIM(?)) AND c.owner_id = ? ORDER BY i.id DESC LIMIT 1",
+                            Long.class, invoiceNo, effOwner
+                        );
+                        if (!ids.isEmpty()) {
+                            matchedInvoiceId = ids.get(0);
+                        }
+                    }
+                } catch (Exception exQuery) {
+                    log.debug("Query error while matching ticket {}: {}", ticketNo, exQuery.getMessage());
+                }
+
+                if (matchedInvoiceId != null) {
+                    try {
+                        jdbc.update("UPDATE vendor_ticket SET invoice_id = ? WHERE id = ?", matchedInvoiceId, ticketId);
+                        if (columnExists("invoice", "vendor_ticket_id")) {
+                            jdbc.update("UPDATE invoice SET vendor_ticket_id = ? WHERE id = ? AND vendor_ticket_id IS NULL", ticketId, matchedInvoiceId);
+                        }
+                        matchedCount++;
+                        log.info("Backfilled sync: Ticket {} (id={}) successfully linked to Invoice id={}", ticketNo, ticketId, matchedInvoiceId);
+                    } catch (Exception exUpdate) {
+                        log.warn("Failed to update link for ticket {}: {}", ticketNo, exUpdate.getMessage());
+                        unmatchedCount++;
+                    }
+                } else {
+                    unmatchedCount++;
+                    log.warn("UNSYNCED_TICKET: Ticket {} (id={}, invoiceNo='{}', clientId={}) could not be matched to an existing Invoice record.",
+                            ticketNo, ticketId, invoiceNo, clientId);
+                }
+            }
+
+            log.info("Invoice <-> VendorTicket sync finished: {} tickets matched & linked, {} unmatched/unsynced tickets.",
+                    matchedCount, unmatchedCount);
+        } catch (Exception ex) {
+            log.warn("Error during backfillVendorTicketsAndInvoices: {}. Continuing startup safely.", ex.getMessage());
         }
     }
 }

@@ -72,13 +72,13 @@
                                      class="d-flex gap-2">
 
                                     <a class="btn btn-primary btn-sm"
-                                       th:href="${vendor.gstDocumentUrl}"
+                                       th:href="@{/documents/view(url=${vendor.gstDocumentUrl})}"
                                        target="_blank">
                                         <i class="bi bi-eye"></i> <span th:text="#{ticket.manage.open}">View</span>
                                     </a>
 
                                     <a class="btn btn-outline-primary btn-sm"
-                                       th:href="${vendor.gstDocumentUrl}"
+                                       th:href="@{/documents/view(url=${vendor.gstDocumentUrl})}"
                                        target="_blank">
                                         <i class="bi bi-download"></i> <span th:text="#{ticket.manage.download}">Download</span>
                                     </a>
@@ -98,13 +98,13 @@
                                      class="d-flex gap-2">
 
                                     <a class="btn btn-primary btn-sm"
-                                       th:href="${vendor.companyDocumentUrl}"
+                                       th:href="@{/documents/view(url=${vendor.companyDocumentUrl})}"
                                        target="_blank">
                                         <i class="bi bi-eye"></i> <span th:text="#{ticket.manage.open}">View</span>
                                     </a>
 
                                     <a class="btn btn-outline-primary btn-sm"
-                                       th:href="${vendor.companyDocumentUrl}"
+                                       th:href="@{/documents/view(url=${vendor.companyDocumentUrl})}"
                                        target="_blank">
                                         <i class="bi bi-download"></i> <span th:text="#{ticket.manage.download}">Download</span>
                                     </a>
@@ -124,13 +124,13 @@
                                      class="d-flex gap-2">
 
                                     <a class="btn btn-primary btn-sm"
-                                       th:href="${vendor.supportingDocumentUrl}"
+                                       th:href="@{/documents/view(url=${vendor.supportingDocumentUrl})}"
                                        target="_blank">
                                         <i class="bi bi-eye"></i> <span th:text="#{ticket.manage.open}">View</span>
                                     </a>
 
                                     <a class="btn btn-outline-primary btn-sm"
-                                       th:href="${vendor.supportingDocumentUrl}"
+                                       th:href="@{/documents/view(url=${vendor.supportingDocumentUrl})}"
                                        target="_blank">
                                         <i class="bi bi-download"></i> <span th:text="#{ticket.manage.download}">Download</span>
                                     </a>

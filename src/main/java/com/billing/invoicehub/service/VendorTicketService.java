@@ -204,10 +204,7 @@ public class VendorTicketService {
                 inv.setFileName(saved.getInvoiceFileName());
                 inv.setFileUrl(saved.getInvoiceFileUrl());
                 inv.setInvoiceNumber(saved.getInvoiceNo());
-                inv.setInvoiceDate(saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : null);
-                // Use total as the final payable amount for Billing Intake; fallback to
-                // subtotal + tax
-                // if total is null
+                inv.setInvoiceDate(saved.getInvoiceDate());
                 java.math.BigDecimal billingAmount = saved.getTotal() != null ? saved.getTotal()
                         : (saved.getSubtotal() == null ? java.math.BigDecimal.ZERO : saved.getSubtotal())
                                 .add(saved.getTax() == null ? java.math.BigDecimal.ZERO : saved.getTax());
@@ -215,8 +212,11 @@ public class VendorTicketService {
                 inv.setAmount(billingAmount);
                 inv.setClient(saved.getClient());
                 inv.setCurrency(saved.getCurrency());
-                invoiceRepository.save(inv);
-                log.info("Created Invoice record {} for ticket {}", inv.getId(), saved.getTicketNo());
+                inv.setVendorTicket(saved);
+                Invoice savedInvoice = invoiceRepository.save(inv);
+                saved.setInvoice(savedInvoice);
+                vendorTicketRepository.save(saved);
+                log.info("Created Invoice record {} and linked to ticket {}", savedInvoice.getId(), saved.getTicketNo());
             }
         } catch (Exception ex) {
             log.warn("Failed to create Invoice record for ticket {}: {}", saved.getTicketNo(), ex.getMessage(), ex);
@@ -412,19 +412,34 @@ public class VendorTicketService {
             return;
         }
 
-        if (ticket.getInvoiceNo() != null && !ticket.getInvoiceNo().isBlank()
+        Invoice linkedInvoice = ticket.getInvoice();
+        if (linkedInvoice == null && ticket.getInvoiceNo() != null && !ticket.getInvoiceNo().isBlank()
                 && ticket.getOwner() != null && ticket.getOwner().getId() != null) {
             try {
-                invoiceRepository
-                        .findTopByInvoiceNumberAndClient_Owner_IdOrderByIdDesc(ticket.getInvoiceNo(),
-                                ticket.getOwner().getId())
-                        .ifPresent(invoice -> {
-                            invoice.setStatus(mappedInvoiceStatus);
-                            invoiceRepository.save(invoice);
-                        });
+                linkedInvoice = invoiceRepository
+                        .findTopByInvoiceNumberAndClient_Owner_IdOrderByIdDesc(ticket.getInvoiceNo(), ticket.getOwner().getId())
+                        .orElse(null);
+                if (linkedInvoice != null) {
+                    ticket.setInvoice(linkedInvoice);
+                    vendorTicketRepository.save(ticket);
+                    log.info("Linked unsynced ticket {} to invoice {} on status update", ticket.getTicketNo(), linkedInvoice.getId());
+                }
+            } catch (Exception ex) {
+                log.warn("Failed to look up matching invoice for ticket {}: {}", ticket.getTicketNo(), ex.getMessage());
+            }
+        }
+
+        if (linkedInvoice != null) {
+            try {
+                linkedInvoice.setStatus(mappedInvoiceStatus);
+                invoiceRepository.save(linkedInvoice);
+                log.info("Synced invoice {} status to '{}' for ticket {}", linkedInvoice.getId(), mappedInvoiceStatus, ticket.getTicketNo());
             } catch (Exception ex) {
                 log.warn("Failed to sync invoice status for ticket {}: {}", ticket.getTicketNo(), ex.getMessage(), ex);
             }
+        } else {
+            log.warn("UNSYNCED_TICKET_STATUS_UPDATE: No linked invoice record found for ticket {} (invoiceNo='{}'). Status cannot be synced.",
+                    ticket.getTicketNo(), ticket.getInvoiceNo());
         }
 
         String vendorEmail = ticket.getVendor() != null ? ticket.getVendor().getEmail() : null;

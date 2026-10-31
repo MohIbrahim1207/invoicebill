@@ -7,11 +7,14 @@ import com.billing.invoicehub.entity.Invoice;
 import com.billing.invoicehub.repository.ClientRepository;
 import com.billing.invoicehub.repository.InvoiceRepository;
 import com.billing.invoicehub.util.FileValidationUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -19,6 +22,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional(readOnly = true)
 public class InvoiceService {
+
+    private static final Logger log = LoggerFactory.getLogger(InvoiceService.class);
 
     private final InvoiceRepository invoiceRepository;
     private final ClientRepository clientRepository;
@@ -103,7 +108,7 @@ public class InvoiceService {
 
         Invoice invoice = new Invoice();
         invoice.setInvoiceNumber(dto.getInvoiceNumber());
-        invoice.setInvoiceDate(dto.getInvoiceDate());
+        invoice.setInvoiceDate(parseLocalDate(dto.getInvoiceDate()));
         invoice.setAmount(dto.getAmount());
         invoice.setFileName(file.getOriginalFilename());
         invoice.setFileUrl(fileUrl);
@@ -127,7 +132,7 @@ public class InvoiceService {
 
         Invoice inv = existingInvoice.get();
         inv.setInvoiceNumber(dto.getInvoiceNumber());
-        inv.setInvoiceDate(dto.getInvoiceDate());
+        inv.setInvoiceDate(parseLocalDate(dto.getInvoiceDate()));
         inv.setAmount(dto.getAmount());
 
         if (dto.getClientId() == null) {
@@ -184,6 +189,18 @@ public class InvoiceService {
         return clientRepository.findByCompanyNameIgnoreCaseAndOwner_Id(clientName, currentUser.getId());
     }
 
+    private LocalDate parseLocalDate(String str) {
+        if (str == null || str.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(str.trim());
+        } catch (Exception e) {
+            log.warn("Failed to parse invoice date: {}", str);
+            return null;
+        }
+    }
+
     // Manual Mapping Helpers
     public InvoiceDto convertToDto(Invoice invoice) {
         if (invoice == null) {
@@ -194,7 +211,7 @@ public class InvoiceService {
         dto.setFileName(invoice.getFileName());
         dto.setFileUrl(invoice.getFileUrl());
         dto.setInvoiceNumber(invoice.getInvoiceNumber());
-        dto.setInvoiceDate(invoice.getInvoiceDate());
+        dto.setInvoiceDate(invoice.getInvoiceDate() != null ? invoice.getInvoiceDate().toString() : null);
         dto.setAmount(invoice.getAmount());
         dto.setCurrency(invoice.getCurrency());
         dto.setStatus(invoice.getStatus());
@@ -211,7 +228,7 @@ public class InvoiceService {
             return;
         }
         invoice.setInvoiceNumber(dto.getInvoiceNumber());
-        invoice.setInvoiceDate(dto.getInvoiceDate());
+        invoice.setInvoiceDate(parseLocalDate(dto.getInvoiceDate()));
         invoice.setAmount(dto.getAmount());
         invoice.setCurrency(dto.getCurrency());
         invoice.setStatus(dto.getStatus());

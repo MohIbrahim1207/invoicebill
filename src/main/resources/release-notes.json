@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.6.0",
+    "date": "2026-10-31",
+    "audience": "ALL",
+    "title": {
+      "en": "InvoiceHub Stabilization & Security",
+      "id": "Stabilisasi & Keamanan InvoiceHub"
+    },
+    "notes": {
+      "en": [
+        "Private documents: documents and attachments are securely delivered using private, time-limited signed links.",
+        "Real-time notifications: live alerts for internal finance teams and private notification channels for vendors.",
+        "Invoice and ticket sync: direct synchronization between vendor tickets and billing invoice records.",
+        "System stabilization: enhanced production profile defaults and optimized logging."
+      ],
+      "id": [
+        "Dokumen privat: dokumen dan lampiran kini dilindungi dan diakses menggunakan tautan aman bertanda tangan berbatas waktu.",
+        "Notifikasi waktu-nyata: pemberitahuan langsung untuk tim keuangan internal dan saluran notifikasi privat untuk vendor.",
+        "Sinkronisasi tagihan dan tiket: penyelarasan langsung antara tiket vendor dan catatan tagihan billing.",
+        "Stabilisasi sistem: pengaturan profil produksi yang lebih andal dan optimasi pencatatan log."
+      ]
+    }
+  },
+  {
     "version": "1.5.0",
     "date": "2026-10-30",
     "audience": "ALL",

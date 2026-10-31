@@ -23,6 +23,17 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
+     * Handle client media type negotiation mismatches (e.g. SSE / text/event-stream)
+     * quietly without cluttering server error logs.
+     */
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<Void> handleHttpMediaTypeNotAcceptableException(
+            org.springframework.web.HttpMediaTypeNotAcceptableException ex) {
+        log.debug("Handled HttpMediaTypeNotAcceptableException (SSE/client negotiation): {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
+    }
+
+    /**
      * Handle input validation errors (e.g. from @Valid annotations on
      * requests/DTOs)
      */

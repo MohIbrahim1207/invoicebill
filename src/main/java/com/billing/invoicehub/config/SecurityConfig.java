@@ -120,6 +120,7 @@ public class SecurityConfig {
                                         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
                                         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
                                         "font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+                                        "frame-src 'self' https: data:; " +
                                         "frame-ancestors 'self';")))
                 .httpBasic(AbstractHttpConfigurer::disable);
 
@@ -205,6 +206,7 @@ public class SecurityConfig {
                                         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
                                         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
                                         "font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+                                        "frame-src 'self' https: data:; " +
                                         "frame-ancestors 'self';")))
                 .httpBasic(AbstractHttpConfigurer::disable);
 

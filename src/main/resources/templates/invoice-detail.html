@@ -93,12 +93,12 @@
                                 </div>
                                 <div th:if="${invoice.fileUrl != null and !invoice.fileUrl.isBlank()}"
                                     class="d-flex gap-2 flex-wrap">
-                                    <a class="btn btn-primary btn-sm" th:href="${invoice.fileUrl}" target="_blank"
+                                    <a class="btn btn-primary btn-sm" th:href="@{/documents/view(url=${invoice.fileUrl})}" target="_blank"
                                         rel="noopener">
                                         <i class="bi bi-eye"></i> <span th:text="#{invoice.detail.view.file}">View
                                             File</span>
                                     </a>
-                                    <a class="btn btn-outline-primary btn-sm" th:href="${invoice.fileUrl}"
+                                    <a class="btn btn-outline-primary btn-sm" th:href="@{/documents/view(url=${invoice.fileUrl})}"
                                         target="_blank" rel="noopener" download>
                                         <i class="bi bi-download"></i> <span
                                             th:text="#{invoice.detail.download}">Download</span>
