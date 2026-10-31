@@ -118,7 +118,7 @@ class RolePermissionsSecurityTest {
     void accountsCannotResetPassword() throws Exception {
         mockMvc.perform(post("/admin/users/" + normalUserId + "/reset-password")
                         .with(csrf())
-                        .param("password", "NewPass123!"))
+                        .param("password", "NewPass123!@#"))
                 .andExpect(status().isForbidden());
     }
 
@@ -147,7 +147,7 @@ class RolePermissionsSecurityTest {
     void adminCannotResetSuperAdminPassword() throws Exception {
         mockMvc.perform(post("/admin/users/" + superAdminId + "/reset-password")
                         .with(csrf())
-                        .param("password", "NewPass123!"))
+                        .param("password", "NewPass123!@#"))
                 .andExpect(status().isForbidden());
     }
 

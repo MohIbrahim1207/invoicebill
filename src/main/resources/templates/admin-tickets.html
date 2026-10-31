@@ -2,61 +2,62 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 
 <head>
+    <link rel="icon" type="image/png" th:href="@{/flow.png}">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>InvoiceHub - Admin Tickets</title>
+    <title th:text="#{admin.tickets.title} + ' - InvoiceHub'">InvoiceHub - Admin Tickets</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/portal.css}">
 </head>
 
 <body class="portal-bg">
-    <div th:replace="fragments/layout :: topbar('Admin Tickets')"></div>
-    <div th:replace="fragments/layout :: sidebarMobile('admin-tickets')"></div>
+    <div th:replace="~{fragments/layout :: topbar(#{admin.tickets.title})}"></div>
+    <div th:replace="~{fragments/layout :: sidebarMobile('admin-tickets')}"></div>
     <div class="portal-shell">
-        <div th:replace="fragments/layout :: sidebar('admin-tickets')"></div>
+        <div th:replace="~{fragments/layout :: sidebar('admin-tickets')}"></div>
         <main class="portal-main">
             <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 gap-2">
                 <div>
-                    <h1 class="portal-heading mb-1">All Vendor Tickets</h1>
+                    <h1 class="portal-heading mb-1" th:text="#{admin.tickets.title}">Vendor Ticket Management</h1>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="/admin/dashboard">Admin Panel</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">All Tickets</li>
+                            <li class="breadcrumb-item"><a href="/admin/dashboard" th:text="#{admin.vendors.breadcrumb.admin}">Admin Panel</a></li>
+                            <li class="breadcrumb-item active" aria-current="page" th:text="#{admin.tickets.title}">All Tickets</li>
                         </ol>
                     </nav>
                 </div>
             </div>
 
-            <div class="card portal-card">
+            <div class="card portal-card shadow-sm">
                 <div class="card-body">
                     <div class="alert alert-success" th:if="${message}" th:text="${message}"></div>
                     <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
 
-                    <form method="get" action="/admin/vendor-tickets" class="row g-3 mb-3">
+                    <form method="get" action="/admin/vendor-tickets" class="row g-3 mb-4">
                         <div class="col-md-3">
-                            <label class="form-label">Ticket No</label>
+                            <label class="form-label small fw-semibold text-muted" th:text="#{admin.tickets.filter.ticket_no}">Ticket No</label>
                             <input type="text" name="ticketNo" class="form-control" th:value="${ticketNo}"
-                                placeholder="Search ticket">
+                                th:placeholder="#{admin.tickets.filter.ticket_no}">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Invoice No</label>
+                            <label class="form-label small fw-semibold text-muted" th:text="#{admin.tickets.filter.invoice_no}">Invoice No</label>
                             <input type="text" name="invoiceNo" class="form-control" th:value="${invoiceNo}"
-                                placeholder="Search invoice">
+                                th:placeholder="#{admin.tickets.filter.invoice_no}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Year</label>
+                            <label class="form-label small fw-semibold text-muted" th:text="#{admin.tickets.filter.year}">Year</label>
                             <select name="year" class="form-select">
-                                <option value="">All</option>
+                                <option value="" th:text="#{admin.tickets.filter.all_years}">All Years</option>
                                 <option th:each="availableYear : ${availableYears}" th:value="${availableYear}"
                                     th:text="${availableYear}" th:selected="${year != null and year == availableYear}">
                                 </option>
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Status</label>
+                            <label class="form-label small fw-semibold text-muted" th:text="#{admin.tickets.filter.status}">Status</label>
                             <select name="status" class="form-select">
-                                <option value="ALL" th:selected="${status == null or status == 'ALL'}">ALL</option>
+                                <option value="ALL" th:selected="${status == null or status == 'ALL'}" th:text="#{admin.tickets.filter.all_statuses}">ALL</option>
                                 <option th:each="option : ${statusOptions}" th:value="${option.name()}"
                                     th:text="${option.name() == 'RESOLVED' ? 'Paid' : (option.name() == 'PARTIALLY_PAID' ? 'Partially Paid' : #strings.capitalize(#strings.toLowerCase(#strings.replace(option.name(), '_', ' '))))}"
                                     th:selected="${status == option.name()}"></option>
@@ -64,88 +65,87 @@
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary w-100">
-                                <i class="bi bi-search"></i> Search
+                                <i class="bi bi-search me-1"></i> <span th:text="#{admin.tickets.filter.apply}">Search</span>
                             </button>
                         </div>
                     </form>
 
-                    <table class="table table-hover align-middle">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Ticket No</th>
-                                <th>Invoice No</th>
-                                <th>PO Number</th>
-                                <th>Vendor</th>
-                                <th>Total</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:if="${tickets == null or #lists.isEmpty(tickets)}" class="table-empty-row">
-                                <td colspan="9">
-                                    <div class="empty-state">
-                                        <i class="bi bi-ticket-perforated"></i>
-                                        <p>No vendor tickets found.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                            <th:block th:if="${tickets != null and !#lists.isEmpty(tickets)}"
-                                th:each="ticket, row : ${tickets}">
+                    <div class="table-responsive">
+                        <table class="table portal-table align-middle">
+                            <thead>
                                 <tr>
-                                    <td th:text="${row.index + 1}"></td>
-                                    <td th:text="${ticket.ticketNo}"></td>
-                                    <td th:text="${ticket.invoiceNo}"></td>
-                                    <td
-                                        th:text="${ticket.poNumber != null and !ticket.poNumber.isEmpty() ? ticket.poNumber : '-'}">
-                                    </td>
-                                    <td th:text="${ticket.vendor != null ? ticket.vendor.username : '-'}"></td>
-                                    <td
-                                        th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.total != null ? ticket.total : ticket.amount, ticket.currency)}">
-                                    </td>
-                                    <td th:text="${ticket.invoiceDate}"></td>
-                                    <td
-                                        th:with="statusName=${ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
-                                        <span th:if="${statusName == 'OPEN'}" class="badge bg-dark">Open</span>
-                                        <span th:if="${statusName == 'IN_PROGRESS'}" class="badge bg-primary">In
-                                            Progress</span>
-                                        <span th:if="${statusName == 'REVISE'}" class="badge bg-danger">Revise</span>
-                                        <span th:if="${statusName == 'PARTIALLY_PAID'}" class="badge"
-                                            style="background-color: #FFF3CD; color: #856404;">Partially Paid</span>
-                                        <span th:if="${statusName == 'RESOLVED'}" class="badge bg-success">Paid</span>
-                                        <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
-                                        <span th:if="${statusName == null}" class="text-muted">-</span>
-                                        <span th:if="${ticket.duplicateFlag}"
-                                            class="badge bg-warning text-dark ms-1">Possible Duplicate</span>
-                                    </td>
-                                    <td>
-                                        <button type="button"
-                                            class="btn btn-sm btn-outline-secondary me-1 js-ticket-history-btn"
-                                            th:attr="data-history-url=@{/admin/tickets/{id}/manage(id=${ticket.id})},data-ticket-no=${ticket.ticketNo},data-invoice-no=${ticket.invoiceNo},data-vendor=${ticket.vendor != null ? ticket.vendor.username : '-'}">
-                                            <i class="bi bi-clock-history"></i> History
-                                        </button>
-                                        <a th:href="@{/admin/tickets/{id}/manage(id=${ticket.id})}"
-                                            class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-pencil"></i> Update Status
-                                        </a>
+                                    <th>#</th>
+                                    <th th:text="#{admin.tickets.table.ticket_no}">Ticket No</th>
+                                    <th th:text="#{admin.tickets.table.invoice_no}">Invoice No</th>
+                                    <th th:text="#{admin.tickets.table.po_number}">PO Number</th>
+                                    <th th:text="#{admin.tickets.table.vendor}">Vendor</th>
+                                    <th th:text="#{admin.tickets.table.amount}">Total</th>
+                                    <th th:text="#{admin.tickets.table.date}">Date</th>
+                                    <th th:text="#{admin.tickets.table.status}">Status</th>
+                                    <th th:text="#{admin.tickets.table.action}">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:if="${tickets == null or #lists.isEmpty(tickets)}" class="table-empty-row">
+                                    <td colspan="9">
+                                        <div class="empty-state">
+                                            <i class="bi bi-ticket-perforated"></i>
+                                            <p th:text="#{admin.tickets.table.no_tickets}">No vendor tickets found.</p>
+                                        </div>
                                     </td>
                                 </tr>
-                            </th:block>
-                        </tbody>
-                    </table>
+                                <th:block th:if="${tickets != null and !#lists.isEmpty(tickets)}"
+                                    th:each="ticket, row : ${tickets}">
+                                    <tr>
+                                        <td th:text="${row.index + 1}"></td>
+                                        <td><strong th:text="${ticket.ticketNo}"></strong></td>
+                                        <td th:text="${ticket.invoiceNo}"></td>
+                                        <td th:text="${ticket.poNumber != null and !ticket.poNumber.isEmpty() ? ticket.poNumber : '-'}"></td>
+                                        <td th:text="${ticket.vendor != null ? ticket.vendor.username : '-'}"></td>
+                                        <td th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.total != null ? ticket.total : ticket.amount, ticket.currency)}"></td>
+                                        <td th:text="${ticket.invoiceDate}"></td>
+                                        <td th:with="statusName=${ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
+                                            <span th:if="${statusName == 'OPEN'}" class="badge bg-dark">Open</span>
+                                            <span th:if="${statusName == 'IN_PROGRESS'}" class="badge bg-primary">In Progress</span>
+                                            <span th:if="${statusName == 'REVISE'}" class="badge bg-danger">Revise</span>
+                                            <span th:if="${statusName == 'PARTIALLY_PAID'}" class="badge"
+                                                style="background-color: #FFF3CD; color: #856404;">Partially Paid</span>
+                                            <span th:if="${statusName == 'RESOLVED'}" class="badge bg-success">Paid</span>
+                                            <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
+                                            <span th:if="${statusName == null}" class="text-muted">-</span>
+                                            <span th:if="${ticket.duplicateFlag}"
+                                                class="badge bg-warning text-dark ms-1">Possible Duplicate</span>
+                                        </td>
+                                        <td>
+                                            <button type="button"
+                                                class="btn btn-sm btn-outline-secondary me-1 js-ticket-history-btn"
+                                                th:attr="data-history-url=@{/admin/tickets/{id}/manage(id=${ticket.id})},data-ticket-no=${ticket.ticketNo},data-invoice-no=${ticket.invoiceNo},data-vendor=${ticket.vendor != null ? ticket.vendor.username : '-'}">
+                                                <i class="bi bi-clock-history"></i> <span th:text="#{ticket.table.history}">History</span>
+                                            </button>
+                                            <a th:href="@{/admin/tickets/{id}/manage(id=${ticket.id})}"
+                                                class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i> <span th:text="#{admin.tickets.table.manage}">Manage</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </th:block>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
+
+    <!-- Footer Fragment -->
+    <div th:replace="~{fragments/layout :: footer}"></div>
 
     <div class="modal fade" id="ticketHistoryModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
                     <div>
-                        <h5 class="modal-title mb-1">Ticket History</h5>
+                        <h5 class="modal-title mb-1" th:text="#{ticket.history.heading}">Ticket History</h5>
                         <small class="text-muted" id="ticketHistoryModalMeta">Loading...</small>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -153,7 +153,7 @@
                 <div class="modal-body" id="ticketHistoryModalBody">
                     <div class="text-center py-5 text-muted">
                         <div class="spinner-border text-primary mb-3" role="status"></div>
-                        <p class="mb-0">Open a ticket history entry to view it here.</p>
+                        <p class="mb-0">Loading...</p>
                     </div>
                 </div>
             </div>

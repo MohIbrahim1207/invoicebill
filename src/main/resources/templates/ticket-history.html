@@ -61,7 +61,7 @@
                                     th:text="#{ticket.history.status.cancel}">Cancel</span>
                                 <span th:if="${statusName == null}" class="badge bg-light text-dark">-</span>
                                 <span th:if="${ticket != null && ticket.duplicateFlag}"
-                                    class="badge bg-warning text-dark ms-1">Possible Duplicate</span>
+                                    class="badge bg-warning text-dark ms-1" th:text="#{ticket.duplicate.flag}">Possible Duplicate</span>
                             </p>
                         </div>
                         <div class="col-md-6">
@@ -91,7 +91,7 @@
                     </div>
 
                     <div class="mb-4" th:if="${ticket?.vendorRemarks != null && !ticket.vendorRemarks.isBlank()}">
-                        <h5 class="text-muted">Vendor Remarks</h5>
+                        <h5 class="text-muted" th:text="#{ticket.remarks.title}">Vendor Remarks</h5>
                         <p class="border p-3 bg-light rounded" style="white-space: pre-wrap;"
                             th:text="${ticket.vendorRemarks}">-</p>
                     </div>

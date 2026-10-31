@@ -157,7 +157,7 @@
                                              th:text="#{ticket.history.status.cancel}">Cancel</span>
                                         <span th:if="${statusName == null}" class="badge bg-light text-dark">-</span>
                                         <span th:if="${ticket.duplicateFlag}"
-                                            class="badge bg-warning text-dark ms-1">Possible Duplicate</span>
+                                            class="badge bg-warning text-dark ms-1" th:text="#{ticket.duplicate.flag}">Possible Duplicate</span>
                                     </td>
                                     <td>
                                         <a th:href="@{/vendor-tickets/{id}/history(id=${ticket.id})}"

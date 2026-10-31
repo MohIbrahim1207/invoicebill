@@ -2,47 +2,48 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 
 <head>
+    <link rel="icon" type="image/png" th:href="@{/flow.png}">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>InvoiceHub - Audit Log</title>
+    <title th:text="#{sidebar.audit.log} + ' - InvoiceHub'">InvoiceHub - Audit Log</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/portal.css}">
 </head>
 
 <body class="portal-bg">
-    <div th:replace="fragments/layout :: topbar('Audit Log')"></div>
-    <div th:replace="fragments/layout :: sidebarMobile('audit-logs')"></div>
+    <div th:replace="~{fragments/layout :: topbar(#{sidebar.audit.log})}"></div>
+    <div th:replace="~{fragments/layout :: sidebarMobile('audit-logs')}"></div>
     <div class="portal-shell">
-        <div th:replace="fragments/layout :: sidebar('audit-logs')"></div>
+        <div th:replace="~{fragments/layout :: sidebar('audit-logs')}"></div>
         <main class="portal-main">
             <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-2">
                 <div>
-                    <h1 class="portal-heading mb-1">Audit Log</h1>
+                    <h1 class="portal-heading mb-1" th:text="#{sidebar.audit.log}">Audit Log</h1>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="/admin/dashboard">Admin Panel</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Audit Log</li>
+                            <li class="breadcrumb-item"><a href="/admin/dashboard" th:text="#{admin.audit.breadcrumb.admin}">Admin Panel</a></li>
+                            <li class="breadcrumb-item active" aria-current="page" th:text="#{sidebar.audit.log}">Audit Log</li>
                         </ol>
                     </nav>
                 </div>
             </div>
 
             <!-- Filter Panel -->
-            <div class="card portal-card mb-4">
+            <div class="card portal-card shadow-sm mb-4">
                 <div class="card-body">
                     <form method="get" action="/admin/audit-logs" class="row g-3">
                         <div class="col-md-3">
-                            <label for="usernameInput" class="form-label small fw-semibold text-muted">User</label>
+                            <label for="usernameInput" class="form-label small fw-semibold text-muted" th:text="#{admin.audit.filter.user}">User</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-person"></i></span>
-                                <input type="text" id="usernameInput" name="username" th:value="${username}" class="form-control" placeholder="Search user...">
+                                <input type="text" id="usernameInput" name="username" th:value="${username}" class="form-control" th:placeholder="#{admin.audit.filter.user_placeholder}">
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <label for="actionSelect" class="form-label small fw-semibold text-muted">Action</label>
+                            <label for="actionSelect" class="form-label small fw-semibold text-muted" th:text="#{admin.audit.filter.action}">Action</label>
                             <select id="actionSelect" name="action" class="form-select">
-                                <option value="">All Actions</option>
+                                <option value="" th:text="#{admin.audit.filter.all_actions}">All Actions</option>
                                 <option value="Login" th:selected="${action == 'Login'}">Login</option>
                                 <option value="Logout" th:selected="${action == 'Logout'}">Logout</option>
                                 <option value="Vendor Registration" th:selected="${action == 'Vendor Registration'}">Vendor Registration</option>
@@ -55,16 +56,16 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label for="startDateInput" class="form-label small fw-semibold text-muted">Start Date</label>
+                            <label for="startDateInput" class="form-label small fw-semibold text-muted" th:text="#{admin.audit.filter.start_date}">Start Date</label>
                             <input type="date" id="startDateInput" name="startDate" th:value="${startDate}" class="form-control">
                         </div>
                         <div class="col-md-2">
-                            <label for="endDateInput" class="form-label small fw-semibold text-muted">End Date</label>
+                            <label for="endDateInput" class="form-label small fw-semibold text-muted" th:text="#{admin.audit.filter.end_date}">End Date</label>
                             <input type="date" id="endDateInput" name="endDate" th:value="${endDate}" class="form-control">
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <div class="w-100 d-flex gap-2">
-                                <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-funnel"></i> Filter</button>
+                                <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-funnel me-1"></i> <span th:text="#{admin.audit.filter.submit}">Filter</span></button>
                                 <a href="/admin/audit-logs" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></a>
                             </div>
                         </div>
@@ -73,27 +74,27 @@
             </div>
 
             <!-- Table Card -->
-            <div class="card portal-card">
+            <div class="card portal-card shadow-sm">
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table portal-table align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th class="ps-3" style="width: 80px;">ID</th>
-                                    <th style="width: 180px;">Timestamp</th>
-                                    <th>User</th>
+                                    <th class="ps-3" style="width: 80px;">#</th>
+                                    <th style="width: 180px;" th:text="#{admin.audit.table.timestamp}">Timestamp</th>
+                                    <th th:text="#{admin.audit.table.user}">User</th>
                                     <th>Role</th>
-                                    <th>Action</th>
-                                    <th>Entity</th>
-                                    <th style="width: 140px;">IP Address</th>
-                                    <th>Details</th>
+                                    <th th:text="#{admin.audit.table.action}">Action</th>
+                                    <th th:text="#{admin.audit.table.target}">Entity</th>
+                                    <th style="width: 140px;" th:text="#{admin.audit.table.ip_address}">IP Address</th>
+                                    <th th:text="#{admin.audit.table.details}">Details</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr th:if="${logs == null or #lists.isEmpty(logs)}">
                                     <td colspan="8" class="text-center py-4 text-muted">
                                         <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
-                                        No audit log entries found.
+                                        <span th:text="#{admin.audit.table.no_logs}">No audit log entries found.</span>
                                     </td>
                                 </tr>
                                 <tr th:each="logEntry : ${logs}">
@@ -143,6 +144,10 @@
             </div>
         </main>
     </div>
+
+    <!-- Footer Fragment -->
+    <div th:replace="~{fragments/layout :: footer}"></div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 

@@ -4,25 +4,25 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>InvoiceHub - Manage Ticket</title>
+    <title th:text="#{ticket.manage.title}">InvoiceHub - Manage Ticket</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/portal.css}">
 </head>
 
 <body class="portal-bg">
-    <div th:replace="fragments/layout :: topbar('Manage Ticket')"></div>
+    <div th:replace="fragments/layout :: topbar(#{ticket.manage.heading})"></div>
     <div th:replace="fragments/layout :: sidebarMobile('admin-tickets')"></div>
     <div class="portal-shell">
         <div th:replace="fragments/layout :: sidebar('admin-tickets')"></div>
         <main class="portal-main">
             <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 gap-2">
                 <div>
-                    <h1 class="portal-heading mb-1">Manage Ticket</h1>
+                    <h1 class="portal-heading mb-1" th:text="#{ticket.manage.heading}">Manage Ticket</h1>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="/admin/dashboard">Admin Panel</a></li>
-                            <li class="breadcrumb-item"><a href="/admin/tickets">All Tickets</a></li>
+                            <li class="breadcrumb-item"><a href="/admin/dashboard" th:text="#{admin.dashboard.title}">Admin Panel</a></li>
+                            <li class="breadcrumb-item"><a href="/admin/tickets" th:text="#{admin.tickets.heading}">All Tickets</a></li>
                             <li class="breadcrumb-item active" aria-current="page" th:text="${ticket.ticketNo}"></li>
                         </ol>
                     </nav>
@@ -35,7 +35,7 @@
                     <div th:if="${ticket.duplicateFlag}" class="alert alert-warning alert-dismissible fade show"
                         role="alert">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        <span>Possible duplicate invoice detected. Please verify before submitting.</span>
+                        <span th:text="#{ticket.manage.possible.duplicate}">Possible duplicate invoice detected. Please verify before submitting.</span>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                     <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
@@ -54,68 +54,67 @@
                         <div class="card-body">
                             <div class="d-flex align-items-center mb-4">
                                 <i class="bi bi-ticket-detailed text-primary" style="font-size: 1.5rem;"></i>
-                                <h2 class="section-title mb-0 ms-2">Ticket Details</h2>
+                                <h2 class="section-title mb-0 ms-2" th:text="#{ticket.manage.details}">Ticket Details</h2>
                             </div>
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6">
                                     <div>
-                                        <label class="text-muted small">Ticket No</label>
+                                        <label class="text-muted small" th:text="#{ticket.table.ticketNo}">Ticket No</label>
                                         <p class="fw-bold" th:text="${ticket.ticketNo}">-</p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div>
-                                        <label class="text-muted small">Invoice No</label>
+                                        <label class="text-muted small" th:text="#{ticket.table.invoiceNo}">Invoice No</label>
                                         <p class="fw-bold" th:text="${ticket.invoiceNo}">-</p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div>
-                                        <label class="text-muted small">Vendor</label>
+                                        <label class="text-muted small" th:text="#{admin.tickets.filter.vendor}">Vendor</label>
                                         <p class="fw-bold"
                                             th:text="${ticket.vendor != null ? ticket.vendor.username : '-'}">-</p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div>
-                                        <label class="text-muted small">Total Amount</label>
+                                        <label class="text-muted small" th:text="#{ticket.manage.total.amount}">Total Amount</label>
                                         <p class="fw-bold text-primary mb-1"
                                             th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.total != null ? ticket.total : ticket.amount, ticket.currency)}">
                                             -</p>
                                         <div class="small text-muted" th:if="${ticket.subtotal != null or ticket.tax != null}">
-                                            <span>Subtotal: <span th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.subtotal != null ? ticket.subtotal : ticket.amount, ticket.currency)}">-</span></span>
+                                            <span><span th:text="#{ticket.new.subtotal}">Subtotal</span>: <span th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.subtotal != null ? ticket.subtotal : ticket.amount, ticket.currency)}">-</span></span>
                                             <span class="ms-2" th:if="${ticket.tax != null and ticket.tax.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
-                                                | Tax: <span th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.tax, ticket.currency)}">-</span>
+                                                | <span th:text="#{ticket.new.tax}">Tax</span>: <span th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.tax, ticket.currency)}">-</span>
                                             </span>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div>
-                                        <label class="text-muted small">Invoice Date</label>
+                                        <label class="text-muted small" th:text="#{ticket.table.invoiceDate}">Invoice Date</label>
                                         <p class="fw-bold" th:text="${ticket.invoiceDate}">-</p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div>
-                                        <label class="text-muted small">Current Status</label>
+                                        <label class="text-muted small" th:text="#{ticket.manage.current.status}">Current Status</label>
                                         <p
                                             th:with="statusName=${ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
-                                            <span th:if="${statusName == 'OPEN'}" class="badge bg-dark">Open</span>
-                                            <span th:if="${statusName == 'IN_PROGRESS'}" class="badge bg-primary">In
-                                                Progress</span>
+                                            <span th:if="${statusName == 'OPEN'}" class="badge bg-dark" th:text="#{ticket.history.status.open}">Open</span>
+                                            <span th:if="${statusName == 'IN_PROGRESS'}" class="badge bg-primary" th:text="#{ticket.history.status.in_progress}">In Progress</span>
                                             <span th:if="${statusName == 'REVISE'}"
-                                                class="badge bg-danger">Revise</span>
+                                                class="badge bg-danger" th:text="#{ticket.history.status.revise}">Revise</span>
                                             <span th:if="${statusName == 'PARTIALLY_PAID'}" class="badge"
-                                                style="background-color: #FFF3CD; color: #856404;">Partially Paid</span>
+                                                style="background-color: #FFF3CD; color: #856404;" th:text="#{ticket.history.status.partially_paid}">Partially Paid</span>
                                             <span th:if="${statusName == 'RESOLVED'}"
-                                                class="badge bg-success">Paid</span>
+                                                class="badge bg-success" th:text="#{ticket.history.status.resolved}">Paid</span>
                                             <span th:if="${statusName == 'CANCEL'}"
-                                                class="badge bg-secondary">Cancel</span>
+                                                class="badge bg-secondary" th:text="#{ticket.history.status.cancel}">Cancel</span>
                                             <span th:if="${statusName == null}"
                                                 class="badge bg-light text-dark">-</span>
                                             <span th:if="${ticket.duplicateFlag}"
-                                                class="badge bg-warning text-dark ms-2">Possible Duplicate</span>
+                                                class="badge bg-warning text-dark ms-2" th:text="#{ticket.duplicate.flag}">Possible Duplicate</span>
                                         </p>
                                     </div>
                                 </div>
@@ -123,7 +122,7 @@
 
                             <div class="mt-4 pt-3 border-top"
                                 th:if="${ticket.vendorRemarks != null && !ticket.vendorRemarks.isBlank()}">
-                                <label class="text-muted small">Vendor Remarks</label>
+                                <label class="text-muted small" th:text="#{ticket.manage.vendor.remarks}">Vendor Remarks</label>
                                 <p class="border p-3 bg-light rounded" style="white-space: pre-wrap;"
                                     th:text="${ticket.vendorRemarks}">-</p>
                             </div>
@@ -132,7 +131,7 @@
                             <div th:if="${documents != null and !documents.isEmpty()}" class="mt-5 pt-4 border-top">
                                 <div class="d-flex align-items-center mb-4">
                                     <i class="bi bi-file-earmark-text text-success" style="font-size: 1.5rem;"></i>
-                                    <h2 class="section-title mb-0 ms-2">Document Attachments</h2>
+                                    <h2 class="section-title mb-0 ms-2" th:text="#{ticket.manage.attachments}">Document Attachments</h2>
                                 </div>
 
                                 <div class="row g-3">
@@ -157,19 +156,18 @@
 
                                                     <p class="text-muted small mb-3 flex-grow-1">
                                                         <i class="bi bi-cloud-check-fill me-1"></i>
-                                                        Stored in Cloudinary
+                                                        <span th:text="#{ticket.manage.stored.cloud}">Stored in Cloudinary</span>
                                                     </p>
 
                                                     <div class="d-flex gap-2">
                                                         <a th:href="${entry.value.url}" target="_blank"
                                                             class="btn btn-sm btn-primary flex-grow-1">
                                                             <i class="bi bi-eye-fill me-1"></i><span
-                                                                th:if="${entry.value.fileType == 'pdf'}">View
-                                                                PDF</span><span
-                                                                th:unless="${entry.value.fileType == 'pdf'}">Open</span>
+                                                                th:if="${entry.value.fileType == 'pdf'}" th:text="#{ticket.manage.view.pdf}">View PDF</span><span
+                                                                th:unless="${entry.value.fileType == 'pdf'}" th:text="#{ticket.manage.open}">Open</span>
                                                         </a>
                                                         <a th:href="${entry.value.url}" target="_blank"
-                                                            class="btn btn-sm btn-outline-primary">
+                                                            class="btn btn-sm btn-outline-primary" th:title="#{ticket.manage.download}">
                                                             <i class="bi bi-download"></i>
                                                         </a>
                                                     </div>
@@ -190,7 +188,7 @@
                             <div th:if="${documents == null or documents.isEmpty()}" class="mt-5 pt-4 border-top">
                                 <div class="alert alert-warning">
                                     <i class="bi bi-exclamation-triangle me-2"></i>
-                                    <span>No documents attached to this ticket.</span>
+                                    <span th:text="#{ticket.manage.no.documents}">No documents attached to this ticket.</span>
                                 </div>
                             </div>
 
@@ -198,7 +196,7 @@
                             <div class="mt-5 pt-4 border-top">
                                 <div class="d-flex align-items-center mb-4">
                                     <i class="bi bi-arrow-repeat text-warning" style="font-size: 1.5rem;"></i>
-                                    <h2 class="section-title mb-0 ms-2">Update Ticket Status</h2>
+                                    <h2 class="section-title mb-0 ms-2" th:text="#{ticket.manage.update.status}">Update Ticket Status</h2>
                                 </div>
                                 <form th:action="@{/admin/tickets/{id}/update-status(id=${ticket.id})}" method="post"
                                     class="vstack gap-3">
@@ -206,35 +204,35 @@
 
                                     <div>
                                         <label class="form-label fw-semibold">
-                                            <i class="bi bi-list-check me-1"></i> New Status
+                                            <i class="bi bi-list-check me-1"></i> <span th:text="#{ticket.manage.new.status}">New Status</span>
                                         </label>
                                         <select name="newStatus" class="form-select form-select-lg" required>
-                                            <option value="">Select new status...</option>
+                                            <option value="" th:text="#{ticket.manage.select.status}">Select new status...</option>
                                             <option th:each="status : ${statusOptions}" th:value="${status}"
                                                 th:text="${status.name() == 'RESOLVED' ? 'Paid' : #strings.capitalize(#strings.toLowerCase(#strings.replace(status.name(), '_', ' ')))}"
                                                 th:selected="${ticket.statusRequest == status}"></option>
                                         </select>
-                                        <small class="text-muted d-block mt-2">Required for all status changes</small>
+                                        <small class="text-muted d-block mt-2" th:text="#{ticket.manage.status.required}">Required for all status changes</small>
                                     </div>
 
                                     <div>
                                         <label class="form-label fw-semibold">
-                                            <i class="bi bi-chat-left-text me-1"></i> Comment
+                                            <i class="bi bi-chat-left-text me-1"></i> <span th:text="#{ticket.manage.comment}">Comment</span>
                                         </label>
                                         <textarea name="comment" class="form-control" rows="4"
-                                            placeholder="Add a comment (required for Revise and Cancel status)"></textarea>
+                                            th:placeholder="#{ticket.manage.comment.placeholder}"></textarea>
                                         <small class="text-muted d-block mt-2">
                                             <i class="bi bi-exclamation-circle me-1"></i>
-                                            Required for Revise and Cancel status.
+                                            <span th:text="#{ticket.manage.comment.required.hint}">Required for Revise and Cancel status.</span>
                                         </small>
                                     </div>
 
                                     <div class="d-flex gap-2 pt-2">
                                         <button type="submit" class="btn btn-primary btn-lg">
-                                            <i class="bi bi-check-lg me-2"></i> Update Status
+                                            <i class="bi bi-check-lg me-2"></i> <span th:text="#{ticket.manage.update.btn}">Update Status</span>
                                         </button>
                                         <a href="/admin/tickets" class="btn btn-outline-secondary btn-lg">
-                                            <i class="bi bi-arrow-left me-2"></i> Back
+                                            <i class="bi bi-arrow-left me-2"></i> <span th:text="#{common.back}">Back</span>
                                         </a>
                                     </div>
                                 </form>
@@ -248,13 +246,13 @@
                         <div class="card-body">
                             <div class="d-flex align-items-center mb-4">
                                 <i class="bi bi-clock-history text-info" style="font-size: 1.5rem;"></i>
-                                <h2 class="section-title mb-0 ms-2">Status History</h2>
+                                <h2 class="section-title mb-0 ms-2" th:text="#{ticket.manage.history.title}">Status History</h2>
                             </div>
                             <div class="vstack gap-3">
                                 <div th:if="${history == null or #lists.isEmpty(history)}"
                                     class="text-center text-muted py-4">
                                     <i class="bi bi-inbox" style="font-size: 2rem;"></i>
-                                    <p class="mb-0 mt-2">No status changes yet</p>
+                                    <p class="mb-0 mt-2" th:text="#{ticket.manage.history.empty}">No status changes yet</p>
                                 </div>
                                 <th:block th:if="${history != null and !#lists.isEmpty(history)}"
                                     th:each="record : ${history}">
@@ -264,28 +262,27 @@
                                             <div>
                                                 <span th:if="${recordStatus == 'OPEN'}" class="badge bg-dark">
                                                     <i class="bi bi-circle-fill me-1"
-                                                        style="font-size: 0.5rem;"></i>Open
+                                                        style="font-size: 0.5rem;"></i><span th:text="#{ticket.history.status.open}">Open</span>
                                                 </span>
                                                 <span th:if="${recordStatus == 'IN_PROGRESS'}" class="badge bg-primary">
-                                                    <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>In
-                                                    Progress
+                                                    <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i><span th:text="#{ticket.history.status.in_progress}">In Progress</span>
                                                 </span>
                                                 <span th:if="${recordStatus == 'REVISE'}" class="badge bg-danger">
                                                     <i class="bi bi-circle-fill me-1"
-                                                        style="font-size: 0.5rem;"></i>Revise
+                                                        style="font-size: 0.5rem;"></i><span th:text="#{ticket.history.status.revise}">Revise</span>
                                                 </span>
                                                 <span th:if="${recordStatus == 'PARTIALLY_PAID'}" class="badge"
                                                     style="background-color: #FFF3CD; color: #856404;">
                                                     <i class="bi bi-circle-fill me-1"
-                                                        style="font-size: 0.5rem;"></i>Partially Paid
+                                                        style="font-size: 0.5rem;"></i><span th:text="#{ticket.history.status.partially_paid}">Partially Paid</span>
                                                 </span>
                                                 <span th:if="${recordStatus == 'RESOLVED'}" class="badge bg-success">
                                                     <i class="bi bi-circle-fill me-1"
-                                                        style="font-size: 0.5rem;"></i>Paid
+                                                        style="font-size: 0.5rem;"></i><span th:text="#{ticket.history.status.resolved}">Paid</span>
                                                 </span>
                                                 <span th:if="${recordStatus == 'CANCEL'}" class="badge bg-secondary">
                                                     <i class="bi bi-circle-fill me-1"
-                                                        style="font-size: 0.5rem;"></i>Cancel
+                                                        style="font-size: 0.5rem;"></i><span th:text="#{ticket.history.status.cancel}">Cancel</span>
                                                 </span>
                                                 <span th:if="${recordStatus == null}"
                                                     class="badge bg-light text-dark">-</span>
@@ -298,7 +295,7 @@
                                         </small>
                                         <p class="text-muted small mb-0" th:if="${record.comment}"
                                             th:text="${record.comment}">-</p>
-                                        <p class="text-muted small mb-0 fst-italic" th:unless="${record.comment}">No
+                                        <p class="text-muted small mb-0 fst-italic" th:unless="${record.comment}" th:text="#{ticket.manage.no.comment}">No
                                             comment provided</p>
                                     </div>
                                 </th:block>

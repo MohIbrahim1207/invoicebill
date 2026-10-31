@@ -1,27 +1,16 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.billing.invoicehub.entity.TicketStatus
- *  com.billing.invoicehub.entity.VendorTicket
- *  com.billing.invoicehub.repository.VendorTicketRepository
- *  org.springframework.data.jpa.repository.JpaRepository
- *  org.springframework.data.jpa.repository.Query
- *  org.springframework.data.repository.query.Param
- */
 package com.billing.invoicehub.repository;
 
 import com.billing.invoicehub.entity.TicketStatus;
 import com.billing.invoicehub.entity.VendorTicket;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface VendorTicketRepository
-extends JpaRepository<VendorTicket, Long> {
+public interface VendorTicketRepository extends JpaRepository<VendorTicket, Long> {
     @Query(value="select distinct t from VendorTicket t left join fetch t.vendor\nwhere t.owner.id = :ownerId\n  and (:ticketNo is null or lower(t.ticketNo) like lower(concat('%', :ticketNo, '%')))\n  and (:invoiceNo is null or lower(t.invoiceNo) like lower(concat('%', :invoiceNo, '%')))\n  and (:year is null or function('year', t.invoiceDate) = :year)\n  and (:status is null or t.statusRequest = :status)\norder by t.id desc\n")
     public List<VendorTicket> searchTicketsByOwner(@Param(value="ownerId") Long var1, @Param(value="ticketNo") String var2, @Param(value="invoiceNo") String var3, @Param(value="year") Integer var4, @Param(value="status") TicketStatus var5);
 
@@ -43,6 +32,14 @@ extends JpaRepository<VendorTicket, Long> {
     public List<VendorTicket> findActiveDuplicatesExcludingId(@Param("vendorId") Long vendorId, @Param("invoiceNo") String invoiceNo, @Param("poNumber") String poNumber, @Param("excludeId") Long excludeId);
 
     public long countByStatusRequestAndCreatedAtBetween(TicketStatus status, LocalDateTime start, LocalDateTime end);
+
+    public long countByStatusRequest(TicketStatus status);
+
+    public long countByStatusRequestAndOwner_Id(TicketStatus status, Long ownerId);
+
+    public long countByStatusRequestIn(Collection<TicketStatus> statuses);
+
+    public long countByStatusRequestInAndOwner_Id(Collection<TicketStatus> statuses, Long ownerId);
 
     @Query("select distinct t from VendorTicket t left join fetch t.vendor")
     public List<VendorTicket> findAllWithVendor();
@@ -71,4 +68,3 @@ extends JpaRepository<VendorTicket, Long> {
     @Query("select t.invoiceNo, t.poNumber from VendorTicket t")
     public List<Object[]> findAllInvoiceNoAndPoNumber();
 }
-

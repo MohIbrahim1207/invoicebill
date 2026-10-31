@@ -128,14 +128,44 @@
                             </li>
                         </ul>
                     </div>
-                    <span class="badge rounded-pill text-bg-primary px-3 py-2" th:text="${title}">Billing</span>
-                    <span class="text-muted small d-none d-md-inline" sec:authorize="isAuthenticated()"><span
-                            th:text="#{nav.hi}">Hi,</span> <span sec:authentication="name"></span></span>
-                    <form th:action="@{/logout}" method="post" sec:authorize="isAuthenticated()" class="m-0">
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                        <button type="submit" class="btn btn-outline-secondary btn-sm"><i
-                                class="bi bi-box-arrow-right"></i> <span th:text="#{nav.logout}">Logout</span></button>
-                    </form>
+                    <!-- User Avatar + Role Badge + Dropdown Menu -->
+                    <div class="dropdown" sec:authorize="isAuthenticated()">
+                        <button class="user-dropdown-toggle" type="button" id="userProfileDropdown" data-bs-toggle="dropdown" aria-expanded="false" th:title="#{nav.user.profile}">
+                            <span class="user-avatar-initials" th:text="${@currentUserService.initials}">AD</span>
+                            <span class="user-role-badge d-none d-sm-inline" th:text="${@currentUserService.roleBadgeLabel}">Admin</span>
+                            <i class="bi bi-chevron-down small text-muted"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userProfileDropdown" style="min-width: 240px;">
+                            <li class="px-3 py-2 border-bottom">
+                                <div class="fw-semibold text-truncate small" sec:authentication="name">admin</div>
+                                <div class="text-muted small text-truncate" style="font-size: 0.78rem;" th:text="${@currentUserService.email}">admin@invoicehub.cloud</div>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/change-password">
+                                    <i class="bi bi-key text-primary"></i> <span th:text="#{nav.user.change_password}">Change Password</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#" onclick="openWhatsNewModal(true); return false;">
+                                    <i class="bi bi-stars text-primary"></i> <span th:text="#{nav.whats.new}">What's New</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/faq">
+                                    <i class="bi bi-question-circle text-primary"></i> <span th:text="#{nav.user.help_support}">Help &amp; Support</span>
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="m-0">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <button type="submit" class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger">
+                                        <i class="bi bi-box-arrow-right"></i> <span th:text="#{nav.logout}">Sign Out</span>
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
                 <!-- SockJS and STOMP CDNs -->
                 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
@@ -424,53 +454,82 @@
     </div>
 
     <aside th:fragment="sidebar(active)" class="portal-sidebar d-none d-lg-flex flex-column">
-        <div class="sidebar-title px-3 pt-4 pb-3 text-uppercase small" th:text="#{sidebar.title}">Navigation</div>
-        <a href="/invoice" class="sidebar-link" th:classappend="${active == 'billing'} ? ' active' : ''">
-            <i class="bi bi-receipt-cutoff"></i> <span th:text="#{sidebar.billing}">Billing Intake</span>
+        <div class="sidebar-title px-3 pt-4 pb-2 text-uppercase small fw-bold" th:text="#{sidebar.title}">Navigation</div>
+
+        <!-- Section: Overview -->
+        <div class="sidebar-section-header" th:text="#{sidebar.section.overview}">Overview</div>
+        <a href="/admin/dashboard" class="sidebar-link" th:classappend="${active == 'dashboard'} ? ' active' : ''"
+            sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')">
+            <i class="bi bi-speedometer2"></i> <span th:text="#{sidebar.dashboard}">Dashboard</span>
         </a>
         <a href="/admin/reports" class="sidebar-link" th:classappend="${active == 'reports'} ? ' active' : ''"
             sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')">
-            <i class="bi bi-bar-chart-line"></i> <span>Reports</span>
+            <i class="bi bi-bar-chart-line"></i> <span th:text="#{sidebar.reports}">Reports</span>
         </a>
         <a href="/notifications" class="sidebar-link" th:classappend="${active == 'notifications'} ? ' active' : ''">
             <i class="bi bi-bell"></i> <span th:text="#{sidebar.notifications}">Notifications</span>
+        </a>
+
+        <!-- Section: Invoices & Billing -->
+        <div class="sidebar-section-header" th:text="#{sidebar.section.billing}">Invoices &amp; Billing</div>
+        <a href="/invoice" class="sidebar-link" th:classappend="${active == 'billing'} ? ' active' : ''">
+            <i class="bi bi-receipt-cutoff"></i> <span th:text="#{sidebar.billing}">Billing Intake</span>
+            <span class="badge rounded-pill bg-warning text-dark sidebar-badge"
+                  th:if="${@sidebarBadgeService.pendingInvoicesCount > 0}"
+                  th:text="${@sidebarBadgeService.pendingInvoicesCount}">0</span>
+        </a>
+        <a href="/admin/ai-quote-converter" class="sidebar-link"
+            th:classappend="${active == 'ai-quote-converter'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
+            <i class="bi bi-cpu"></i> <span th:text="#{sidebar.ai.converter}">AI Quote Converter</span>
+        </a>
+
+        <!-- Section: Vendors -->
+        <div class="sidebar-section-header" th:text="#{sidebar.section.vendors}">Vendors</div>
+        <a href="/clients" class="sidebar-link" th:classappend="${active == 'clients'} ? ' active' : ''"
+            sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
+            <i class="bi bi-building"></i> <span th:text="#{sidebar.clients}">Vendor Management</span>
+        </a>
+        <a href="/admin/vendors" class="sidebar-link" th:classappend="${active == 'vendors'} ? ' active' : ''"
+            sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')">
+            <i class="bi bi-person-badge"></i> <span th:text="#{sidebar.vendor.verification}">Vendor Verification</span>
+            <span class="badge rounded-pill bg-primary sidebar-badge"
+                  th:if="${@sidebarBadgeService.unverifiedVendorsCount > 0}"
+                  th:text="${@sidebarBadgeService.unverifiedVendorsCount}">0</span>
+        </a>
+        <a href="/admin/vendor-tickets" class="sidebar-link"
+            th:classappend="${active == 'admin-tickets'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')">
+            <i class="bi bi-list-task"></i> <span th:text="#{sidebar.admin.tickets}">Vendor Tickets</span>
+            <span class="badge rounded-pill bg-danger sidebar-badge"
+                  th:if="${@sidebarBadgeService.openTicketsCount > 0}"
+                  th:text="${@sidebarBadgeService.openTicketsCount}">0</span>
+        </a>
+        <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''"
+            sec:authorize="hasRole('VENDOR')">
+            <i class="bi bi-list-task"></i> <span th:text="#{sidebar.vendor.tickets}">Vendor Tickets</span>
+            <span class="badge rounded-pill bg-danger sidebar-badge"
+                  th:if="${@sidebarBadgeService.openTicketsCount > 0}"
+                  th:text="${@sidebarBadgeService.openTicketsCount}">0</span>
+        </a>
+
+        <!-- Section: Administration -->
+        <div class="sidebar-section-header" th:text="#{sidebar.section.administration}" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'VENDOR')">Administration</div>
+        <a href="/admin/users/add" class="sidebar-link" th:classappend="${active == 'users-add'} ? ' active' : ''"
+            sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
+            <i class="bi bi-person-plus"></i> <span th:text="#{sidebar.add.user}">Add User</span>
+        </a>
+        <a href="/admin/audit-logs" class="sidebar-link" th:classappend="${active == 'audit-logs'} ? ' active' : ''"
+            sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
+            <i class="bi bi-shield-check"></i> <span th:text="#{sidebar.audit.log}">Audit Log</span>
         </a>
         <a href="/help" class="sidebar-link" th:classappend="${active == 'help'} ? ' active' : ''"
             sec:authorize="hasRole('VENDOR')">
             <i class="bi bi-question-circle"></i> <span th:text="#{sidebar.help}">Help</span>
         </a>
-        <a href="/clients" class="sidebar-link" th:classappend="${active == 'clients'} ? ' active' : ''"
-            sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
-            <i class="bi bi-building"></i> <span th:text="#{sidebar.clients}">Vendor Management</span>
-        </a>
-        <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''"
-            sec:authorize="hasRole('VENDOR')">
-            <i class="bi bi-list-task"></i> <span th:text="#{sidebar.vendor.tickets}">Vendor Tickets</span>
-        </a>
-        <a href="/admin/vendor-tickets" class="sidebar-link"
-            th:classappend="${active == 'admin-tickets'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')">
-            <i class="bi bi-list-task"></i> <span th:text="#{sidebar.admin.tickets}">Vendor Tickets</span>
-        </a>
-        <a href="/admin/vendors" class="sidebar-link" th:classappend="${active == 'vendors'} ? ' active' : ''"
-            sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')">
-            <i class="bi bi-person-badge"></i> <span th:text="#{sidebar.vendor.verification}">Vendor Verification</span>
-        </a>
-        <a href="/admin/ai-quote-converter" class="sidebar-link"
-            th:classappend="${active == 'ai-quote-converter'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
-            <i class="bi bi-cpu"></i> <span>AI Quote Converter</span>
-        </a>
-        <a href="/admin/users/add" class="sidebar-link" th:classappend="${active == 'users-add'} ? ' active' : ''"
-            sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
-            <i class="bi bi-person-plus"></i> <span>Add User</span>
-        </a>
-        <a href="/admin/audit-logs" class="sidebar-link" th:classappend="${active == 'audit-logs'} ? ' active' : ''"
-            sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
-            <i class="bi bi-shield-check"></i> <span>Audit Log</span>
-        </a>
+
         <div class="mt-auto p-3 border-top text-muted" style="font-size: 0.78rem;">
             <a href="#" onclick="openWhatsNewModal(true); return false;" class="text-decoration-none text-muted d-flex align-items-center justify-content-between mb-1">
                 <span class="fw-semibold text-primary"><i class="bi bi-stars me-1"></i><span th:text="#{nav.whats.new}">What's New</span></span>
-                <span class="badge bg-light text-secondary border font-monospace" th:text="${@appVersionService.versionFormatted}">v1.4.0 · 30 Oct 2026</span>
+                <span class="badge bg-light text-secondary border font-monospace" th:text="${@appVersionService.versionFormatted}">v1.5.0 &middot; 30 Oct 2026</span>
             </a>
             <div class="d-flex align-items-center justify-content-between text-secondary" style="font-size: 0.72rem;">
                 <span>InvoiceHub</span>
@@ -487,47 +546,85 @@
         </div>
         <div class="offcanvas-body p-0">
             <div class="d-flex flex-column">
-                <a href="/invoice" class="sidebar-link" th:classappend="${active == 'billing'} ? ' active' : ''"><i
-                        class="bi bi-receipt-cutoff"></i> <span th:text="#{sidebar.billing}">Billing Intake</span></a>
+                <!-- Section: Overview -->
+                <div class="sidebar-section-header" th:text="#{sidebar.section.overview}">Overview</div>
+                <a href="/admin/dashboard" class="sidebar-link" th:classappend="${active == 'dashboard'} ? ' active' : ''"
+                    sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')">
+                    <i class="bi bi-speedometer2"></i> <span th:text="#{sidebar.dashboard}">Dashboard</span>
+                </a>
                 <a href="/admin/reports" class="sidebar-link" th:classappend="${active == 'reports'} ? ' active' : ''"
-                    sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')"><i class="bi bi-bar-chart-line"></i> <span>Reports</span></a>
-                <a href="/notifications" class="sidebar-link"
-                    th:classappend="${active == 'notifications'} ? ' active' : ''"><i class="bi bi-bell"></i> <span
-                        th:text="#{sidebar.notifications}">Notifications</span></a>
-                <a href="/help" class="sidebar-link" th:classappend="${active == 'help'} ? ' active' : ''"
-                    sec:authorize="hasRole('VENDOR')"><i class="bi bi-question-circle"></i> <span
-                        th:text="#{sidebar.help}">Help</span></a>
-                <a href="/clients" class="sidebar-link" th:classappend="${active == 'clients'} ? ' active' : ''"
-                    sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')"><i class="bi bi-building"></i> <span
-                        th:text="#{sidebar.clients}">Vendor Management</span></a>
-                <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''"
-                    sec:authorize="hasRole('VENDOR')"><i class="bi bi-list-task"></i> <span
-                        th:text="#{sidebar.vendor.tickets}">Vendor Tickets</span></a>
-                <a href="/admin/vendor-tickets" class="sidebar-link"
-                    th:classappend="${active == 'admin-tickets'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')"><i
-                        class="bi bi-list-task"></i> <span th:text="#{sidebar.admin.tickets}">Vendor Tickets</span></a>
-                <a href="/admin/vendors" class="sidebar-link" th:classappend="${active == 'vendors'} ? ' active' : ''"
-                    sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')"><i class="bi bi-person-badge"></i> <span
-                        th:text="#{sidebar.vendor.verification}">Vendor Verification</span></a>
+                    sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')">
+                    <i class="bi bi-bar-chart-line"></i> <span th:text="#{sidebar.reports}">Reports</span>
+                </a>
+                <a href="/notifications" class="sidebar-link" th:classappend="${active == 'notifications'} ? ' active' : ''">
+                    <i class="bi bi-bell"></i> <span th:text="#{sidebar.notifications}">Notifications</span>
+                </a>
+
+                <!-- Section: Invoices & Billing -->
+                <div class="sidebar-section-header" th:text="#{sidebar.section.billing}">Invoices &amp; Billing</div>
+                <a href="/invoice" class="sidebar-link" th:classappend="${active == 'billing'} ? ' active' : ''">
+                    <i class="bi bi-receipt-cutoff"></i> <span th:text="#{sidebar.billing}">Billing Intake</span>
+                    <span class="badge rounded-pill bg-warning text-dark sidebar-badge"
+                          th:if="${@sidebarBadgeService.pendingInvoicesCount > 0}"
+                          th:text="${@sidebarBadgeService.pendingInvoicesCount}">0</span>
+                </a>
                 <a href="/admin/ai-quote-converter" class="sidebar-link"
-                    th:classappend="${active == 'ai-quote-converter'} ? ' active' : ''"
-                    sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')"><i class="bi bi-cpu"></i> <span>AI Quote Converter</span></a>
-                <a href="/admin/users/add" class="sidebar-link"
-                    th:classappend="${active == 'users-add'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')"><i
-                        class="bi bi-person-plus"></i> <span>Add User</span></a>
-                <a href="/admin/audit-logs" class="sidebar-link"
-                    th:classappend="${active == 'audit-logs'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')"><i
-                        class="bi bi-shield-check"></i> <span>Audit Log</span></a>
+                    th:classappend="${active == 'ai-quote-converter'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
+                    <i class="bi bi-cpu"></i> <span th:text="#{sidebar.ai.converter}">AI Quote Converter</span>
+                </a>
+
+                <!-- Section: Vendors -->
+                <div class="sidebar-section-header" th:text="#{sidebar.section.vendors}">Vendors</div>
+                <a href="/clients" class="sidebar-link" th:classappend="${active == 'clients'} ? ' active' : ''"
+                    sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
+                    <i class="bi bi-building"></i> <span th:text="#{sidebar.clients}">Vendor Management</span>
+                </a>
+                <a href="/admin/vendors" class="sidebar-link" th:classappend="${active == 'vendors'} ? ' active' : ''"
+                    sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')">
+                    <i class="bi bi-person-badge"></i> <span th:text="#{sidebar.vendor.verification}">Vendor Verification</span>
+                    <span class="badge rounded-pill bg-primary sidebar-badge"
+                          th:if="${@sidebarBadgeService.unverifiedVendorsCount > 0}"
+                          th:text="${@sidebarBadgeService.unverifiedVendorsCount}">0</span>
+                </a>
+                <a href="/admin/vendor-tickets" class="sidebar-link"
+                    th:classappend="${active == 'admin-tickets'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')">
+                    <i class="bi bi-list-task"></i> <span th:text="#{sidebar.admin.tickets}">Vendor Tickets</span>
+                    <span class="badge rounded-pill bg-danger sidebar-badge"
+                          th:if="${@sidebarBadgeService.openTicketsCount > 0}"
+                          th:text="${@sidebarBadgeService.openTicketsCount}">0</span>
+                </a>
+                <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''"
+                    sec:authorize="hasRole('VENDOR')">
+                    <i class="bi bi-list-task"></i> <span th:text="#{sidebar.vendor.tickets}">Vendor Tickets</span>
+                    <span class="badge rounded-pill bg-danger sidebar-badge"
+                          th:if="${@sidebarBadgeService.openTicketsCount > 0}"
+                          th:text="${@sidebarBadgeService.openTicketsCount}">0</span>
+                </a>
+
+                <!-- Section: Administration -->
+                <div class="sidebar-section-header" th:text="#{sidebar.section.administration}" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'VENDOR')">Administration</div>
+                <a href="/admin/users/add" class="sidebar-link" th:classappend="${active == 'users-add'} ? ' active' : ''"
+                    sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
+                    <i class="bi bi-person-plus"></i> <span th:text="#{sidebar.add.user}">Add User</span>
+                </a>
+                <a href="/admin/audit-logs" class="sidebar-link" th:classappend="${active == 'audit-logs'} ? ' active' : ''"
+                    sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
+                    <i class="bi bi-shield-check"></i> <span th:text="#{sidebar.audit.log}">Audit Log</span>
+                </a>
+                <a href="/help" class="sidebar-link" th:classappend="${active == 'help'} ? ' active' : ''"
+                    sec:authorize="hasRole('VENDOR')">
+                    <i class="bi bi-question-circle"></i> <span th:text="#{sidebar.help}">Help</span>
+                </a>
+
                 <div class="mt-auto p-3 border-top text-muted" style="font-size: 0.78rem;">
                     <a href="#" onclick="openWhatsNewModal(true); return false;" class="text-decoration-none text-muted d-flex align-items-center justify-content-between mb-1">
                         <span class="fw-semibold text-primary"><i class="bi bi-stars me-1"></i><span th:text="#{nav.whats.new}">What's New</span></span>
-                        <span class="badge bg-light text-secondary border" th:text="${@appVersionService.versionFormatted}">v1.4.0 · 30 Oct 2026</span>
+                        <span class="badge bg-light text-secondary border font-monospace" th:text="${@appVersionService.versionFormatted}">v1.5.0 &middot; 30 Oct 2026</span>
                     </a>
                 </div>
             </div>
         </div>
     </div>
-
     <!-- Portal Small Footer Fragment -->
     <footer th:fragment="footer" class="portal-footer py-2 text-center text-muted border-top mt-auto" style="font-size: 0.78rem;">
         <div class="container-fluid px-3 d-flex flex-wrap justify-content-between align-items-center gap-2">

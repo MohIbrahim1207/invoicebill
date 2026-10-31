@@ -12,28 +12,28 @@
 </head>
 
 <body class="portal-bg">
-    <div th:replace="fragments/layout :: topbar('Reports')"></div>
+    <div th:replace="~{fragments/layout :: topbar(#{admin.reports.weekly.title})}"></div>
     <div th:replace="fragments/layout :: sidebarMobile('reports')"></div>
     <div class="portal-shell">
         <div th:replace="fragments/layout :: sidebar('reports')"></div>
         <main class="portal-main">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                    <h1 class="portal-heading">Reports</h1>
-                    <p class="text-muted mb-0">Weekly ticket analytics and trend data.</p>
+                    <h1 class="portal-heading" th:text="#{admin.reports.weekly.title}">Reports</h1>
+                    <p class="text-muted mb-0" th:text="#{admin.reports.weekly.subtitle}">Weekly ticket analytics and trend data.</p>
                 </div>
                 <div class="d-flex gap-2">
                     <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1 js-export-btn"
                         data-type="pdf">
-                        <i class="bi bi-file-pdf"></i> Download PDF
+                        <i class="bi bi-file-pdf"></i> <span th:text="#{admin.reports.btn.pdf}">Download PDF</span>
                     </button>
                     <button class="btn btn-outline-success btn-sm d-flex align-items-center gap-1 js-export-btn"
                         data-type="csv">
-                        <i class="bi bi-filetype-csv"></i> Download CSV
+                        <i class="bi bi-filetype-csv"></i> <span th:text="#{admin.reports.btn.csv}">Download CSV</span>
                     </button>
                     <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 js-export-btn"
                         data-type="excel">
-                        <i class="bi bi-file-earmark-excel"></i> Download Excel
+                        <i class="bi bi-file-earmark-excel"></i> <span th:text="#{admin.reports.btn.excel}">Download Excel</span>
                     </button>
                 </div>
             </div>
@@ -43,15 +43,15 @@
                 <div class="card-body">
                     <form method="get" action="/admin/reports" id="filterForm" class="row g-3">
                         <div class="col-md-3">
-                            <label class="form-label">Start Date</label>
+                            <label class="form-label small fw-semibold text-muted" th:text="#{admin.reports.filter.start_date}">Start Date</label>
                             <input type="date" name="startDate" class="form-control" th:value="${startDate}">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">End Date</label>
+                            <label class="form-label small fw-semibold text-muted" th:text="#{admin.reports.filter.end_date}">End Date</label>
                             <input type="date" name="endDate" class="form-control" th:value="${endDate}">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Status</label>
+                            <label class="form-label small fw-semibold text-muted" th:text="#{admin.reports.filter.status}">Status</label>
                             <select name="status" class="form-select">
                                 <option value="ALL" th:selected="${status == 'ALL'}">ALL</option>
                                 <option value="OPEN" th:selected="${status == 'OPEN'}">Open</option>
@@ -63,7 +63,7 @@
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Vendor</label>
+                            <label class="form-label small fw-semibold text-muted" th:text="#{admin.reports.filter.vendor}">Vendor</label>
                             <select name="vendorId" class="form-select">
                                 <option value="">ALL</option>
                                 <option th:each="v : ${vendors}" th:value="${v.id}" th:text="${v.username}"
@@ -71,18 +71,18 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">PO Number</label>
+                            <label class="form-label small fw-semibold text-muted" th:text="#{admin.reports.filter.po_number}">PO Number</label>
                             <input type="text" name="poNumber" class="form-control" th:value="${poNumber}"
                                 placeholder="Purchase Order Number">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Search Query</label>
+                            <label class="form-label small fw-semibold text-muted" th:text="#{admin.reports.filter.search_query}">Search Query</label>
                             <input type="text" name="search" class="form-control" th:value="${search}"
                                 placeholder="Search Ticket No, Invoice No, Vendor, Client">
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary w-100">
-                                <i class="bi bi-filter"></i> Apply Filters
+                                <i class="bi bi-filter"></i> <span th:text="#{admin.reports.filter.submit}">Apply Filters</span>
                             </button>
                         </div>
                     </form>

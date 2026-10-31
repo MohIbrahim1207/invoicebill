@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.5.0",
+    "date": "2026-10-30",
+    "audience": "ALL",
+    "title": {
+      "en": "InvoiceHub UI & Dashboard Update",
+      "id": "Pembaruan Tampilan & Dasbor InvoiceHub"
+    },
+    "notes": {
+      "en": [
+        "Fresh navigation: grouped sidebar with live count badges for pending invoices, unverified vendors, and open tickets.",
+        "New profile menu: user initials avatar, role badge, quick change password, and support shortcuts.",
+        "Interactive dashboard: 6-month invoice volume and status donut charts with correct Indonesian Rupiah (Rp) formatting.",
+        "Complete bilingual support: full English and Bahasa Indonesia translations across all pages."
+      ],
+      "id": [
+        "Navigasi baru: menu samping terkelompok dengan lencana jumlah waktu-nyata untuk tagihan tertunda, verifikasi vendor, dan tiket terbuka.",
+        "Menu profil baru: avatar inisial, lencana peran pengguna, pintasan ubah kata sandi, dan bantuan.",
+        "Dasbor interaktif: grafik volume 6 bulan dan diagram donat status tagihan dengan format Rupiah (Rp) yang akurat.",
+        "Dukungan dua bahasa lengkap: terjemahan menyeluruh dalam Bahasa Indonesia dan Bahasa Inggris di semua halaman."
+      ]
+    }
+  },
+  {
     "version": "1.4.0",
     "date": "2026-10-30",
     "audience": "ALL",

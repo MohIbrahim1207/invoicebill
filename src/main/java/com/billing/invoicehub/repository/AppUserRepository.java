@@ -69,5 +69,8 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     @Query(value = "select distinct u from AppUser u join u.roles r where r.name = :roleName and u.enabled = true order by u.id desc")
     List<AppUser> findByRoleNameAndEnabledTrue(@Param(value = "roleName") String roleName);
 
+    @Query("SELECT COUNT(DISTINCT u) FROM AppUser u JOIN u.roles r WHERE r.name = 'ROLE_VENDOR' AND (u.verified = false OR u.verified IS NULL) AND (u.rejectionReason IS NULL OR TRIM(u.rejectionReason) = '')")
+    long countUnverifiedVendors();
+
     List<AppUser> findAllByOrderByIdDesc();
 }

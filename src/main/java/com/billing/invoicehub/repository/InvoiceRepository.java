@@ -24,4 +24,16 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     @Query("SELECT i FROM Invoice i LEFT JOIN FETCH i.client c LEFT JOIN FETCH c.owner WHERE c.owner.id = :ownerId ORDER BY i.id DESC")
     List<Invoice> findByClientOwnerIdWithClientOrderByIdDesc(@Param("ownerId") Long ownerId);
+
+    long countByStatusIgnoreCase(String status);
+
+    long countByStatusIgnoreCaseAndClient_Owner_Id(String status, Long ownerId);
+
+    long countByClient_Owner_Id(Long ownerId);
+
+    @Query("SELECT COALESCE(SUM(i.amount), 0) FROM Invoice i")
+    java.math.BigDecimal sumAllAmount();
+
+    @Query("SELECT COALESCE(SUM(i.amount), 0) FROM Invoice i WHERE i.client.owner.id = :ownerId")
+    java.math.BigDecimal sumAmountByOwnerId(@Param("ownerId") Long ownerId);
 }

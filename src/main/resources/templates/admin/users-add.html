@@ -153,7 +153,7 @@
     </style>
 </head>
 <body>
-<div th:replace="~{fragments/layout :: topbar('User Management')}"></div>
+<div th:replace="~{fragments/layout :: topbar(#{admin.users.heading})}"></div>
 
 <div class="container-fluid px-3 px-lg-5 py-4">
 
@@ -161,12 +161,12 @@
     <div class="row g-3 mb-4">
         <div class="col-12 d-flex flex-wrap align-items-center justify-content-between gap-3 mb-1">
             <div>
-                <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-people-fill text-primary me-2"></i>User Account Management</h4>
-                <p class="text-muted small mb-0">Create new staff credentials, manage roles, and review active portal accounts.</p>
+                <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-people-fill text-primary me-2"></i><span th:text="#{admin.users.heading}">User Account Management</span></h4>
+                <p class="text-muted small mb-0" th:text="#{admin.users.subheading}">Create new staff credentials, manage roles, and review active portal accounts.</p>
             </div>
             <div class="d-flex align-items-center gap-2">
                 <button th:if="${isSuperAdmin}" type="button" class="btn btn-outline-warning btn-sm rounded-2" onclick="openWeakPasswordAuditModal()">
-                    <i class="bi bi-shield-exclamation me-1"></i> Audit Weak Passwords
+                    <i class="bi bi-shield-exclamation me-1"></i> <span th:text="#{admin.users.audit_btn}">Audit Weak Passwords</span>
                 </button>
                 <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm rounded-2"><i class="bi bi-arrow-left me-1"></i> Dashboard</a>
             </div>
@@ -179,7 +179,7 @@
                     <i class="bi bi-people"></i>
                 </div>
                 <div>
-                    <div class="text-muted small fw-semibold text-uppercase">Total Users</div>
+                    <div class="text-muted small fw-semibold text-uppercase" th:text="#{admin.users.stat.total_users}">Total Users</div>
                     <div class="fs-4 fw-bold text-dark" id="statTotalUsers" th:text="${allUsers != null ? allUsers.size() : 0}">0</div>
                 </div>
             </div>
@@ -191,7 +191,7 @@
                     <i class="bi bi-wallet2"></i>
                 </div>
                 <div>
-                    <div class="text-muted small fw-semibold text-uppercase">Accounts Staff</div>
+                    <div class="text-muted small fw-semibold text-uppercase" th:text="#{admin.users.stat.accounts}">Accounts Staff</div>
                     <div class="fs-4 fw-bold text-dark" th:text="${accountsCount}">0</div>
                 </div>
             </div>
@@ -203,7 +203,7 @@
                     <i class="bi bi-shield-check"></i>
                 </div>
                 <div>
-                    <div class="text-muted small fw-semibold text-uppercase">Administrators</div>
+                    <div class="text-muted small fw-semibold text-uppercase" th:text="#{admin.users.stat.admins}">Administrators</div>
                     <div class="fs-4 fw-bold text-dark" th:text="${adminCount}">0</div>
                 </div>
             </div>
@@ -217,7 +217,7 @@
         <div class="col-12 col-xl-5">
             <div class="card-custom">
                 <div class="card-custom-header d-flex align-items-center justify-content-between">
-                    <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-person-plus-fill me-2 text-primary"></i>Add New Account</h6>
+                    <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-person-plus-fill me-2 text-primary"></i><span th:text="#{admin.users.card.add_new}">Add New Account</span></h6>
                     <span class="badge bg-primary-subtle text-primary">Form</span>
                 </div>
                 <div class="card-body p-4">

@@ -210,9 +210,9 @@ public class EmployeeUserService {
     public void resetPassword(Long userId, String newPassword, boolean forcePasswordChange, AppUser actor) {
         AppUser target = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
-        passwordStrengthService.validatePassword(newPassword, target.getUsername(), target.getEmail());
-
         checkSuperAdminProtection(target, actor, "reset the password of");
+
+        passwordStrengthService.validatePassword(newPassword, target.getUsername(), target.getEmail());
 
         target.setPassword(passwordEncoder.encode(newPassword));
         target.setForcePasswordChange(forcePasswordChange);

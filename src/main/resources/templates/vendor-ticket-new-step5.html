@@ -20,7 +20,7 @@
     </style>
 </head>
 <body class="portal-bg">
-<div th:replace="fragments/layout :: topbar('Tickets')"></div>
+<div th:replace="fragments/layout :: topbar(#{nav.tickets})"></div>
 <div th:replace="fragments/layout :: sidebarMobile('tickets')"></div>
 <div class="portal-shell">
     <div th:replace="fragments/layout :: sidebar('tickets')"></div>

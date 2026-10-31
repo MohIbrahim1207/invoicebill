@@ -1,6 +1,8 @@
 package com.billing.invoicehub.util;
 
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -20,13 +22,72 @@ public class FormatUtils {
     }
 
     /**
-     * Formats a BigDecimal amount as IDR currency
-     * 
+     * Formats a BigDecimal amount as full IDR currency (e.g., "Rp 9.845.000")
+     *
      * @param amount the amount to format
-     * @return formatted string (e.g., "Rp 1.234.567,89")
+     * @return formatted string
      */
     public static String formatIDR(BigDecimal amount) {
         return formatCurrency(amount, "IDR");
+    }
+
+    /**
+     * Formats a BigDecimal amount as full Indonesian Rupiah (e.g., "Rp 9.845.000")
+     *
+     * @param amount the amount to format
+     * @return formatted string
+     */
+    public static String formatIDRFull(BigDecimal amount) {
+        if (amount == null) {
+            return "Rp 0";
+        }
+        NumberFormat nf = NumberFormat.getNumberInstance(IDR_LOCALE);
+        nf.setMinimumFractionDigits(0);
+        nf.setMaximumFractionDigits(0);
+        return "Rp " + nf.format(amount);
+    }
+
+    /**
+     * Formats a BigDecimal amount using compact Indonesian currency units:
+     * rb = ribu (thousand), jt = juta (million), M = miliar (billion), T = triliun (trillion)
+     * Example: 9.8 million -> "Rp 9,8 jt" (NOT miliar)
+     *
+     * @param amount the amount to format
+     * @return compact formatted string
+     */
+    public static String formatIDRCompact(BigDecimal amount) {
+        if (amount == null) {
+            return "Rp 0";
+        }
+        double val = amount.doubleValue();
+        if (val == 0) {
+            return "Rp 0";
+        }
+        boolean negative = val < 0;
+        double abs = Math.abs(val);
+
+        String unit = "";
+        double divisor = 1.0;
+
+        if (abs >= 1_000_000_000_000.0) { // Triliun
+            divisor = 1_000_000_000_000.0;
+            unit = " T";
+        } else if (abs >= 1_000_000_000.0) { // Miliar
+            divisor = 1_000_000_000.0;
+            unit = " M";
+        } else if (abs >= 1_000_000.0) { // Juta
+            divisor = 1_000_000.0;
+            unit = " jt";
+        } else if (abs >= 1_000.0) { // Ribu
+            divisor = 1_000.0;
+            unit = " rb";
+        }
+
+        double scaled = abs / divisor;
+        DecimalFormat df = new DecimalFormat("#,##0.#", new DecimalFormatSymbols(IDR_LOCALE));
+        String formattedNum = df.format(scaled);
+
+        return (negative ? "-Rp " : "Rp ") + formattedNum + unit;
     }
 
     /**

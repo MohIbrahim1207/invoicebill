@@ -382,3 +382,129 @@ body.auth-bg {
     background-color: var(--portal-bg);
     border-color: var(--border);
 }
+
+/* ??? Topbar Avatar & User Menu (v1.5.0) ??????????????????????????????????? */
+.user-avatar-initials {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    color: #ffffff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+    flex-shrink: 0;
+}
+
+.user-role-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    background-color: var(--primary-soft);
+    color: var(--primary);
+    border: 1px solid rgba(43, 110, 242, 0.2);
+}
+
+.user-dropdown-toggle {
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 0.25rem 0.65rem 0.25rem 0.35rem;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text);
+}
+
+.user-dropdown-toggle:hover {
+    background: var(--sidebar-link-hover);
+    border-color: var(--primary);
+    color: var(--text);
+}
+
+[data-theme="dark"] .user-dropdown-toggle {
+    border-color: var(--border);
+}
+
+/* ??? Sidebar Sections & Live Badges (v1.5.0) ?????????????????????????????? */
+.sidebar-section-header {
+    padding: 1rem 1rem 0.35rem 1rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+}
+
+.sidebar-badge {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+}
+
+/* ??? Dashboard Tinted Icon Badges (v1.5.0) ???????????????????????????????? */
+.stat-icon-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.stat-card:hover .stat-icon-badge {
+    transform: scale(1.06);
+}
+
+.stat-icon-primary {
+    background-color: rgba(43, 110, 242, 0.12);
+    color: #2b6ef2;
+}
+
+.stat-icon-warning {
+    background-color: rgba(245, 158, 11, 0.14);
+    color: #d97706;
+}
+
+.stat-icon-success {
+    background-color: rgba(16, 185, 129, 0.14);
+    color: #059669;
+}
+
+.stat-icon-info {
+    background-color: rgba(6, 182, 212, 0.14);
+    color: #0891b2;
+}
+
+[data-theme="dark"] .stat-icon-primary {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+}
+
+[data-theme="dark"] .stat-icon-warning {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .stat-icon-success {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+[data-theme="dark"] .stat-icon-info {
+    background-color: rgba(6, 182, 212, 0.2);
+    color: #22d3ee;
+}
