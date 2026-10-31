@@ -1,8 +1,18 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
+<head th:fragment="favicons">
+    <!-- Favicon & PWA Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=1.5.0">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=1.5.0">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=1.5.0">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=1.5.0">
+    <link rel="manifest" href="/site.webmanifest?v=1.5.0">
+</head>
+
 <body>
     <div th:fragment="topbar(title)">
+        <th:block th:replace="~{fragments/layout :: favicons}"></th:block>
         <!-- Maintenance Banner -->
         <div id="maintenanceBanner" th:if="${@maintenanceBannerService.isBannerActive()}"
             th:class="'alert alert-' + ${@maintenanceBannerService.bannerType} + ' border-0 rounded-0 mb-0 py-2 px-3 text-center d-flex align-items-center justify-content-center gap-2 shadow-sm'"

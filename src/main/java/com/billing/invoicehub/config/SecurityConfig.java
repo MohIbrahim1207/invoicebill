@@ -90,7 +90,8 @@ public class SecurityConfig {
                 .authenticationManager(new ProviderManager(adminProvider))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/admin/login", "/admin/authenticate",
-                                "/error", "/css/**", "/js/**", "/favicon.ico")
+                                "/error", "/css/**", "/js/**",
+                                "/favicon.ico", "/favicon-*.png", "/apple-touch-icon.png", "/android-chrome-*.png", "/site.webmanifest")
                         .permitAll()
                         .requestMatchers("/admin/change-password").authenticated()
                         .requestMatchers("/admin/users/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
@@ -170,7 +171,11 @@ public class SecurityConfig {
                                 "/js/**",
                                 "/images/**",
                                 "/webjars/**",
-                                "/favicon.ico")
+                                "/favicon.ico",
+                                "/favicon-*.png",
+                                "/apple-touch-icon.png",
+                                "/android-chrome-*.png",
+                                "/site.webmanifest")
                         .permitAll()
                         .requestMatchers("/change-password").authenticated()
                         .requestMatchers("/clients", "/clients/**", "/saveClient", "/updateClient", "/deleteClient/**", "/dashboard").hasRole("ADMIN")
