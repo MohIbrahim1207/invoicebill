@@ -27,6 +27,8 @@ import com.billing.invoicehub.util.FileValidationUtil;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.Year;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -355,5 +357,106 @@ public class VendorRegistrationService {
             return true;
         }
         return !this.userRepository.existsByGstNumberIgnoreCase(normalized);
+    }
+
+    /**
+     * Normalizes company name by converting to lowercase, removing punctuation,
+     * common legal prefixes/suffixes (PT, CV, UD, TBK, LTD, etc.), and collapsing whitespace.
+     */
+    public static String normalizeCompanyName(String name) {
+        if (name == null) return "";
+        String s = name.toLowerCase().trim();
+        s = s.replaceAll("[^a-z0-9]", " ");
+        s = s.replaceAll("\\b(pt|cv|ud|tbk|ltd|inc|corp|co)\\b", " ");
+        return s.replaceAll("\\s+", " ").trim();
+    }
+
+    /**
+     * Normalizes phone number by extracting digits and normalizing Indonesian prefix (+62 -> 0).
+     */
+    public static String normalizePhone(String phone) {
+        if (phone == null) return "";
+        String digits = phone.replaceAll("[^0-9]", "");
+        if (digits.startsWith("62")) {
+            digits = "0" + digits.substring(2);
+        }
+        return digits;
+    }
+
+    /**
+     * Normalizes address by converting to lowercase, removing punctuation and collapsing whitespace.
+     */
+    public static String normalizeAddress(String address) {
+        if (address == null) return "";
+        String s = address.toLowerCase().trim();
+        s = s.replaceAll("[^a-z0-9]", " ");
+        return s.replaceAll("\\s+", " ").trim();
+    }
+
+    /**
+     * Checks if two vendors share phone, normalized company name, or address.
+     */
+    public static boolean sharesVendorDetails(AppUser v1, AppUser v2) {
+        if (v1 == null || v2 == null) return false;
+        if (v1.getId() != null && v1.getId().equals(v2.getId())) return false;
+
+        // 1. Phone match (if at least 7 digits)
+        String p1 = normalizePhone(v1.getPhone());
+        String p2 = normalizePhone(v2.getPhone());
+        if (!p1.isEmpty() && p1.length() >= 7 && p1.equals(p2)) {
+            return true;
+        }
+
+        // 2. Normalized company name match (if at least 3 characters)
+        String c1 = normalizeCompanyName(v1.getCompanyName());
+        String c2 = normalizeCompanyName(v2.getCompanyName());
+        if (!c1.isEmpty() && c1.length() >= 3 && c1.equals(c2)) {
+            return true;
+        }
+
+        // 3. Normalized address match (if at least 8 characters)
+        String a1 = normalizeAddress(v1.getAddress());
+        String a2 = normalizeAddress(v2.getAddress());
+        if (!a1.isEmpty() && a1.length() >= 8 && a1.equals(a2)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Finds the IDs of all vendors that share phone, normalized company name, or address with another vendor.
+     */
+    public Set<Long> findDuplicateVendorIds(List<AppUser> vendors) {
+        if (vendors == null || vendors.size() < 2) {
+            return Collections.emptySet();
+        }
+        Set<Long> duplicateIds = new HashSet<>();
+        for (int i = 0; i < vendors.size(); i++) {
+            AppUser v1 = vendors.get(i);
+            for (int j = i + 1; j < vendors.size(); j++) {
+                AppUser v2 = vendors.get(j);
+                if (sharesVendorDetails(v1, v2)) {
+                    if (v1.getId() != null) duplicateIds.add(v1.getId());
+                    if (v2.getId() != null) duplicateIds.add(v2.getId());
+                }
+            }
+        }
+        return duplicateIds;
+    }
+
+    /**
+     * Checks if a single vendor shares phone, normalized company name, or address with any other vendor in the database.
+     */
+    @Transactional(readOnly = true)
+    public boolean isPossibleDuplicate(AppUser vendor) {
+        if (vendor == null) return false;
+        List<AppUser> all = listVendors();
+        for (AppUser other : all) {
+            if (sharesVendorDetails(vendor, other)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

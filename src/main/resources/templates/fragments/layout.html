@@ -475,6 +475,7 @@
         <a href="/invoice" class="sidebar-link" th:classappend="${active == 'billing'} ? ' active' : ''">
             <i class="bi bi-receipt-cutoff"></i> <span th:text="#{sidebar.billing}">Billing Intake</span>
             <span class="badge rounded-pill bg-warning text-dark sidebar-badge"
+                  sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')"
                   th:if="${@sidebarBadgeService.pendingInvoicesCount > 0}"
                   th:text="${@sidebarBadgeService.pendingInvoicesCount}">0</span>
         </a>
@@ -506,9 +507,6 @@
         <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''"
             sec:authorize="hasRole('VENDOR')">
             <i class="bi bi-list-task"></i> <span th:text="#{sidebar.vendor.tickets}">Vendor Tickets</span>
-            <span class="badge rounded-pill bg-danger sidebar-badge"
-                  th:if="${@sidebarBadgeService.openTicketsCount > 0}"
-                  th:text="${@sidebarBadgeService.openTicketsCount}">0</span>
         </a>
 
         <!-- Section: Administration -->
@@ -565,6 +563,7 @@
                 <a href="/invoice" class="sidebar-link" th:classappend="${active == 'billing'} ? ' active' : ''">
                     <i class="bi bi-receipt-cutoff"></i> <span th:text="#{sidebar.billing}">Billing Intake</span>
                     <span class="badge rounded-pill bg-warning text-dark sidebar-badge"
+                          sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')"
                           th:if="${@sidebarBadgeService.pendingInvoicesCount > 0}"
                           th:text="${@sidebarBadgeService.pendingInvoicesCount}">0</span>
                 </a>
@@ -596,9 +595,6 @@
                 <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''"
                     sec:authorize="hasRole('VENDOR')">
                     <i class="bi bi-list-task"></i> <span th:text="#{sidebar.vendor.tickets}">Vendor Tickets</span>
-                    <span class="badge rounded-pill bg-danger sidebar-badge"
-                          th:if="${@sidebarBadgeService.openTicketsCount > 0}"
-                          th:text="${@sidebarBadgeService.openTicketsCount}">0</span>
                 </a>
 
                 <!-- Section: Administration -->

@@ -4,6 +4,7 @@ import com.billing.invoicehub.dto.DashboardStatsDto;
 import com.billing.invoicehub.entity.Invoice;
 import com.billing.invoicehub.repository.InvoiceRepository;
 import com.billing.invoicehub.util.FormatUtils;
+import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,9 +20,11 @@ import java.util.*;
 public class DashboardService {
 
     private final InvoiceRepository invoiceRepository;
+    private final MessageSource messageSource;
 
-    public DashboardService(InvoiceRepository invoiceRepository) {
+    public DashboardService(InvoiceRepository invoiceRepository, MessageSource messageSource) {
         this.invoiceRepository = invoiceRepository;
+        this.messageSource = messageSource;
     }
 
     public DashboardStatsDto getDashboardStats() {
@@ -109,7 +112,8 @@ public class DashboardService {
 
         for (Map.Entry<String, Long> entry : statusCountsMap.entrySet()) {
             if (entry.getValue() > 0 || (total == 0 && (entry.getKey().equals("Pending") || entry.getKey().equals("Approved")))) {
-                dto.getStatusLabels().add(entry.getKey());
+                String localizedStatus = localizeStatus(entry.getKey(), locale);
+                dto.getStatusLabels().add(localizedStatus);
                 dto.getStatusCounts().add(entry.getValue());
                 dto.getStatusColors().add(statusColorPalette.getOrDefault(entry.getKey(), "#94a3b8"));
             }
@@ -117,12 +121,29 @@ public class DashboardService {
 
         // Fallback for empty state so donut renders cleanly
         if (dto.getStatusLabels().isEmpty()) {
-            dto.getStatusLabels().add("No Invoices");
+            String emptyLabel = messageSource.getMessage("invoice.empty", null, "No Invoices", locale);
+            dto.getStatusLabels().add(emptyLabel);
             dto.getStatusCounts().add(0L);
             dto.getStatusColors().add("#cbd5e1");
         }
 
         return dto;
+    }
+
+    private String localizeStatus(String status, Locale locale) {
+        if (status == null) return "Pending";
+        String key = switch (status.trim().toLowerCase()) {
+            case "pending" -> "invoice.filter.pending";
+            case "approved" -> "invoice.filter.approved";
+            case "partially paid" -> "invoice.filter.partially_paid";
+            case "revised" -> "invoice.filter.revised";
+            case "released" -> "invoice.filter.released";
+            default -> null;
+        };
+        if (key != null) {
+            return messageSource.getMessage(key, null, status, locale);
+        }
+        return status;
     }
 
     private YearMonth parseYearMonth(String str) {

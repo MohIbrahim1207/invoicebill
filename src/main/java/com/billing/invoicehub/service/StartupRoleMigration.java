@@ -323,6 +323,7 @@ public class StartupRoleMigration implements ApplicationRunner {
                 log.warn("GST placeholder cleanup note: {}", ex.getMessage());
             }
             createUniqueIndexIfNotExists("uq_app_user_gst_number", "app_user", "gst_number");
+            createLowerEmailUniqueIndexIfNotExists();
 
             log.info("Startup role migration completed.");
         } catch (Exception ex) {
@@ -411,6 +412,35 @@ public class StartupRoleMigration implements ApplicationRunner {
             }
         } catch (Exception ex) {
             log.warn("Failed checking/creating unique index {} on {}: {}. Continuing startup.", indexName, tableName, ex.getMessage());
+        }
+    }
+
+    private void createLowerEmailUniqueIndexIfNotExists() {
+        String indexName = "uq_app_user_email_lower";
+        String tableName = "app_user";
+        try {
+            Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.STATISTICS WHERE (TABLE_SCHEMA = DATABASE() OR TABLE_SCHEMA = SCHEMA() OR TABLE_SCHEMA = 'PUBLIC') AND LOWER(TABLE_NAME) = ? AND LOWER(INDEX_NAME) = ?",
+                Integer.class, tableName.toLowerCase(), indexName.toLowerCase()
+            );
+            if (count == null || count == 0) {
+                try {
+                    // MySQL 8 functional key part syntax requires double parentheses around expression
+                    jdbc.execute("CREATE UNIQUE INDEX " + indexName + " ON " + tableName + " ((LOWER(email)))");
+                    log.info("Successfully created unique functional index {} on {}((LOWER(email)))", indexName, tableName);
+                } catch (Exception ex) {
+                    try {
+                        // Fallback attempt without double parentheses if dialect requires
+                        jdbc.execute("CREATE UNIQUE INDEX " + indexName + " ON " + tableName + " (LOWER(email))");
+                        log.info("Successfully created unique functional index {} on {}(LOWER(email)) via fallback", indexName, tableName);
+                    } catch (Exception exFallback) {
+                        log.warn("Could not create functional unique index {} on {}((LOWER(email))) (e.g. existing duplicates or unsupported dialect). Continuing startup safely. Cause: {}",
+                                indexName, tableName, ex.getMessage());
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Failed checking/creating functional unique index {} on {}: {}. Continuing startup safely.", indexName, tableName, ex.getMessage());
         }
     }
 }

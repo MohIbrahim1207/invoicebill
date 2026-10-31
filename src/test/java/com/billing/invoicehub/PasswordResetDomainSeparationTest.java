@@ -49,6 +49,9 @@ public class PasswordResetDomainSeparationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     @MockBean
     private EmailService emailService;
 
@@ -60,6 +63,12 @@ public class PasswordResetDomainSeparationTest {
 
     @BeforeEach
     void setupDualDomainUsers() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE app_user DROP INDEX uq_app_user_email_lower");
+        } catch (Exception ignored) {}
+        try {
+            jdbcTemplate.execute("DROP INDEX uq_app_user_email_lower ON app_user");
+        } catch (Exception ignored) {}
         tokenRepository.deleteAll();
 
         AppRole vendorRole = roleRepository.findFirstByName("ROLE_VENDOR").orElseGet(() -> {
@@ -95,6 +104,15 @@ public class PasswordResetDomainSeparationTest {
         admin.setVerified(true);
         admin.getRoles().add(adminRole);
         userRepository.save(admin);
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        try {
+            userRepository.deleteAll();
+            tokenRepository.deleteAll();
+            jdbcTemplate.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_app_user_email_lower ON app_user ((LOWER(email)))");
+        } catch (Exception ignored) {}
     }
 
     @Test

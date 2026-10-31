@@ -18,6 +18,7 @@ package com.billing.invoicehub.controller;
 
 import com.billing.invoicehub.entity.AppUser;
 import com.billing.invoicehub.service.VendorRegistrationService;
+import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -39,7 +40,9 @@ public class AdminVendorController {
 
     @GetMapping
     public String vendors(Model model) {
-        model.addAttribute("vendors", (Object)this.vendorRegistrationService.listVendors());
+        List<AppUser> vendors = this.vendorRegistrationService.listVendors();
+        model.addAttribute("vendors", (Object)vendors);
+        model.addAttribute("duplicateVendorIds", this.vendorRegistrationService.findDuplicateVendorIds(vendors));
         return "admin-vendors";
     }
 
@@ -48,6 +51,7 @@ public class AdminVendorController {
         return this.vendorRegistrationService.getVendor(id).map(vendor -> {
             model.addAttribute("vendor", vendor);
             model.addAttribute("vendorStatus", (Object)this.vendorRegistrationService.getVendorStatus(vendor));
+            model.addAttribute("isDuplicate", this.vendorRegistrationService.isPossibleDuplicate(vendor));
             return "admin-vendor-detail";
         }).orElseGet(() -> {
             redirectAttributes.addFlashAttribute("error", (Object)"Vendor not found.");

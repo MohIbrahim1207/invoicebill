@@ -74,7 +74,17 @@
                                     </td>
                                 </tr>
                                 <tr th:each="vendor : ${vendors}">
-                                    <td class="fw-semibold" th:text="${vendor.companyName != null ? vendor.companyName : '-'}">-</td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="fw-semibold" th:text="${vendor.companyName != null ? vendor.companyName : '-'}">-</span>
+                                            <span th:if="${duplicateVendorIds != null and duplicateVendorIds.contains(vendor.id)}"
+                                                  class="badge bg-warning text-dark border border-warning-subtle"
+                                                  th:title="#{admin.vendors.duplicate_badge.tooltip}"
+                                                  style="font-size: 0.72rem;">
+                                                <i class="bi bi-exclamation-triangle-fill text-warning-emphasis me-1"></i><span th:text="#{admin.vendors.duplicate_badge}">Possible duplicate</span>
+                                            </span>
+                                        </div>
+                                    </td>
                                     <td th:text="${vendor.fullName != null ? vendor.fullName : '-'}">-</td>
                                     <td th:text="${vendor.email != null ? vendor.email : '-'}">-</td>
                                     <td th:text="${vendor.gstNumber != null ? vendor.gstNumber : '-'}">-</td>
