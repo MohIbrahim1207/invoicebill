@@ -5,6 +5,7 @@ import com.billing.invoicehub.entity.AppRole;
 import com.billing.invoicehub.entity.AppUser;
 import com.billing.invoicehub.repository.AppUserRepository;
 import com.billing.invoicehub.repository.SystemSettingRepository;
+import com.billing.invoicehub.util.XmlSecurityUtil;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -142,8 +143,8 @@ class ReleaseNotesAndBannerTest {
     void testAppVersionService() {
         assertNotNull(appVersionService.getVersion());
         assertNotNull(appVersionService.getVersionFormatted());
-        assertTrue(appVersionService.getVersionFormatted().startsWith("v1.6.0"),
-                "Formatted version should start with 'v1.6.0'");
+        assertTrue(appVersionService.getVersionFormatted().startsWith("v1.6.1"),
+                "Formatted version should start with 'v1.6.1'");
     }
 
     @Test
@@ -152,8 +153,8 @@ class ReleaseNotesAndBannerTest {
         java.io.File pomFile = new java.io.File("pom.xml");
         assertTrue(pomFile.exists(), "pom.xml must exist");
 
-        javax.xml.parsers.DocumentBuilderFactory factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
-        factory.setNamespaceAware(true);
+        // Secure DocumentBuilderFactory with DOCTYPE and external entities disabled
+        javax.xml.parsers.DocumentBuilderFactory factory = XmlSecurityUtil.createSafeDocumentBuilderFactory();
         org.w3c.dom.Document doc = factory.newDocumentBuilder().parse(pomFile);
         org.w3c.dom.Element root = doc.getDocumentElement();
 
@@ -168,7 +169,7 @@ class ReleaseNotesAndBannerTest {
         }
 
         System.out.println("Detected POM project version: " + pomVersion);
-        assertEquals("1.6.0", pomVersion, "Project version in pom.xml must be 1.6.0");
+        assertEquals("1.6.1", pomVersion, "Project version in pom.xml must be 1.6.1");
 
         List<ReleaseNoteDto> allNotes = releaseNotesService.getAllNotes();
         final String expectedVersion = pomVersion;

@@ -1,5 +1,22 @@
 [
   {
+    "version": "1.6.1",
+    "date": "2026-11-05",
+    "audience": "ALL",
+    "title": {
+      "en": "InvoiceHub Security Update",
+      "id": "Pembaruan Keamanan InvoiceHub"
+    },
+    "notes": {
+      "en": [
+        "Security update: upgraded document parsing libraries (Apache Tika & Apache POI) and strengthened upload security."
+      ],
+      "id": [
+        "Pembaruan keamanan: memperbarui pustaka pemrosesan dokumen (Apache Tika & Apache POI) dan memperkuat keamanan unggahan."
+      ]
+    }
+  },
+  {
     "version": "1.6.0",
     "date": "2026-10-31",
     "audience": "ALL",
