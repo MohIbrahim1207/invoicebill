@@ -1,5 +1,8 @@
 package com.billing.invoicehub.service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -327,7 +330,7 @@ public class StartupRoleMigration implements ApplicationRunner {
 
             // Version 1.6.0: Ensure FK column invoice_id exists on vendor_ticket and vendor_ticket_id on invoice
             addColumnIfNotExists("vendor_ticket", "invoice_id", "BIGINT NULL");
-            addColumnIfNotExists("invoice", "vendor_ticket_id", "BIGINT NULL");
+            dropColumnIfExists("invoice", "vendor_ticket_id");
             migrateInvoiceDateColumn();
             backfillVendorTicketsAndInvoices();
 
@@ -450,8 +453,67 @@ public class StartupRoleMigration implements ApplicationRunner {
         }
     }
 
-    private void migrateInvoiceDateColumn() {
+    public static LocalDate parseFlexibleDate(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            return null;
+        }
+        String clean = text.trim();
+        List<DateTimeFormatter> formatters = List.of(
+            DateTimeFormatter.ISO_LOCAL_DATE,
+            DateTimeFormatter.ofPattern("dd/MM/yyyy"),
+            DateTimeFormatter.ofPattern("dd-MM-yyyy"),
+            DateTimeFormatter.ofPattern("d/M/yyyy"),
+            DateTimeFormatter.ofPattern("d-M-yyyy"),
+            DateTimeFormatter.ofPattern("yyyy/MM/dd")
+        );
+        for (DateTimeFormatter dtf : formatters) {
+            try {
+                return LocalDate.parse(clean, dtf);
+            } catch (DateTimeParseException ignored) {}
+        }
+        return null;
+    }
+
+    private void dropColumnIfExists(String tableName, String columnName) {
         try {
+            if (columnExists(tableName, columnName)) {
+                log.info("Dropping obsolete column {}.{}", tableName, columnName);
+                try {
+                    List<String> fkNames = jdbc.queryForList(
+                        "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE " +
+                        "WHERE LOWER(TABLE_NAME) = LOWER(?) AND LOWER(COLUMN_NAME) = LOWER(?) " +
+                        "AND (TABLE_SCHEMA = DATABASE() OR TABLE_SCHEMA = SCHEMA() OR TABLE_SCHEMA = 'PUBLIC')",
+                        String.class, tableName, columnName
+                    );
+                    for (String fk : fkNames) {
+                        try {
+                            jdbc.execute("ALTER TABLE " + tableName + " DROP FOREIGN KEY " + fk);
+                        } catch (Exception ignored) {}
+                        try {
+                            jdbc.execute("ALTER TABLE " + tableName + " DROP CONSTRAINT " + fk);
+                        } catch (Exception ignored) {}
+                    }
+                } catch (Exception exFk) {
+                    log.debug("FK drop check note: {}", exFk.getMessage());
+                }
+                try {
+                    jdbc.execute("ALTER TABLE " + tableName + " DROP COLUMN " + columnName);
+                    log.info("Successfully dropped column {}.{}", tableName, columnName);
+                } catch (Exception exDrop) {
+                    log.warn("Could not drop column {}.{}: {}", tableName, columnName, exDrop.getMessage());
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("dropColumnIfExists error for {}.{}: {}", tableName, columnName, ex.getMessage());
+        }
+    }
+
+    public void migrateInvoiceDateColumn() {
+        try {
+            // 1. Ensure invoice_date_raw column exists
+            addColumnIfNotExists("invoice", "invoice_date_raw", "VARCHAR(255) NULL");
+
+            // 2. Check current data type of invoice_date
             String dataType = null;
             try {
                 dataType = jdbc.queryForObject(
@@ -466,17 +528,69 @@ public class StartupRoleMigration implements ApplicationRunner {
 
             if (dataType != null && (dataType.contains("char") || dataType.contains("text"))) {
                 log.info("Migrating invoice.invoice_date from {} to DATE...", dataType);
+                // Preserve original text in invoice_date_raw if not already populated
                 try {
-                    jdbc.execute("UPDATE invoice SET invoice_date = NULL WHERE invoice_date IS NOT NULL AND (TRIM(invoice_date) = '' OR invoice_date NOT REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')");
-                } catch (Exception exClean) {
-                    log.debug("Regex cleanup note (might be non-mysql): {}", exClean.getMessage());
+                    jdbc.execute("UPDATE invoice SET invoice_date_raw = invoice_date WHERE invoice_date_raw IS NULL AND invoice_date IS NOT NULL");
+                } catch (Exception exCopy) {
+                    log.debug("invoice_date_raw backfill note: {}", exCopy.getMessage());
                 }
+
+                // Query all rows to parse dates safely in Java
+                try {
+                    List<Map<String, Object>> rows = jdbc.queryForList("SELECT id, invoice_date, invoice_date_raw FROM invoice");
+                    for (Map<String, Object> row : rows) {
+                        Long id = ((Number) row.get("id")).longValue();
+                        String rawVal = row.get("invoice_date_raw") != null ? row.get("invoice_date_raw").toString()
+                                : (row.get("invoice_date") != null ? row.get("invoice_date").toString() : null);
+
+                        LocalDate parsed = parseFlexibleDate(rawVal);
+                        if (parsed != null) {
+                            jdbc.update("UPDATE invoice SET invoice_date = ? WHERE id = ?", parsed.toString(), id);
+                        } else {
+                            if (rawVal != null && !rawVal.trim().isEmpty()) {
+                                log.warn("UNPARSED_INVOICE_DATE: Invoice id={} has date value '{}' which could not be parsed as dd/MM/yyyy, dd-MM-yyyy, or yyyy-MM-dd. Value preserved in invoice_date_raw.",
+                                        id, rawVal);
+                            }
+                            jdbc.update("UPDATE invoice SET invoice_date = NULL WHERE id = ?", id);
+                        }
+                    }
+                } catch (Exception exParse) {
+                    log.warn("Error parsing invoice dates: {}", exParse.getMessage());
+                }
+
+                // Alter column to DATE NULL
                 try {
                     jdbc.execute("ALTER TABLE invoice MODIFY COLUMN invoice_date DATE NULL");
-                    log.info("Successfully converted invoice.invoice_date to DATE NULL");
+                    log.info("Successfully converted invoice.invoice_date to DATE NULL (MySQL syntax)");
                 } catch (Exception exAlter) {
-                    log.warn("Could not alter invoice.invoice_date to DATE: {}. Continuing startup.", exAlter.getMessage());
+                    try {
+                        jdbc.execute("ALTER TABLE invoice ALTER COLUMN invoice_date DATE NULL");
+                        log.info("Successfully converted invoice.invoice_date to DATE NULL (H2/ANSI syntax)");
+                    } catch (Exception exH2) {
+                        log.warn("Could not alter invoice.invoice_date to DATE: {}. Continuing startup.", exH2.getMessage());
+                    }
                 }
+            } else {
+                // If invoice_date is already DATE, check if any unparsed rows in invoice_date_raw can now be populated
+                try {
+                    List<Map<String, Object>> rows = jdbc.queryForList(
+                        "SELECT id, invoice_date_raw FROM invoice WHERE invoice_date IS NULL AND invoice_date_raw IS NOT NULL"
+                    );
+                    for (Map<String, Object> row : rows) {
+                        Long id = ((Number) row.get("id")).longValue();
+                        String rawVal = (String) row.get("invoice_date_raw");
+                        LocalDate parsed = parseFlexibleDate(rawVal);
+                        if (parsed != null) {
+                            jdbc.update("UPDATE invoice SET invoice_date = ? WHERE id = ?", java.sql.Date.valueOf(parsed), id);
+                            log.info("Parsed and populated invoice_date for invoice id={} from raw '{}'", id, rawVal);
+                        } else if (rawVal != null && !rawVal.trim().isEmpty()) {
+                            log.warn("UNPARSED_INVOICE_DATE: Invoice id={} has date value '{}' in invoice_date_raw which could not be parsed.", id, rawVal);
+                        }
+                    }
+                } catch (Exception ex) {
+                    log.debug("Safe idempotency check note for invoice_date_raw: {}", ex.getMessage());
+                }
+                log.info("invoice.invoice_date is DATE column. Verification complete.");
             }
         } catch (Exception ex) {
             log.warn("Failed checking/migrating invoice.invoice_date: {}. Continuing startup.", ex.getMessage());
@@ -545,9 +659,6 @@ public class StartupRoleMigration implements ApplicationRunner {
                 if (matchedInvoiceId != null) {
                     try {
                         jdbc.update("UPDATE vendor_ticket SET invoice_id = ? WHERE id = ?", matchedInvoiceId, ticketId);
-                        if (columnExists("invoice", "vendor_ticket_id")) {
-                            jdbc.update("UPDATE invoice SET vendor_ticket_id = ? WHERE id = ? AND vendor_ticket_id IS NULL", ticketId, matchedInvoiceId);
-                        }
                         matchedCount++;
                         log.info("Backfilled sync: Ticket {} (id={}) successfully linked to Invoice id={}", ticketNo, ticketId, matchedInvoiceId);
                     } catch (Exception exUpdate) {

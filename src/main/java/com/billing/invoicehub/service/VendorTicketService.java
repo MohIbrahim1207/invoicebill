@@ -212,7 +212,7 @@ public class VendorTicketService {
                 inv.setAmount(billingAmount);
                 inv.setClient(saved.getClient());
                 inv.setCurrency(saved.getCurrency());
-                inv.setVendorTicket(saved);
+                inv.setInvoiceDateRaw(saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : null);
                 Invoice savedInvoice = invoiceRepository.save(inv);
                 saved.setInvoice(savedInvoice);
                 vendorTicketRepository.save(saved);

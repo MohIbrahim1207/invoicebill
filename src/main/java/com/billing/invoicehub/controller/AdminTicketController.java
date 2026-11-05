@@ -118,6 +118,7 @@ public class AdminTicketController {
         if (ticket.getInvoiceFileUrl() != null && !ticket.getInvoiceFileUrl().isBlank()) {
             documents.put("invoice", createDocumentEntry(
                     "Invoice Document",
+                    "/documents/ticket/" + ticket.getId() + "/invoice",
                     ticket.getInvoiceFileUrl(),
                     ticket.getInvoiceFileName()));
         }
@@ -126,6 +127,7 @@ public class AdminTicketController {
         if (ticket.getTaxDocumentUrl() != null && !ticket.getTaxDocumentUrl().isBlank()) {
             documents.put("tax", createDocumentEntry(
                     "Tax Document",
+                    "/documents/ticket/" + ticket.getId() + "/tax",
                     ticket.getTaxDocumentUrl(),
                     null));
         }
@@ -134,6 +136,7 @@ public class AdminTicketController {
         if (ticket.getPoCopyUrl() != null && !ticket.getPoCopyUrl().isBlank()) {
             documents.put("po", createDocumentEntry(
                     "Purchase Order Copy",
+                    "/documents/ticket/" + ticket.getId() + "/po",
                     ticket.getPoCopyUrl(),
                     null));
         }
@@ -142,6 +145,7 @@ public class AdminTicketController {
         if (ticket.getDeliveryNoteUrl() != null && !ticket.getDeliveryNoteUrl().isBlank()) {
             documents.put("delivery", createDocumentEntry(
                     "Delivery Note",
+                    "/documents/ticket/" + ticket.getId() + "/delivery",
                     ticket.getDeliveryNoteUrl(),
                     null));
         }
@@ -150,6 +154,7 @@ public class AdminTicketController {
         if (ticket.getOtherDocumentUrl() != null && !ticket.getOtherDocumentUrl().isBlank()) {
             documents.put("other", createDocumentEntry(
                     "Other Document",
+                    "/documents/ticket/" + ticket.getId() + "/other",
                     ticket.getOtherDocumentUrl(),
                     null));
         }
@@ -160,15 +165,12 @@ public class AdminTicketController {
     /**
      * Create a document entry with metadata
      */
-    private Map<String, String> createDocumentEntry(String name, String url, String originalFilename) {
+    private Map<String, String> createDocumentEntry(String name, String endpointUrl, String rawUrl, String originalFilename) {
         Map<String, String> entry = new HashMap<>();
         entry.put("name", name);
-        String securedUrl = (url != null && !url.isBlank())
-                ? "/documents/view?url=" + java.net.URLEncoder.encode(url, java.nio.charset.StandardCharsets.UTF_8)
-                : url;
-        entry.put("url", securedUrl);
-        entry.put("rawUrl", url);
-        entry.put("fileType", extractFileType(url, originalFilename));
+        entry.put("url", endpointUrl);
+        entry.put("rawUrl", rawUrl);
+        entry.put("fileType", extractFileType(rawUrl, originalFilename));
         entry.put("icon", getIconForFileType(entry.get("fileType")));
         return entry;
     }

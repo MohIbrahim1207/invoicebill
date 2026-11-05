@@ -26,8 +26,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @TestPropertySource(properties = {
@@ -97,28 +96,21 @@ class InvoiceTicketSyncTest {
 
     @AfterEach
     void tearDown() {
-        invoiceRepository.findAll().forEach(inv -> {
-            inv.setVendorTicket(null);
-            invoiceRepository.save(inv);
-        });
-        vendorTicketRepository.findAll().forEach(vt -> {
-            vt.setInvoice(null);
-            vendorTicketRepository.save(vt);
-        });
         vendorTicketHistoryRepository.deleteAll();
         vendorTicketRepository.deleteAll();
         invoiceRepository.deleteAll();
     }
 
     @Test
-    @DisplayName("Verify Invoice invoiceDate is LocalDate and bidirectional FK linkage works")
-    void testInvoiceDateAndForeignKeyLinkage() {
+    @DisplayName("Verify Invoice invoiceDate is LocalDate, raw text preserved, and only vendor_ticket.invoice_id FK is maintained")
+    void testInvoiceDateAndSingleForeignKeyLinkage() {
         String invNum = "INV-FK-" + System.currentTimeMillis();
         LocalDate testDate = LocalDate.of(2026, 10, 31);
 
         Invoice invoice = new Invoice();
         invoice.setInvoiceNumber(invNum);
         invoice.setInvoiceDate(testDate);
+        invoice.setInvoiceDateRaw("31/10/2026");
         invoice.setAmount(new BigDecimal("7500000"));
         invoice.setClient(client);
         invoice.setStatus("Pending");
@@ -136,22 +128,30 @@ class InvoiceTicketSyncTest {
         ticket.setInvoice(invoice);
         ticket = vendorTicketRepository.save(ticket);
 
-        invoice.setVendorTicket(ticket);
-        invoiceRepository.save(invoice);
-
-        // Assertions
-        Invoice fetchedInvoice = invoiceRepository.findById(invoice.getId()).orElseThrow();
-        assertEquals(testDate, fetchedInvoice.getInvoiceDate());
-        assertNotNull(fetchedInvoice.getVendorTicket());
-        assertEquals(ticket.getId(), fetchedInvoice.getVendorTicket().getId());
-
+        // Assertions: FK exists on vendor_ticket pointing to invoice
         VendorTicket fetchedTicket = vendorTicketRepository.findById(ticket.getId()).orElseThrow();
         assertNotNull(fetchedTicket.getInvoice());
         assertEquals(invoice.getId(), fetchedTicket.getInvoice().getId());
+
+        Invoice fetchedInvoice = invoiceRepository.findById(invoice.getId()).orElseThrow();
+        assertEquals(testDate, fetchedInvoice.getInvoiceDate());
+        assertEquals("31/10/2026", fetchedInvoice.getInvoiceDateRaw());
     }
 
     @Test
-    @DisplayName("Status update propagates through direct foreign key to Invoice status")
+    @DisplayName("Flexible date parsing supports dd/MM/yyyy, dd-MM-yyyy, and yyyy-MM-dd")
+    void testFlexibleDateParsing() {
+        assertEquals(LocalDate.of(2026, 10, 31), StartupRoleMigration.parseFlexibleDate("31/10/2026"));
+        assertEquals(LocalDate.of(2026, 10, 31), StartupRoleMigration.parseFlexibleDate("31-10-2026"));
+        assertEquals(LocalDate.of(2026, 10, 31), StartupRoleMigration.parseFlexibleDate("2026-10-31"));
+        assertEquals(LocalDate.of(2026, 5, 1), StartupRoleMigration.parseFlexibleDate("1/5/2026"));
+        assertNull(StartupRoleMigration.parseFlexibleDate("not-a-date"));
+        assertNull(StartupRoleMigration.parseFlexibleDate(null));
+        assertNull(StartupRoleMigration.parseFlexibleDate(""));
+    }
+
+    @Test
+    @DisplayName("Status update propagates through vendor_ticket.invoice foreign key to Invoice status")
     void testStatusUpdatePropagatesViaForeignKey() {
         String invNum = "INV-SYNC-FK-" + System.currentTimeMillis();
 
@@ -175,10 +175,7 @@ class InvoiceTicketSyncTest {
         ticket.setInvoice(invoice);
         ticket = vendorTicketRepository.save(ticket);
 
-        invoice.setVendorTicket(ticket);
-        invoiceRepository.save(invoice);
-
-        // Transition ticket to RESOLVED (maps to Approved)
+        // Transition ticket to RESOLVED (maps to Approved in Invoice)
         vendorTicketService.updateTicketStatusAndNotify(ticket, TicketStatus.RESOLVED, "Payment released");
 
         Invoice updatedInvoice = invoiceRepository.findById(invoice.getId()).orElseThrow();
@@ -186,7 +183,7 @@ class InvoiceTicketSyncTest {
     }
 
     @Test
-    @DisplayName("StartupRoleMigration backfills unlinked tickets and invoices correctly without guessing")
+    @DisplayName("StartupRoleMigration backfills unlinked tickets to invoices correctly without guessing")
     void testBackfillLinksUnlinkedEntities() {
         String invNum = "INV-BACKFILL-" + System.currentTimeMillis();
 
@@ -212,13 +209,9 @@ class InvoiceTicketSyncTest {
         // Run backfill logic
         startupRoleMigration.backfillVendorTicketsAndInvoices();
 
-        // Verify that they were linked
+        // Verify that ticket has foreign key to invoice
         VendorTicket refreshedTicket = vendorTicketRepository.findById(ticket.getId()).orElseThrow();
         assertNotNull(refreshedTicket.getInvoice(), "Ticket should now have foreign key linked to invoice");
         assertEquals(invoice.getId(), refreshedTicket.getInvoice().getId());
-
-        Invoice refreshedInvoice = invoiceRepository.findById(invoice.getId()).orElseThrow();
-        assertNotNull(refreshedInvoice.getVendorTicket(), "Invoice should now have foreign key linked to ticket");
-        assertEquals(ticket.getId(), refreshedInvoice.getVendorTicket().getId());
     }
 }

@@ -1,19 +1,25 @@
 package com.billing.invoicehub.controller;
 
 import com.billing.invoicehub.entity.AppUser;
+import com.billing.invoicehub.entity.Invoice;
+import com.billing.invoicehub.entity.VendorTicket;
+import com.billing.invoicehub.entity.AiQuoteConversion;
+import com.billing.invoicehub.exception.ResourceNotFoundException;
+import com.billing.invoicehub.repository.AiQuoteConversionRepository;
 import com.billing.invoicehub.repository.AppUserRepository;
+import com.billing.invoicehub.repository.InvoiceRepository;
+import com.billing.invoicehub.repository.VendorTicketRepository;
 import com.billing.invoicehub.service.CloudinaryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -26,114 +32,204 @@ public class DocumentAccessController {
 
     private final ObjectProvider<CloudinaryService> cloudinaryServiceProvider;
     private final AppUserRepository appUserRepository;
-    private final JdbcTemplate jdbc;
+    private final VendorTicketRepository vendorTicketRepository;
+    private final InvoiceRepository invoiceRepository;
+    private final ObjectProvider<AiQuoteConversionRepository> aiQuoteConversionRepositoryProvider;
 
     public DocumentAccessController(ObjectProvider<CloudinaryService> cloudinaryServiceProvider,
                                     AppUserRepository appUserRepository,
-                                    JdbcTemplate jdbc) {
+                                    VendorTicketRepository vendorTicketRepository,
+                                    InvoiceRepository invoiceRepository,
+                                    ObjectProvider<AiQuoteConversionRepository> aiQuoteConversionRepositoryProvider) {
         this.cloudinaryServiceProvider = cloudinaryServiceProvider;
         this.appUserRepository = appUserRepository;
-        this.jdbc = jdbc;
+        this.vendorTicketRepository = vendorTicketRepository;
+        this.invoiceRepository = invoiceRepository;
+        this.aiQuoteConversionRepositoryProvider = aiQuoteConversionRepositoryProvider;
     }
 
-    @GetMapping("/view")
-    public String viewDocument(@RequestParam("url") String targetUrl, Authentication authentication) {
-        if (targetUrl == null || targetUrl.isBlank()) {
-            throw new IllegalArgumentException("Document URL must not be empty.");
+    /**
+     * ID-based ticket document access: /documents/ticket/{id}/{field}
+     */
+    @GetMapping("/ticket/{id}/{field}")
+    public String viewTicketDocument(@PathVariable("id") Long id,
+                                     @PathVariable("field") String field,
+                                     Authentication authentication) {
+        checkAuthenticated(authentication);
+        VendorTicket ticket = vendorTicketRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with id: " + id));
+
+        if (!isStaff(authentication)) {
+            AppUser currentUser = requireAuthenticatedUser(authentication);
+            boolean isOwner = (ticket.getOwner() != null && ticket.getOwner().getId().equals(currentUser.getId()))
+                    || (ticket.getVendor() != null && ticket.getVendor().getId().equals(currentUser.getId()));
+            if (!isOwner) {
+                log.warn("SECURITY ALERT: User '{}' (id={}) attempted unauthorized access to ticket {} document",
+                        currentUser.getUsername(), currentUser.getId(), id);
+                throw new AccessDeniedException("Access denied: You do not have permission to view documents for this ticket.");
+            }
         }
 
+        String rawUrl = resolveTicketDocumentUrl(ticket, field);
+        if (rawUrl == null || rawUrl.isBlank()) {
+            throw new ResourceNotFoundException("No document attached for field '" + field + "' on ticket id: " + id);
+        }
+
+        return redirectToSecuredUrl(rawUrl);
+    }
+
+    /**
+     * ID-based vendor profile document access: /documents/vendor/{id}/{field}
+     */
+    @GetMapping("/vendor/{id}/{field}")
+    public String viewVendorDocument(@PathVariable("id") Long id,
+                                     @PathVariable("field") String field,
+                                     Authentication authentication) {
+        checkAuthenticated(authentication);
+        AppUser vendor = appUserRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vendor not found with id: " + id));
+
+        if (!isStaff(authentication)) {
+            AppUser currentUser = requireAuthenticatedUser(authentication);
+            if (!vendor.getId().equals(currentUser.getId())) {
+                log.warn("SECURITY ALERT: User '{}' (id={}) attempted unauthorized access to vendor {} profile document",
+                        currentUser.getUsername(), currentUser.getId(), id);
+                throw new AccessDeniedException("Access denied: You do not have permission to view documents for this vendor.");
+            }
+        }
+
+        String rawUrl = resolveVendorDocumentUrl(vendor, field);
+        if (rawUrl == null || rawUrl.isBlank()) {
+            throw new ResourceNotFoundException("No document found for field '" + field + "' on vendor id: " + id);
+        }
+
+        return redirectToSecuredUrl(rawUrl);
+    }
+
+    /**
+     * ID-based invoice document access: /documents/invoice/{id}
+     */
+    @GetMapping("/invoice/{id}")
+    public String viewInvoiceDocument(@PathVariable("id") Long id,
+                                      Authentication authentication) {
+        checkAuthenticated(authentication);
+        Invoice invoice = invoiceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with id: " + id));
+
+        if (!isStaff(authentication)) {
+            AppUser currentUser = requireAuthenticatedUser(authentication);
+            boolean isClientOwner = invoice.getClient() != null
+                    && invoice.getClient().getOwner() != null
+                    && invoice.getClient().getOwner().getId().equals(currentUser.getId());
+
+            boolean isLinkedTicketOwner = vendorTicketRepository.findAllByInvoice_Id(id).stream()
+                    .anyMatch(vt -> (vt.getOwner() != null && vt.getOwner().getId().equals(currentUser.getId()))
+                            || (vt.getVendor() != null && vt.getVendor().getId().equals(currentUser.getId())));
+
+            if (!isClientOwner && !isLinkedTicketOwner) {
+                log.warn("SECURITY ALERT: User '{}' (id={}) attempted unauthorized access to invoice {}",
+                        currentUser.getUsername(), currentUser.getId(), id);
+                throw new AccessDeniedException("Access denied: You do not have permission to view this invoice document.");
+            }
+        }
+
+        String rawUrl = invoice.getFileUrl();
+        if (rawUrl == null || rawUrl.isBlank()) {
+            throw new ResourceNotFoundException("No document attached to invoice id: " + id);
+        }
+
+        return redirectToSecuredUrl(rawUrl);
+    }
+
+    /**
+     * ID-based AI quote document access: /documents/ai-quote/{id}/{field} (Staff only)
+     */
+    @GetMapping("/ai-quote/{id}/{field}")
+    public String viewAiQuoteDocument(@PathVariable("id") Long id,
+                                      @PathVariable("field") String field,
+                                      Authentication authentication) {
+        checkAuthenticated(authentication);
+        if (!isStaff(authentication)) {
+            throw new AccessDeniedException("Access denied: Only internal staff may access AI quote documents.");
+        }
+
+        AiQuoteConversionRepository repo = aiQuoteConversionRepositoryProvider.getIfAvailable();
+        if (repo == null) {
+            throw new ResourceNotFoundException("AI quote conversion repository not available.");
+        }
+
+        AiQuoteConversion conversion = repo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("AI quote conversion not found with id: " + id));
+
+        String rawUrl = switch (field.toLowerCase()) {
+            case "original" -> conversion.getOriginalFileUrl();
+            case "generated-pdf", "pdf" -> conversion.getGeneratedQuoteFileUrl();
+            case "generated-docx", "docx" -> conversion.getGeneratedDocxFileUrl();
+            default -> throw new ResourceNotFoundException("Unknown AI quote document field: " + field);
+        };
+
+        if (rawUrl == null || rawUrl.isBlank()) {
+            throw new ResourceNotFoundException("Document for field '" + field + "' is not generated or available.");
+        }
+
+        return redirectToSecuredUrl(rawUrl);
+    }
+
+    // ─── Private Helpers ─────────────────────────────────────────────────────────
+
+    private void checkAuthenticated(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new AccessDeniedException("Authentication required to access documents.");
         }
+    }
 
+    private AppUser requireAuthenticatedUser(Authentication authentication) {
+        checkAuthenticated(authentication);
+        String username = authentication.getName();
+        return appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new AccessDeniedException("Authenticated user not found in database."));
+    }
+
+    private boolean isStaff(Authentication authentication) {
+        if (authentication == null) {
+            return false;
+        }
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
-        boolean isStaff = authorities.stream().anyMatch(a ->
+        return authorities.stream().anyMatch(a ->
                 "ROLE_ADMIN".equals(a.getAuthority())
                         || "ROLE_SUPER_ADMIN".equals(a.getAuthority())
                         || "ROLE_ACCOUNTS".equals(a.getAuthority()));
+    }
 
-        if (!isStaff) {
-            // Vendor access verification: verify that this document belongs to the authenticated vendor
-            String username = authentication.getName();
-            Optional<AppUser> userOpt = appUserRepository.findByUsername(username);
-            if (userOpt.isEmpty()) {
-                log.warn("Document access denied: User '{}' not found in database.", username);
-                throw new AccessDeniedException("User not found.");
-            }
+    private String resolveTicketDocumentUrl(VendorTicket ticket, String field) {
+        return switch (field.toLowerCase()) {
+            case "invoice", "invoice-file" -> ticket.getInvoiceFileUrl();
+            case "tax", "tax-document" -> ticket.getTaxDocumentUrl();
+            case "po", "po-copy" -> ticket.getPoCopyUrl();
+            case "delivery", "delivery-note" -> ticket.getDeliveryNoteUrl();
+            case "other", "other-document" -> ticket.getOtherDocumentUrl();
+            case "supporting", "supporting-document" -> ticket.getSupportingDocumentUrl();
+            default -> null;
+        };
+    }
 
-            AppUser user = userOpt.get();
-            boolean authorized = isVendorDocumentOwner(user, targetUrl.trim());
-            if (!authorized) {
-                log.warn("SECURITY ALERT: Vendor '{}' (id={}) attempted unauthorized access to document: '{}'",
-                        username, user.getId(), targetUrl);
-                throw new AccessDeniedException("Access denied: You do not have permission to view this document.");
-            }
-        }
+    private String resolveVendorDocumentUrl(AppUser vendor, String field) {
+        return switch (field.toLowerCase()) {
+            case "gst", "gst-document" -> vendor.getGstDocumentUrl();
+            case "company", "company-document" -> vendor.getCompanyDocumentUrl();
+            case "supporting", "supporting-document" -> vendor.getSupportingDocumentUrl();
+            case "profile", "profile-image" -> vendor.getProfileImageUrl();
+            case "logo", "company-logo" -> vendor.getCompanyLogoUrl();
+            default -> null;
+        };
+    }
 
-        // Authorization succeeded!
+    private String redirectToSecuredUrl(String targetUrl) {
         CloudinaryService cloudinaryService = cloudinaryServiceProvider.getIfAvailable();
         if (cloudinaryService != null) {
-            // Generates signed URL valid for 15 minutes (900 seconds)
-            // Or returns legacy public upload URL directly for backward compatibility
             String signedUrl = cloudinaryService.generateSignedDownloadUrl(targetUrl.trim(), 900);
             return "redirect:" + signedUrl;
         }
-
-        // Fallback if Cloudinary bean is not active (e.g. mock/test)
         return "redirect:" + targetUrl.trim();
-    }
-
-    private boolean isVendorDocumentOwner(AppUser user, String url) {
-        Long userId = user.getId();
-
-        // 1. Check user profile documents
-        if (url.equalsIgnoreCase(user.getGstDocumentUrl())
-                || url.equalsIgnoreCase(user.getCompanyDocumentUrl())
-                || url.equalsIgnoreCase(user.getSupportingDocumentUrl())
-                || url.equalsIgnoreCase(user.getProfileImageUrl())
-                || url.equalsIgnoreCase(user.getCompanyLogoUrl())) {
-            return true;
-        }
-
-        // 2. Check vendor tickets owned by this vendor
-        try {
-            Integer ticketMatchCount = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM vendor_ticket " +
-                "WHERE (owner_id = ? OR vendor_id = ?) " +
-                "AND (LOWER(invoice_file_url) = LOWER(?) " +
-                "  OR LOWER(tax_document_url) = LOWER(?) " +
-                "  OR LOWER(po_copy_url) = LOWER(?) " +
-                "  OR LOWER(delivery_note_url) = LOWER(?) " +
-                "  OR LOWER(other_document_url) = LOWER(?) " +
-                "  OR LOWER(supporting_document_url) = LOWER(?))",
-                Integer.class,
-                userId, userId, url, url, url, url, url, url
-            );
-            if (ticketMatchCount != null && ticketMatchCount > 0) {
-                return true;
-            }
-        } catch (Exception ex) {
-            log.warn("Error querying ticket ownership for document: {}", ex.getMessage());
-        }
-
-        // 3. Check billing invoices owned by this vendor
-        try {
-            Integer invoiceMatchCount = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM invoice i " +
-                "LEFT JOIN client c ON i.client_id = c.id " +
-                "LEFT JOIN vendor_ticket vt ON i.vendor_ticket_id = vt.id " +
-                "WHERE (c.owner_id = ? OR vt.owner_id = ? OR vt.vendor_id = ?) " +
-                "AND LOWER(i.file_url) = LOWER(?)",
-                Integer.class,
-                userId, userId, userId, url
-            );
-            if (invoiceMatchCount != null && invoiceMatchCount > 0) {
-                return true;
-            }
-        } catch (Exception ex) {
-            log.warn("Error querying invoice ownership for document: {}", ex.getMessage());
-        }
-
-        return false;
     }
 }

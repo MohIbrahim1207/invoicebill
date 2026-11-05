@@ -52,6 +52,14 @@ public class RateLimitConfig {
     @Value("${rate-limiting.dev-mail.refill-period-minutes:1}")
     private long devMailRefillPeriodMinutes;
 
+    // Upload
+    @Value("${rate-limiting.upload.capacity:15}")
+    private long uploadCapacity;
+    @Value("${rate-limiting.upload.refill-tokens:15}")
+    private long uploadRefillTokens;
+    @Value("${rate-limiting.upload.refill-period-minutes:1}")
+    private long uploadRefillPeriodMinutes;
+
     // Getters
     public boolean isEnabled() { return enabled; }
     public boolean isBehindProxy() { return behindProxy; }
@@ -75,4 +83,8 @@ public class RateLimitConfig {
     public long getDevMailCapacity() { return devMailCapacity; }
     public long getDevMailRefillTokens() { return devMailRefillTokens; }
     public long getDevMailRefillPeriodMinutes() { return devMailRefillPeriodMinutes; }
+
+    public long getUploadCapacity() { return uploadCapacity; }
+    public long getUploadRefillTokens() { return uploadRefillTokens; }
+    public long getUploadRefillPeriodMinutes() { return uploadRefillPeriodMinutes; }
 }

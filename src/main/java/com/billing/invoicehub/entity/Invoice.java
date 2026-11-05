@@ -22,16 +22,14 @@ public class Invoice {
 
     private String invoiceNumber;
     private LocalDate invoiceDate;
+    @jakarta.persistence.Column(name = "invoice_date_raw")
+    private String invoiceDateRaw;
     private BigDecimal amount;
     private String currency = "IDR";
     private String status = "Pending";
 
     @ManyToOne(fetch = FetchType.LAZY)
     private Client client;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vendor_ticket_id")
-    private VendorTicket vendorTicket;
 
     @Transient
     private String poNumber;
@@ -131,11 +129,11 @@ public class Invoice {
         this.client = client;
     }
 
-    public VendorTicket getVendorTicket() {
-        return this.vendorTicket;
+    public String getInvoiceDateRaw() {
+        return this.invoiceDateRaw;
     }
 
-    public void setVendorTicket(VendorTicket vendorTicket) {
-        this.vendorTicket = vendorTicket;
+    public void setInvoiceDateRaw(String invoiceDateRaw) {
+        this.invoiceDateRaw = invoiceDateRaw;
     }
 }

@@ -10,6 +10,8 @@ import com.billing.invoicehub.service.VendorTicketService;
 import com.billing.invoicehub.util.FileValidationUtil;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import com.billing.invoicehub.exception.ResourceNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,11 +109,17 @@ public class VendorTicketController {
             return "redirect:/login";
         }
 
+        if (this.vendorTicketService.getTicketById(id).isEmpty()) {
+            throw new ResourceNotFoundException("Ticket not found with id: " + id);
+        }
+        if (this.vendorTicketService.getAccessibleTicket(id, authentication.getName()).isEmpty()) {
+            throw new AccessDeniedException("Access denied: You do not have permission to cancel ticket " + id);
+        }
         boolean cancelled = this.vendorTicketService.cancelTicket(id, authentication.getName());
         if (cancelled) {
             redirectAttributes.addFlashAttribute("message", "Ticket cancelled successfully.");
         } else {
-            redirectAttributes.addFlashAttribute("error", "Ticket not found or access denied.");
+            redirectAttributes.addFlashAttribute("error", "Ticket could not be cancelled.");
         }
         return "redirect:/vendor/tickets";
     }
@@ -125,10 +133,12 @@ public class VendorTicketController {
             return "redirect:/login";
         }
 
+        if (this.vendorTicketService.getTicketById(id).isEmpty()) {
+            throw new ResourceNotFoundException("Ticket not found with id: " + id);
+        }
         Optional<VendorTicket> ticket = this.vendorTicketService.getAccessibleTicket(id, authentication.getName());
         if (ticket.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", "Ticket not found or access denied.");
-            return "redirect:/vendor/tickets";
+            throw new AccessDeniedException("Access denied: You do not have permission to view ticket " + id);
         }
 
         List<VendorTicketHistory> history = this.vendorTicketService.getTicketHistory(id);

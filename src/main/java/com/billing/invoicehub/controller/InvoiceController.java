@@ -4,6 +4,9 @@ import com.billing.invoicehub.dto.InvoiceDto;
 import com.billing.invoicehub.entity.AppUser;
 import com.billing.invoicehub.entity.Client;
 import com.billing.invoicehub.entity.Invoice;
+import com.billing.invoicehub.exception.ResourceNotFoundException;
+import com.billing.invoicehub.repository.InvoiceRepository;
+import org.springframework.security.access.AccessDeniedException;
 import com.billing.invoicehub.dto.ClientDto;
 import com.billing.invoicehub.service.ClientService;
 import com.billing.invoicehub.service.InvoiceService;
@@ -34,11 +37,13 @@ public class InvoiceController {
     private final InvoiceService invoiceService;
     private final ClientService clientService;
     private final UserService userService;
+    private final InvoiceRepository invoiceRepository;
 
-    public InvoiceController(InvoiceService invoiceService, ClientService clientService, UserService userService) {
+    public InvoiceController(InvoiceService invoiceService, ClientService clientService, UserService userService, InvoiceRepository invoiceRepository) {
         this.invoiceService = invoiceService;
         this.clientService = clientService;
         this.userService = userService;
+        this.invoiceRepository = invoiceRepository;
     }
 
     // ─── GET /invoice ────────────────────────────────────────────────────────────
@@ -130,10 +135,12 @@ public class InvoiceController {
             return "redirect:/login";
         }
 
+        if (invoiceRepository.findById(id).isEmpty()) {
+            throw new ResourceNotFoundException("Invoice not found with id: " + id);
+        }
         Optional<Invoice> invoiceOpt = invoiceService.getInvoiceEntity(id, currentUser.get(), isAdmin());
         if (invoiceOpt.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", "Invoice not found.");
-            return "redirect:/invoice";
+            throw new AccessDeniedException("Access denied: You do not have permission to edit invoice " + id);
         }
         
         model.addAttribute("invoice", invoiceOpt.get());
@@ -150,10 +157,12 @@ public class InvoiceController {
             return "redirect:/login";
         }
 
+        if (invoiceRepository.findById(id).isEmpty()) {
+            throw new ResourceNotFoundException("Invoice not found with id: " + id);
+        }
         Optional<Invoice> invoiceOpt = invoiceService.getInvoiceEntity(id, currentUser.get(), isAdmin());
         if (invoiceOpt.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", "Invoice not found.");
-            return "redirect:/invoice";
+            throw new AccessDeniedException("Access denied: You do not have permission to edit invoice " + id);
         }
 
         model.addAttribute("invoice", invoiceOpt.get());
@@ -210,6 +219,12 @@ public class InvoiceController {
             return "redirect:/login";
         }
 
+        if (invoiceRepository.findById(id).isEmpty()) {
+            throw new ResourceNotFoundException("Invoice not found with id: " + id);
+        }
+        if (invoiceService.getInvoiceEntity(id, currentUser.get(), isAdmin()).isEmpty()) {
+            throw new AccessDeniedException("Access denied: You do not have permission to delete invoice " + id);
+        }
         try {
             boolean deleted = invoiceService.deleteInvoice(id, currentUser.get(), isAdmin());
             if (deleted) {

@@ -67,4 +67,8 @@ public interface VendorTicketRepository extends JpaRepository<VendorTicket, Long
 
     @Query("select t.invoiceNo, t.poNumber from VendorTicket t")
     public List<Object[]> findAllInvoiceNoAndPoNumber();
+
+    public Optional<VendorTicket> findByInvoice_Id(Long invoiceId);
+
+    public List<VendorTicket> findAllByInvoice_Id(Long invoiceId);
 }
