@@ -684,7 +684,8 @@ public class VendorTicketService {
         inv.setClient(ticket.getClient());
         inv.setCurrency(ticket.getCurrency() != null ? ticket.getCurrency() : "IDR");
         inv.setInvoiceDateRaw(ticket.getInvoiceDate() != null ? ticket.getInvoiceDate().toString() : null);
-        inv.setStatus("Pending");
+        String mappedStatus = mapTicketStatusToInvoiceStatus(ticket.getStatusRequest());
+        inv.setStatus(mappedStatus != null ? mappedStatus : "Pending");
         Invoice savedInvoice = invoiceRepository.save(inv);
         ticket.setInvoice(savedInvoice);
         vendorTicketRepository.save(ticket);

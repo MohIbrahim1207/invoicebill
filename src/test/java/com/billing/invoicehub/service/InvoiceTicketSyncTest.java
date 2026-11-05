@@ -249,7 +249,7 @@ class InvoiceTicketSyncTest {
         assertNotNull(created.getId());
         assertEquals(invNum, created.getInvoiceNumber());
         assertEquals(new BigDecimal("1617600.00"), created.getAmount());
-        assertEquals("Pending", created.getStatus());
+        assertEquals("In Progress", created.getStatus(), "Invoice status must be mapped from ticket's IN_PROGRESS status");
 
         // Refresh ticket
         VendorTicket refreshed = vendorTicketRepository.findById(ticket.getId()).orElseThrow();
@@ -361,5 +361,43 @@ class InvoiceTicketSyncTest {
         } finally {
             reset(invoiceRepository);
         }
+    }
+
+    @Test
+    @DisplayName("Creating invoice from existing ticket sets invoice status using mapTicketStatusToInvoiceStatus")
+    void testCreateInvoiceInheritsCurrentTicketStatus() {
+        for (TicketStatus status : TicketStatus.values()) {
+            VendorTicket ticket = new VendorTicket();
+            ticket.setTicketNo("TCK-STATUS-" + status.name() + "-" + System.currentTimeMillis());
+            ticket.setInvoiceNo("INV-STATUS-" + status.name() + "-" + System.currentTimeMillis());
+            ticket.setVendor(vendor);
+            ticket.setOwner(vendor);
+            ticket.setClient(client);
+            ticket.setAmount(new BigDecimal("1000000.00"));
+            ticket.setStatusRequest(status);
+            ticket.setCreatedAt(LocalDateTime.now());
+            ticket = vendorTicketRepository.save(ticket);
+
+            Invoice created = vendorTicketService.createAndLinkInvoiceFromTicket(ticket.getId(), "admin");
+            String expectedInvoiceStatus = vendorTicketService.mapTicketStatusToInvoiceStatus(status);
+            assertEquals(expectedInvoiceStatus, created.getStatus(),
+                    "Invoice status must match mapped ticket status for " + status);
+        }
+
+        // Test with null statusRequest -> defaults to "Pending"
+        VendorTicket nullStatusTicket = new VendorTicket();
+        nullStatusTicket.setTicketNo("TCK-STATUS-NULL-" + System.currentTimeMillis());
+        nullStatusTicket.setInvoiceNo("INV-STATUS-NULL-" + System.currentTimeMillis());
+        nullStatusTicket.setVendor(vendor);
+        nullStatusTicket.setOwner(vendor);
+        nullStatusTicket.setClient(client);
+        nullStatusTicket.setAmount(new BigDecimal("1000000.00"));
+        nullStatusTicket.setStatusRequest(null);
+        nullStatusTicket.setCreatedAt(LocalDateTime.now());
+        nullStatusTicket = vendorTicketRepository.save(nullStatusTicket);
+
+        Invoice nullStatusInvoice = vendorTicketService.createAndLinkInvoiceFromTicket(nullStatusTicket.getId(), "admin");
+        assertEquals("Pending", nullStatusInvoice.getStatus(),
+                "Invoice status must default to Pending when ticket status is null");
     }
 }
