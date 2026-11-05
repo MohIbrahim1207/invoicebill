@@ -23,8 +23,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.*;
 
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.access.AccessDeniedException;
+
 @Controller
-@RequestMapping("/admin/ai-quote-converter")
+@RequestMapping({"/admin/ai-quote-converter", "/assistant"})
 public class AdminAiQuoteController {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminAiQuoteController.class);
@@ -44,22 +47,28 @@ public class AdminAiQuoteController {
         this.gson = new Gson();
     }
 
-    // ─── GET /admin/ai-quote-converter (Main Conversational AI Assistant UI) ──
+    // ─── GET /admin/ai-quote-converter or /assistant (Main AI Assistant UI) ──
     @GetMapping
     public String listHistory(@RequestParam(value = "sessionId", required = false) Long activeSessionId,
                               Model model,
+                              HttpServletRequest request,
                               RedirectAttributes redirectAttributes) {
         Optional<AppUser> currentUser = currentAppUser();
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
-            return "redirect:/admin/login";
+            String uri = request != null ? request.getRequestURI() : "";
+            return uri.startsWith("/admin") ? "redirect:/admin/login" : "redirect:/vendor/login";
         }
 
         List<AiQuoteSessionDto> sessions = aiQuoteSessionService.getUserSessions(currentUser.get());
         model.addAttribute("sessions", sessions);
 
-        // Include legacy conversion history as fallback/audit reference
-        List<AiQuoteConversion> conversions = aiQuoteConversionService.getAllConversions();
+        boolean isStaff = currentUser.get().getRoles().stream().anyMatch(r ->
+                "ROLE_ADMIN".equals(r.getName()) || "ROLE_SUPER_ADMIN".equals(r.getName()) || "ROLE_ACCOUNTS".equals(r.getName()));
+        model.addAttribute("isStaff", isStaff);
+
+        // Include legacy conversion history as fallback/audit reference for staff only
+        List<AiQuoteConversion> conversions = isStaff ? aiQuoteConversionService.getAllConversions() : Collections.emptyList();
         model.addAttribute("conversions", conversions);
 
         AiQuoteSessionDto activeSession = null;

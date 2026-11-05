@@ -15,6 +15,17 @@ public class AiChatMessageDto {
     private List<String> missingFields;
     private boolean quoteComplete;
 
+    // Interactive Tool Result Cards
+    private java.util.List<java.util.Map<String, Object>> cards;
+
+    public java.util.List<java.util.Map<String, Object>> getCards() {
+        return cards;
+    }
+
+    public void setCards(java.util.List<java.util.Map<String, Object>> cards) {
+        this.cards = cards;
+    }
+
     public Long getId() {
         return id;
     }

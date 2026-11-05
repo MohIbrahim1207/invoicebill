@@ -71,4 +71,8 @@ public interface VendorTicketRepository extends JpaRepository<VendorTicket, Long
     public Optional<VendorTicket> findByInvoice_Id(Long invoiceId);
 
     public List<VendorTicket> findAllByInvoice_Id(Long invoiceId);
+
+    public Optional<VendorTicket> findFirstByTicketNoIgnoreCase(String ticketNo);
+
+    public List<VendorTicket> findByInvoiceNoIgnoreCase(String invoiceNo);
 }

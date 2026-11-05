@@ -20,4 +20,6 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
     );
+
+    long countByUsernameAndActionAndCreatedAtGreaterThanEqual(String username, String action, LocalDateTime startOfDay);
 }

@@ -27,6 +27,9 @@ public class AiQuoteMessage {
     @Column(name = "attachment_filename")
     private String attachmentFilename;
 
+    @Column(name = "cards_json", columnDefinition = "TEXT")
+    private String cardsJson;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -76,6 +79,14 @@ public class AiQuoteMessage {
 
     public void setAttachmentFilename(String attachmentFilename) {
         this.attachmentFilename = attachmentFilename;
+    }
+
+    public String getCardsJson() {
+        return cardsJson;
+    }
+
+    public void setCardsJson(String cardsJson) {
+        this.cardsJson = cardsJson;
     }
 
     public LocalDateTime getCreatedAt() {

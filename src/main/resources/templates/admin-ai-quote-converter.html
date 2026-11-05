@@ -315,29 +315,31 @@
                 <aside class="chat-sidebar">
                     <div class="chat-sidebar-header">
                         <button id="btnNewQuote" class="btn btn-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-2">
-                            <i class="bi bi-plus-circle"></i> New Quote
+                            <i class="bi bi-plus-circle"></i> New Session
                         </button>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-                            <input type="text" id="sidebarSearch" class="form-control bg-light border-start-0" placeholder="Search quotations..." onkeyup="filterHistoryItems()">
+                            <input type="text" id="sidebarSearch" class="form-control bg-light border-start-0" placeholder="Search sessions..." onkeyup="filterHistoryItems()">
                         </div>
                     </div>
 
                     <div class="session-list" id="sessionList">
-                        <!-- AI QUOTE SESSIONS -->
-                        <div class="sidebar-section-title"><i class="bi bi-chat-dots me-1"></i> AI Quote Sessions</div>
+                        <!-- AI ASSISTANT SESSIONS -->
+                        <div class="sidebar-section-title"><i class="bi bi-chat-dots me-1"></i> Chat Sessions</div>
                         <div id="aiSessionsContainer"></div>
 
-                        <!-- PREVIOUS CONVERSIONS -->
-                        <div class="sidebar-section-title"><i class="bi bi-clock-history me-1"></i> Previous Conversions</div>
-                        <div id="legacyConversionsContainer">
-                            <div th:each="c : ${conversions}" class="session-item legacy-item"
-                                 th:data-title="${c.originalFileName}"
-                                 th:onclick="|window.location.href='/admin/ai-quote-converter/${c.id}'|">
-                                <div class="session-title" th:text="${c.originalFileName != null ? c.originalFileName : 'Quotation #' + c.id}">Supplier Quote</div>
-                                <div class="session-meta">
-                                    <span th:text="${c.processingDate != null ? #temporals.format(c.processingDate, 'dd MMM yyyy') : ''}">09 Aug 2026</span>
-                                    <span class="status-pill status-legacy" th:text="${c.status}">COMPLETED</span>
+                        <!-- PREVIOUS CONVERSIONS (STAFF ONLY) -->
+                        <div th:if="${isStaff and conversions != null and not #lists.isEmpty(conversions)}">
+                            <div class="sidebar-section-title"><i class="bi bi-clock-history me-1"></i> Previous Conversions</div>
+                            <div id="legacyConversionsContainer">
+                                <div th:each="c : ${conversions}" class="session-item legacy-item"
+                                     th:data-title="${c.originalFileName}"
+                                     th:onclick="|window.location.href='/admin/ai-quote-converter/${c.id}'|">
+                                    <div class="session-title" th:text="${c.originalFileName != null ? c.originalFileName : 'Quotation #' + c.id}">Supplier Quote</div>
+                                    <div class="session-meta">
+                                        <span th:text="${c.processingDate != null ? #temporals.format(c.processingDate, 'dd MMM yyyy') : ''}">09 Aug 2026</span>
+                                        <span class="status-pill status-legacy" th:text="${c.status}">COMPLETED</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -348,8 +350,8 @@
                 <section class="chat-main">
                     <div class="chat-header">
                         <div>
-                            <h5 class="m-0 fw-bold text-dark" id="chatTitle">AI Quote Assistant</h5>
-                            <small class="text-muted">Create Flow Force quotations through conversation</small>
+                            <h5 class="m-0 fw-bold text-dark" id="chatTitle">InvoiceHub Assistant</h5>
+                            <small class="text-muted">Ask about tickets, invoices, summaries, or create Flow Force quotes</small>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <button class="btn btn-sm btn-outline-secondary" onclick="reloadActiveSession()" title="Refresh Session">
@@ -450,9 +452,13 @@
             }
         }
 
+        function getApiBase() {
+            return window.location.pathname.startsWith('/admin') ? '/admin/ai-quote-converter/api' : '/assistant/api';
+        }
+
         async function loadSessions() {
             try {
-                const res = await fetch('/admin/ai-quote-converter/api/sessions');
+                const res = await fetch(`${getApiBase()}/sessions`);
                 if (res.ok) {
                     const sessions = await res.json();
                     renderSessionList(sessions);
@@ -515,10 +521,10 @@
 
         async function createNewSession() {
             try {
-                const res = await fetch('/admin/ai-quote-converter/api/sessions', {
+                const res = await fetch(`${getApiBase()}/sessions`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
-                    body: JSON.stringify({ title: 'New Quotation Assistant' })
+                    body: JSON.stringify({ title: 'New Assistant Chat' })
                 });
                 if (res.ok) {
                     const session = await res.json();
@@ -527,7 +533,7 @@
                     renderActiveSession(session);
                 } else {
                     console.error('Failed to create session HTTP status:', res.status);
-                    showUIError('Failed to create a new quotation session (HTTP ' + res.status + ').');
+                    showUIError('Failed to create a new session (HTTP ' + res.status + ').');
                 }
             } catch (e) {
                 console.error('Error creating session:', e);
@@ -547,7 +553,7 @@
             });
 
             try {
-                const res = await fetch(`/admin/ai-quote-converter/api/sessions/${sessionId}`);
+                const res = await fetch(`${getApiBase()}/sessions/${sessionId}`);
                 if (res.ok) {
                     const session = await res.json();
                     renderActiveSession(session);
@@ -621,11 +627,54 @@
                 attachmentMarkup = `<br><a href="${href}" target="_blank" class="msg-attachment"><i class="bi bi-paperclip"></i> ${escapeHtml(msg.attachmentFilename)}</a>`;
             }
 
+            let cardsMarkup = '';
+            if (msg.cards && msg.cards.length > 0) {
+                cardsMarkup = renderToolCards(msg.cards);
+            }
+
             wrapper.innerHTML = `
                 <div class="avatar avatar-${senderClass}">${avatarText}</div>
-                <div class="msg-bubble">${escapeHtml(msg.content)}${attachmentMarkup}</div>
+                <div class="msg-bubble">${escapeHtml(msg.content)}${attachmentMarkup}${cardsMarkup}</div>
             `;
             messagesEl.appendChild(wrapper);
+        }
+
+        function renderToolCards(cards) {
+            if (!cards || cards.length === 0) return '';
+            let html = '<div class="tool-cards-container mt-2 d-flex flex-column gap-2">';
+            cards.forEach(card => {
+                let badgeClass = card.badgeClass || 'bg-secondary';
+                let statusBadge = card.status ? `<span class="badge ${badgeClass} ms-auto">${escapeHtml(card.status)}</span>` : '';
+                let detailsHtml = '';
+                if (card.details && card.details.length > 0) {
+                    detailsHtml = '<div class="tool-card-details small mt-1 text-muted d-flex flex-wrap gap-2">';
+                    card.details.forEach(d => {
+                        detailsHtml += `<span><strong>${escapeHtml(d.label)}:</strong> ${escapeHtml(d.value)}</span>`;
+                    });
+                    detailsHtml += '</div>';
+                }
+                let actionBtn = '';
+                if (card.url) {
+                    let label = card.actionLabel || 'View details';
+                    actionBtn = `<div class="mt-2"><a href="${escapeHtml(card.url)}" class="btn btn-sm btn-outline-primary py-0 px-2 small"><i class="bi bi-box-arrow-up-right me-1"></i> ${escapeHtml(label)}</a></div>`;
+                }
+
+                html += `
+                    <div class="card shadow-sm border-start border-4 border-primary p-2 bg-white text-dark" style="max-width: 480px; text-align: left;">
+                        <div class="d-flex align-items-center">
+                            <div>
+                                <strong class="d-block" style="font-size: 0.9rem;">${escapeHtml(card.title || '')}</strong>
+                                ${card.subtitle ? `<span class="text-secondary small">${escapeHtml(card.subtitle)}</span>` : ''}
+                            </div>
+                            ${statusBadge}
+                        </div>
+                        ${detailsHtml}
+                        ${actionBtn}
+                    </div>
+                `;
+            });
+            html += '</div>';
+            return html;
         }
 
         function renderReviewCard(data, status, pdfUrl, pdfFilename, docxUrl, docxFilename) {
@@ -743,7 +792,7 @@
             document.getElementById('btnSend').disabled = true;
 
             try {
-                const res = await fetch(`/admin/ai-quote-converter/api/sessions/${currentSessionId}/messages`, {
+                const res = await fetch(`${getApiBase()}/sessions/${currentSessionId}/messages`, {
                     method: 'POST',
                     headers: getCsrfHeader(),
                     body: formData
@@ -783,7 +832,7 @@
             if (!currentSessionId) return;
             const formatVal = document.querySelector('input[name="outputFormat"]:checked')?.value || 'PDF';
             try {
-                const res = await fetch(`/admin/ai-quote-converter/api/sessions/${currentSessionId}/generate?format=${encodeURIComponent(formatVal)}`, {
+                const res = await fetch(`${getApiBase()}/sessions/${currentSessionId}/generate?format=${encodeURIComponent(formatVal)}`, {
                     method: 'POST',
                     headers: getCsrfHeader()
                 });

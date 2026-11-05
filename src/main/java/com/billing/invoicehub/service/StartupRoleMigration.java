@@ -222,6 +222,7 @@ public class StartupRoleMigration implements ApplicationRunner {
             addColumnIfNotExists("app_user", "two_factor_enabled", "BOOLEAN NOT NULL DEFAULT FALSE");
             addColumnIfNotExists("app_user", "two_factor_secret", "VARCHAR(255) NULL");
             addColumnIfNotExists("app_user", "last_seen_version", "VARCHAR(50) NULL");
+            addColumnIfNotExists("ai_quote_message", "cards_json", "TEXT NULL");
 
             // Ensure system_settings table exists for maintenance banners and configuration
             try {

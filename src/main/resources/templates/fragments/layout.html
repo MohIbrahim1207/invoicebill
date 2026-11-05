@@ -499,8 +499,8 @@
                   th:text="${@sidebarBadgeService.pendingInvoicesCount}">0</span>
         </a>
         <a href="/admin/ai-quote-converter" class="sidebar-link"
-            th:classappend="${active == 'ai-quote-converter'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
-            <i class="bi bi-cpu"></i> <span th:text="#{sidebar.ai.converter}">AI Quote Converter</span>
+            th:classappend="${active == 'ai-quote-converter' or active == 'assistant'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')">
+            <i class="bi bi-cpu"></i> <span th:text="#{sidebar.ai.converter}">InvoiceHub Assistant</span>
         </a>
 
         <!-- Section: Vendors -->
@@ -526,6 +526,10 @@
         <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''"
             sec:authorize="hasRole('VENDOR')">
             <i class="bi bi-list-task"></i> <span th:text="#{sidebar.vendor.tickets}">Vendor Tickets</span>
+        </a>
+        <a href="/assistant" class="sidebar-link" th:classappend="${active == 'ai-quote-converter' or active == 'assistant'} ? ' active' : ''"
+            sec:authorize="hasRole('VENDOR')">
+            <i class="bi bi-cpu"></i> <span th:text="#{sidebar.ai.converter}">InvoiceHub Assistant</span>
         </a>
 
         <!-- Section: Administration -->
@@ -586,8 +590,8 @@
                           th:text="${@sidebarBadgeService.pendingInvoicesCount}">0</span>
                 </a>
                 <a href="/admin/ai-quote-converter" class="sidebar-link"
-                    th:classappend="${active == 'ai-quote-converter'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
-                    <i class="bi bi-cpu"></i> <span th:text="#{sidebar.ai.converter}">AI Quote Converter</span>
+                    th:classappend="${active == 'ai-quote-converter' or active == 'assistant'} ? ' active' : ''" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN', 'ACCOUNTS')">
+                    <i class="bi bi-cpu"></i> <span th:text="#{sidebar.ai.converter}">InvoiceHub Assistant</span>
                 </a>
 
                 <!-- Section: Vendors -->
@@ -613,6 +617,10 @@
                 <a href="/vendor/tickets" class="sidebar-link" th:classappend="${active == 'tickets'} ? ' active' : ''"
                     sec:authorize="hasRole('VENDOR')">
                     <i class="bi bi-list-task"></i> <span th:text="#{sidebar.vendor.tickets}">Vendor Tickets</span>
+                </a>
+                <a href="/assistant" class="sidebar-link" th:classappend="${active == 'ai-quote-converter' or active == 'assistant'} ? ' active' : ''"
+                    sec:authorize="hasRole('VENDOR')">
+                    <i class="bi bi-cpu"></i> <span th:text="#{sidebar.ai.converter}">InvoiceHub Assistant</span>
                 </a>
 
                 <!-- Section: Administration -->

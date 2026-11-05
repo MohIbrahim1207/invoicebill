@@ -36,4 +36,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     @Query("SELECT COALESCE(SUM(i.amount), 0) FROM Invoice i WHERE i.client.owner.id = :ownerId")
     java.math.BigDecimal sumAmountByOwnerId(@Param("ownerId") Long ownerId);
+
+    Optional<Invoice> findFirstByInvoiceNumberIgnoreCaseOrderByIdDesc(String invoiceNumber);
 }

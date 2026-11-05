@@ -1,5 +1,26 @@
 [
   {
+    "version": "1.7.0",
+    "date": "2026-11-05",
+    "audience": "ALL",
+    "title": {
+      "en": "InvoiceHub Assistant (AI)",
+      "id": "Asisten InvoiceHub (AI)"
+    },
+    "notes": {
+      "en": [
+        "InvoiceHub Assistant: conversational AI assistant with instant search for tickets, invoice statuses, and portal metrics.",
+        "Smart tool integration: search tickets, check invoices, and generate quotations seamlessly with Gemini function calling.",
+        "Enterprise security: strict role-based data isolation, prompt injection defense, daily question limits, and audit logging."
+      ],
+      "id": [
+        "Asisten InvoiceHub: asisten AI percakapan dengan pencarian instan untuk tiket, status faktur, dan ringkasan portal.",
+        "Integrasi alat cerdas: cari tiket, periksa faktur, dan buat penawaran harga dengan Gemini function calling.",
+        "Keamanan enterprise: isolasi data berbasis peran yang ketat, perlindungan prompt injection, batas harian, dan log audit."
+      ]
+    }
+  },
+  {
     "version": "1.6.0",
     "date": "2026-10-31",
     "audience": "ALL",

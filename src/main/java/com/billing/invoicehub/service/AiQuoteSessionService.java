@@ -33,6 +33,8 @@ public class AiQuoteSessionService {
     private final CloudinaryService cloudinaryService;
     private final FlowForceQuotePdfService flowForceQuotePdfService;
     private final FlowForceQuoteDocxService flowForceQuoteDocxService;
+    private final com.billing.invoicehub.repository.AuditLogRepository auditLogRepository;
+    private final AuditLogService auditLogService;
     private final Gson gson;
 
     public AiQuoteSessionService(
@@ -41,13 +43,17 @@ public class AiQuoteSessionService {
             PdfExtractionService pdfExtractionService,
             CloudinaryService cloudinaryService,
             FlowForceQuotePdfService flowForceQuotePdfService,
-            FlowForceQuoteDocxService flowForceQuoteDocxService) {
+            FlowForceQuoteDocxService flowForceQuoteDocxService,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) com.billing.invoicehub.repository.AuditLogRepository auditLogRepository,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) AuditLogService auditLogService) {
         this.sessionRepository = sessionRepository;
         this.chatService = chatService;
         this.pdfExtractionService = pdfExtractionService;
         this.cloudinaryService = cloudinaryService;
         this.flowForceQuotePdfService = flowForceQuotePdfService;
         this.flowForceQuoteDocxService = flowForceQuoteDocxService;
+        this.auditLogRepository = auditLogRepository;
+        this.auditLogService = auditLogService;
         this.gson = new Gson();
     }
 
@@ -64,7 +70,7 @@ public class AiQuoteSessionService {
         AiQuoteMessage welcomeMsg = new AiQuoteMessage();
         welcomeMsg.setSession(session);
         welcomeMsg.setSender("ASSISTANT");
-        welcomeMsg.setContent("Hello! I am your Flow Force AI Quotation Assistant. You can paste quotation text, upload a supplier PDF/image, or describe what you need to create a Flow Force quotation.");
+        welcomeMsg.setContent("Hello! I am your InvoiceHub Assistant. You can ask about ticket status, invoice details, portal metrics, or upload/paste a quotation to generate a Flow Force quote. / Halo! Saya adalah Asisten InvoiceHub Anda. Anda dapat menanyakan status tiket, faktur, ringkasan dashboard, atau mengunggah penawaran harga.");
         session.getMessages().add(welcomeMsg);
 
         AiQuoteSession saved = sessionRepository.save(session);
@@ -117,6 +123,34 @@ public class AiQuoteSessionService {
             }
         }
 
+        // Check daily per-user query limit (50 questions/day)
+        if (auditLogRepository != null && user != null) {
+            java.time.LocalDate today = java.time.LocalDate.now();
+            long todayQueries = auditLogRepository.countByUsernameAndActionAndCreatedAtGreaterThanEqual(
+                    user.getUsername(), "AI_ASSISTANT_QUERY", today.atStartOfDay());
+            if (todayQueries >= 50) {
+                AiQuoteMessage limitMsg = new AiQuoteMessage();
+                limitMsg.setSession(session);
+                limitMsg.setSender("ASSISTANT");
+                limitMsg.setContent("You have reached your daily limit of 50 questions for the InvoiceHub Assistant. Please try again tomorrow. / Anda telah mencapai batas harian 50 pertanyaan untuk Asisten InvoiceHub. Silakan coba lagi besok.");
+                session.getMessages().add(limitMsg);
+                sessionRepository.save(session);
+
+                AiChatMessageDto limitDto = toMessageDto(limitMsg);
+                limitDto.setCards(Collections.emptyList());
+                return limitDto;
+            }
+        }
+
+        // Log Question in Audit Log
+        if (auditLogService != null && user != null) {
+            String roleName = user.getRoles() != null
+                    ? user.getRoles().stream().map(r -> r.getName()).collect(Collectors.joining(","))
+                    : "ROLE_USER";
+            auditLogService.log(user.getUsername(), roleName, "AI_ASSISTANT_QUERY", "AI_ASSISTANT", sessionId, null,
+                    "Query: " + (textContent != null ? (textContent.length() > 250 ? textContent.substring(0, 250) : textContent) : ""));
+        }
+
         // Save User Message
         AiQuoteMessage userMsg = new AiQuoteMessage();
         userMsg.setSession(session);
@@ -143,9 +177,19 @@ public class AiQuoteSessionService {
             historyList.add(hm);
         }
 
-        // Process with AI Chat Service
+        // Process with AI Chat Service (with logged-in user context)
         AiQuoteChatService.ChatAnalysisResult analysis = chatService.processChatMessage(
-                textContent, attachedText, currentQuoteState, historyList);
+                textContent, attachedText, currentQuoteState, historyList, user);
+
+        // Log any tools called in Audit Log
+        if (auditLogService != null && user != null && analysis.toolsCalled != null) {
+            String roleName = user.getRoles() != null
+                    ? user.getRoles().stream().map(r -> r.getName()).collect(Collectors.joining(","))
+                    : "ROLE_USER";
+            for (String tool : analysis.toolsCalled) {
+                auditLogService.log(user.getUsername(), roleName, "AI_ASSISTANT_TOOL_CALL", "AI_TOOL", sessionId, null, "Tool: " + tool);
+            }
+        }
 
         // Perform deterministic financial calculations in Java
         AiQuotationEditDto updatedQuote = analysis.updatedQuoteData;
@@ -174,12 +218,16 @@ public class AiQuoteSessionService {
         assistantMsg.setSession(session);
         assistantMsg.setSender("ASSISTANT");
         assistantMsg.setContent(analysis.replyMessage);
+        if (analysis.cards != null && !analysis.cards.isEmpty()) {
+            assistantMsg.setCardsJson(gson.toJson(analysis.cards));
+        }
         session.getMessages().add(assistantMsg);
 
         sessionRepository.save(session);
 
         // Build Response DTO
         AiChatMessageDto responseDto = toMessageDto(assistantMsg);
+        responseDto.setCards(analysis.cards);
         responseDto.setQuoteData(updatedQuote);
         responseDto.setMissingFields(analysis.missingFields);
         responseDto.setQuoteComplete(analysis.quoteComplete);
@@ -401,6 +449,14 @@ public class AiQuoteSessionService {
         dto.setContent(msg.getContent());
         dto.setAttachmentUrl(msg.getAttachmentUrl());
         dto.setAttachmentFilename(msg.getAttachmentFilename());
+        if (msg.getCardsJson() != null && !msg.getCardsJson().isBlank()) {
+            try {
+                java.lang.reflect.Type cardListType = new com.google.gson.reflect.TypeToken<List<Map<String, Object>>>(){}.getType();
+                dto.setCards(gson.fromJson(msg.getCardsJson(), cardListType));
+            } catch (Exception e) {
+                logger.warn("Failed to parse cardsJson: {}", e.getMessage());
+            }
+        }
         if (msg.getCreatedAt() != null) {
             dto.setCreatedAt(msg.getCreatedAt().format(DateTimeFormatter.ofPattern("HH:mm")));
         }
