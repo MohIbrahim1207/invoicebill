@@ -26,7 +26,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Collections;
+import java.util.stream.Collectors;
 
 @Service
 public class VendorTicketService {
@@ -198,28 +201,20 @@ public class VendorTicketService {
         auditLogService.log("Ticket Creation", "VendorTicket", saved.getId(), null, saved.getTicketNo());
         vendorTicketHistoryRepository
                 .save(new VendorTicketHistory(saved, TicketStatus.OPEN, LocalDateTime.now(), "Ticket submitted"));
+        // Create Invoice record atomically in the same transaction: either both ticket and invoice are saved or neither
         try {
-            if (saved.getInvoiceFileUrl() != null && !saved.getInvoiceFileUrl().isBlank()) {
-                Invoice inv = new Invoice();
-                inv.setFileName(saved.getInvoiceFileName());
-                inv.setFileUrl(saved.getInvoiceFileUrl());
-                inv.setInvoiceNumber(saved.getInvoiceNo());
-                inv.setInvoiceDate(saved.getInvoiceDate());
-                java.math.BigDecimal billingAmount = saved.getTotal() != null ? saved.getTotal()
-                        : (saved.getSubtotal() == null ? java.math.BigDecimal.ZERO : saved.getSubtotal())
-                                .add(saved.getTax() == null ? java.math.BigDecimal.ZERO : saved.getTax());
-
-                inv.setAmount(billingAmount);
-                inv.setClient(saved.getClient());
-                inv.setCurrency(saved.getCurrency());
-                inv.setInvoiceDateRaw(saved.getInvoiceDate() != null ? saved.getInvoiceDate().toString() : null);
-                Invoice savedInvoice = invoiceRepository.save(inv);
-                saved.setInvoice(savedInvoice);
-                vendorTicketRepository.save(saved);
-                log.info("Created Invoice record {} and linked to ticket {}", savedInvoice.getId(), saved.getTicketNo());
+            Invoice savedInvoice = createInvoiceForTicket(saved);
+            if (savedInvoice == null || savedInvoice.getId() == null) {
+                throw new IllegalStateException("Failed to generate invoice record");
             }
         } catch (Exception ex) {
-            log.warn("Failed to create Invoice record for ticket {}: {}", saved.getTicketNo(), ex.getMessage(), ex);
+            log.error("Failed to create Invoice record for ticket {}. Transaction will rollback: {}",
+                    saved.getTicketNo(), ex.getMessage(), ex);
+            boolean isId = isIndonesianLocale();
+            String errorMsg = isId
+                    ? "Gagal membuat data tagihan terkait untuk tiket " + saved.getTicketNo() + ". Tiket dibatalkan dan belum tersimpan. Silakan coba lagi."
+                    : "Failed to create linked billing invoice for ticket " + saved.getTicketNo() + ". Ticket submission was rolled back. Please try again.";
+            throw new IllegalStateException(errorMsg, ex);
         }
         state.setTicketNo(saved.getTicketNo());
         String recipientEmail = saved.getVendor() != null ? saved.getVendor().getEmail() : null;
@@ -666,5 +661,130 @@ public class VendorTicketService {
                 inv.setPoNumber(poMap.get(inv.getInvoiceNumber()));
             }
         }
+    }
+
+    @Transactional
+    public Invoice createInvoiceForTicket(VendorTicket ticket) {
+        if (ticket == null) {
+            throw new IllegalArgumentException("Ticket cannot be null");
+        }
+        if (ticket.getInvoice() != null) {
+            return ticket.getInvoice();
+        }
+        Invoice inv = new Invoice();
+        inv.setFileName(ticket.getInvoiceFileName());
+        inv.setFileUrl(ticket.getInvoiceFileUrl());
+        inv.setInvoiceNumber(ticket.getInvoiceNo());
+        inv.setInvoiceDate(ticket.getInvoiceDate());
+        java.math.BigDecimal billingAmount = ticket.getTotal() != null ? ticket.getTotal()
+                : (ticket.getSubtotal() == null ? java.math.BigDecimal.ZERO : ticket.getSubtotal())
+                        .add(ticket.getTax() == null ? java.math.BigDecimal.ZERO : ticket.getTax());
+
+        inv.setAmount(billingAmount);
+        inv.setClient(ticket.getClient());
+        inv.setCurrency(ticket.getCurrency() != null ? ticket.getCurrency() : "IDR");
+        inv.setInvoiceDateRaw(ticket.getInvoiceDate() != null ? ticket.getInvoiceDate().toString() : null);
+        inv.setStatus("Pending");
+        Invoice savedInvoice = invoiceRepository.save(inv);
+        ticket.setInvoice(savedInvoice);
+        vendorTicketRepository.save(ticket);
+        log.info("Created Invoice record {} and linked to ticket {}", savedInvoice.getId(), ticket.getTicketNo());
+        return savedInvoice;
+    }
+
+    @Transactional
+    public Invoice createAndLinkInvoiceFromTicket(Long ticketId, String adminUsername) {
+        VendorTicket ticket = vendorTicketRepository.findById(ticketId)
+                .orElseThrow(() -> new IllegalArgumentException("Ticket not found with id: " + ticketId));
+        if (ticket.getInvoice() != null) {
+            return ticket.getInvoice();
+        }
+        Invoice savedInvoice = createInvoiceForTicket(ticket);
+        auditLogService.log(
+                adminUsername,
+                "ADMIN",
+                "INVOICE_CREATED_FROM_TICKET",
+                "VendorTicket",
+                ticket.getId(),
+                null,
+                "Created and linked new Invoice ID " + savedInvoice.getId() + " (" + savedInvoice.getInvoiceNumber() + ") for ticket " + ticket.getTicketNo()
+        );
+        log.info("Admin {} created invoice {} from ticket {}", adminUsername, savedInvoice.getId(), ticket.getTicketNo());
+        return savedInvoice;
+    }
+
+    @Transactional
+    public void linkTicketToInvoice(Long ticketId, Long invoiceId, String adminUsername) {
+        VendorTicket ticket = vendorTicketRepository.findById(ticketId)
+                .orElseThrow(() -> new IllegalArgumentException("Ticket not found with id: " + ticketId));
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new IllegalArgumentException("Invoice not found with id: " + invoiceId));
+
+        ticket.setInvoice(invoice);
+        vendorTicketRepository.save(ticket);
+
+        auditLogService.log(
+                adminUsername,
+                "ADMIN",
+                "INVOICE_MANUALLY_LINKED",
+                "VendorTicket",
+                ticket.getId(),
+                null,
+                "Manually linked ticket " + ticket.getTicketNo() + " to existing Invoice ID " + invoice.getId() + " (" + invoice.getInvoiceNumber() + ")"
+        );
+        log.info("Admin {} manually linked ticket {} to existing invoice {}", adminUsername, ticket.getTicketNo(), invoice.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<Invoice> findCandidateInvoicesForTicket(VendorTicket ticket) {
+        if (ticket == null || ticket.getInvoiceNo() == null || ticket.getInvoiceNo().isBlank()) {
+            return Collections.emptyList();
+        }
+        Long ownerId = ticket.getVendor() != null ? ticket.getVendor().getId()
+                : (ticket.getOwner() != null ? ticket.getOwner().getId() : null);
+        Long clientId = ticket.getClient() != null ? ticket.getClient().getId() : null;
+        List<Invoice> candidates = invoiceRepository.findCandidateInvoicesForVendor(ticket.getInvoiceNo(), ownerId, clientId);
+        if (ticket.getInvoice() != null) {
+            Long linkedInvoiceId = ticket.getInvoice().getId();
+            candidates = candidates.stream()
+                    .filter(i -> !i.getId().equals(linkedInvoiceId))
+                    .collect(Collectors.toList());
+        }
+        return candidates;
+    }
+
+    public String calculateTaxWarningHint(VendorTicket ticket) {
+        if (ticket == null) {
+            return null;
+        }
+        BigDecimal tax = ticket.getTax();
+        BigDecimal subtotal = ticket.getSubtotal() != null ? ticket.getSubtotal() : ticket.getAmount();
+
+        if (tax == null || subtotal == null || tax.compareTo(BigDecimal.ZERO) <= 0 || subtotal.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+
+        double rate = (tax.doubleValue() / subtotal.doubleValue()) * 100.0;
+        boolean isCloseTo1_1 = Math.abs(rate - 1.1) <= 0.15;
+        boolean isCloseTo11 = Math.abs(rate - 11.0) <= 0.25;
+        boolean isCloseTo12 = Math.abs(rate - 12.0) <= 0.25;
+
+        if (isCloseTo1_1 || isCloseTo11 || isCloseTo12) {
+            return null;
+        }
+
+        boolean isId = isIndonesianLocale();
+        String formattedRate = String.format(Locale.US, "%.2f%%", rate);
+        if (isId) {
+            formattedRate = formattedRate.replace('.', ',');
+            return "Pemberitahuan Pajak: Besaran pajak (" + formattedRate + ") berbeda dari tarif PPN standar Indonesia (1,1%, 11%, 12%). Harap periksa fisik faktur/tagihan.";
+        } else {
+            return "Tax Notice: Tax amount (" + formattedRate + ") differs from standard Indonesian PPN rates (1.1%, 11%, 12%). Please verify with the invoice.";
+        }
+    }
+
+    private boolean isIndonesianLocale() {
+        Locale locale = LocaleContextHolder.getLocale();
+        return locale != null && "id".equalsIgnoreCase(locale.getLanguage());
     }
 }

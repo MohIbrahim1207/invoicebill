@@ -1,5 +1,26 @@
 [
   {
+    "version": "1.6.2",
+    "date": "2026-11-05",
+    "audience": "ALL",
+    "title": {
+      "en": "Invoice fixes",
+      "id": "Perbaikan tagihan"
+    },
+    "notes": {
+      "en": [
+        "Atomic invoice and ticket creation: ensures vendor tickets and billing records are always created together without desynchronization.",
+        "Admin invoice sync tools: SUPER_ADMIN and ACCOUNTS can now generate missing invoices or manually link tickets to existing invoices.",
+        "Indonesian tax validation: visual tax rate hints on ticket review to verify standard PPN rates (1.1%, 11%, 12%)."
+      ],
+      "id": [
+        "Pembuatan tiket dan tagihan atomik: memastikan tiket vendor dan tagihan billing selalu dibuat bersama tanpa risiko gagal sebagian.",
+        "Alat sinkronisasi tagihan admin: SUPER_ADMIN dan ACCOUNTS kini dapat membuat tagihan yang belum tersimpan atau menautkannya ke tagihan yang ada.",
+        "Pemberitahuan pajak Indonesia: panduan visual tarif pajak saat peninjauan tiket untuk memverifikasi tarif PPN standar (1,1%, 11%, 12%)."
+      ]
+    }
+  },
+  {
     "version": "1.6.1",
     "date": "2026-11-05",
     "audience": "ALL",
