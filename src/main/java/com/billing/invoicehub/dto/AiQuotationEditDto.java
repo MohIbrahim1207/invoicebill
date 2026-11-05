@@ -14,7 +14,7 @@ public class AiQuotationEditDto {
     private String machineModel;
     private String capacity;
     private String technicalSpecifications;
-    private String currency = "USD";
+    private String currency = "IDR";
     private BigDecimal subtotal;
     private BigDecimal discount;
     private BigDecimal tax;
@@ -43,6 +43,22 @@ public class AiQuotationEditDto {
     private List<LineItem> lineItems;
     private List<OptionalItem> optionalItems;
     private String productImageBase64;
+
+    /**
+     * Determines whether this DTO contains genuine quotation data (items, supplier/customer, amounts)
+     * as opposed to a default empty or unpopulated state.
+     */
+    public boolean hasRealQuoteData() {
+        boolean hasSupplier = supplierName != null && !supplierName.isBlank()
+                && !"N/A".equalsIgnoreCase(supplierName.trim())
+                && !"PT. Flow Force Indonesia".equalsIgnoreCase(supplierName.trim());
+        boolean hasCustomer = customerName != null && !customerName.isBlank()
+                && !"Not Specified".equalsIgnoreCase(customerName.trim());
+        boolean hasItems = lineItems != null && !lineItems.isEmpty();
+        boolean hasAmount = (totalAmount != null && totalAmount.compareTo(BigDecimal.ZERO) > 0)
+                || (subtotal != null && subtotal.compareTo(BigDecimal.ZERO) > 0);
+        return (hasSupplier && hasCustomer) || hasItems || hasAmount;
+    }
 
     // --- New fields for faithful document reconstruction ---
     /** Full cover letter body paragraphs, extracted verbatim from the vendor's letter (seller voice neutralized). */

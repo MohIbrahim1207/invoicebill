@@ -55,13 +55,31 @@ public class InvoiceHubAiToolService {
     }
 
     public boolean isStaff(AppUser user) {
-        if (user == null || user.getRoles() == null) {
+        if (user == null) {
             return false;
         }
-        return user.getRoles().stream().anyMatch(r ->
-                "ROLE_ADMIN".equals(r.getName())
-                        || "ROLE_SUPER_ADMIN".equals(r.getName())
-                        || "ROLE_ACCOUNTS".equals(r.getName()));
+        if ("INTERNAL".equalsIgnoreCase(user.getUserDomain())) {
+            return true;
+        }
+        if (user.getRoles() != null) {
+            try {
+                boolean hasStaffRole = user.getRoles().stream().anyMatch(r ->
+                        "ROLE_ADMIN".equals(r.getName())
+                                || "ROLE_SUPER_ADMIN".equals(r.getName())
+                                || "ROLE_ACCOUNTS".equals(r.getName()));
+                if (hasStaffRole) return true;
+            } catch (Exception ignored) {}
+        }
+        if (user.getId() != null) {
+            return userRepository.findById(user.getId()).map(u -> {
+                if ("INTERNAL".equalsIgnoreCase(u.getUserDomain())) return true;
+                return u.getRoles() != null && u.getRoles().stream().anyMatch(r ->
+                        "ROLE_ADMIN".equals(r.getName())
+                                || "ROLE_SUPER_ADMIN".equals(r.getName())
+                                || "ROLE_ACCOUNTS".equals(r.getName()));
+            }).orElse(false);
+        }
+        return false;
     }
 
     /**
@@ -101,21 +119,45 @@ public class InvoiceHubAiToolService {
                 }
             }
 
-            matchedTickets = vendorTicketRepository.searchTicketsAdvanced(
-                    fromDate, toDate, ticketStatus, filterVendorId, null, null, null);
+            if (ticketStatus == null) {
+                // Smart default: latest open/pending tickets first; if none, latest tickets of any status
+                List<VendorTicket> openTickets = vendorTicketRepository.searchTicketsAdvanced(
+                        fromDate, toDate, TicketStatus.OPEN, filterVendorId, null, null, null);
+                if (!openTickets.isEmpty()) {
+                    matchedTickets = openTickets;
+                } else {
+                    matchedTickets = vendorTicketRepository.searchTicketsAdvanced(
+                            fromDate, toDate, null, filterVendorId, null, null, null);
+                }
+            } else {
+                matchedTickets = vendorTicketRepository.searchTicketsAdvanced(
+                        fromDate, toDate, ticketStatus, filterVendorId, null, null, null);
+            }
         } else {
             // Strictly isolate to currentUser's own tickets (ignore any requested vendor)
             Long vendorId = currentUser.getId();
-            matchedTickets = vendorTicketRepository.searchTicketsAdvanced(
-                    fromDate, toDate, ticketStatus, vendorId, null, null, null);
+            if (ticketStatus == null) {
+                List<VendorTicket> openTickets = vendorTicketRepository.searchTicketsAdvanced(
+                        fromDate, toDate, TicketStatus.OPEN, vendorId, null, null, null);
+                if (!openTickets.isEmpty()) {
+                    matchedTickets = openTickets;
+                } else {
+                    matchedTickets = vendorTicketRepository.searchTicketsAdvanced(
+                            fromDate, toDate, null, vendorId, null, null, null);
+                }
+            } else {
+                matchedTickets = vendorTicketRepository.searchTicketsAdvanced(
+                        fromDate, toDate, ticketStatus, vendorId, null, null, null);
+            }
         }
 
         List<Map<String, Object>> sanitizedList = new ArrayList<>();
         int count = 0;
         for (VendorTicket t : matchedTickets) {
-            if (count++ >= 15) break; // Limit response size for chat display
+            if (count++ >= 10) break; // Smart default: latest 10 tickets for chat display
 
             Map<String, Object> item = new LinkedHashMap<>();
+            item.put("found", true);
             item.put("ticketNumber", t.getTicketNo());
             item.put("invoiceNumber", t.getInvoiceNo());
             item.put("vendorName", t.getVendor() != null ? t.getVendor().getCompanyName() : "N/A");
@@ -144,20 +186,32 @@ public class InvoiceHubAiToolService {
         if (currentUser == null) {
             return Map.of("found", false, "message", "Authentication required to view ticket details.");
         }
-        if (ticketNumber == null || ticketNumber.isBlank()) {
-            return Map.of("found", false, "message", "Ticket number is required.");
-        }
 
-        String search = ticketNumber.trim();
-        Optional<VendorTicket> ticketOpt = vendorTicketRepository.findFirstByTicketNoIgnoreCase(search);
-        if (ticketOpt.isEmpty()) {
-            List<VendorTicket> byInvoice = vendorTicketRepository.findByInvoiceNoIgnoreCase(search);
-            if (!byInvoice.isEmpty()) {
-                ticketOpt = Optional.of(byInvoice.get(0));
+        boolean staff = isStaff(currentUser);
+        String search = (ticketNumber != null) ? ticketNumber.trim() : "";
+        Optional<VendorTicket> ticketOpt;
+
+        if (search.isBlank()) {
+            // Smart default: latest ticket for current user
+            List<VendorTicket> latest = staff
+                    ? vendorTicketRepository.searchTicketsAdvanced(null, null, null, null, null, null, null)
+                    : vendorTicketRepository.searchTicketsAdvanced(null, null, null, currentUser.getId(), null, null, null);
+            if (latest.isEmpty()) {
+                return Map.of("found", false, "message", "No tickets found for current account.");
             }
-        }
-        if (ticketOpt.isEmpty() && search.matches("\\d+")) {
-            ticketOpt = vendorTicketRepository.findById(Long.parseLong(search));
+            ticketOpt = Optional.of(latest.get(0));
+            search = ticketOpt.get().getTicketNo();
+        } else {
+            ticketOpt = vendorTicketRepository.findFirstByTicketNoIgnoreCase(search);
+            if (ticketOpt.isEmpty()) {
+                List<VendorTicket> byInvoice = vendorTicketRepository.findByInvoiceNoIgnoreCase(search);
+                if (!byInvoice.isEmpty()) {
+                    ticketOpt = Optional.of(byInvoice.get(0));
+                }
+            }
+            if (ticketOpt.isEmpty() && search.matches("\\d+")) {
+                ticketOpt = vendorTicketRepository.findById(Long.parseLong(search));
+            }
         }
 
         if (ticketOpt.isEmpty()) {
@@ -165,7 +219,6 @@ public class InvoiceHubAiToolService {
         }
 
         VendorTicket ticket = ticketOpt.get();
-        boolean staff = isStaff(currentUser);
 
         // Security Check: Non-staff can ONLY see their own tickets
         if (!staff) {
@@ -201,14 +254,28 @@ public class InvoiceHubAiToolService {
         if (currentUser == null) {
             return Map.of("found", false, "message", "Authentication required to view invoice status.");
         }
-        if (invoiceNumber == null || invoiceNumber.isBlank()) {
-            return Map.of("found", false, "message", "Invoice number is required.");
-        }
 
-        String search = invoiceNumber.trim();
-        Optional<Invoice> invoiceOpt = invoiceRepository.findFirstByInvoiceNumberIgnoreCaseOrderByIdDesc(search);
-        if (invoiceOpt.isEmpty() && search.matches("\\d+")) {
-            invoiceOpt = invoiceRepository.findById(Long.parseLong(search));
+        boolean staff = isStaff(currentUser);
+        String search = (invoiceNumber != null) ? invoiceNumber.trim() : "";
+        Optional<Invoice> invoiceOpt;
+
+        if (search.isBlank()) {
+            // Smart default: invoice from latest ticket
+            List<VendorTicket> latestTickets = staff
+                    ? vendorTicketRepository.searchTicketsAdvanced(null, null, null, null, null, null, null)
+                    : vendorTicketRepository.searchTicketsAdvanced(null, null, null, currentUser.getId(), null, null, null);
+            Optional<VendorTicket> withInvoice = latestTickets.stream().filter(t -> t.getInvoice() != null).findFirst();
+            if (withInvoice.isPresent()) {
+                invoiceOpt = Optional.of(withInvoice.get().getInvoice());
+                search = invoiceOpt.get().getInvoiceNumber();
+            } else {
+                return Map.of("found", false, "message", "No invoices found for current account.");
+            }
+        } else {
+            invoiceOpt = invoiceRepository.findFirstByInvoiceNumberIgnoreCaseOrderByIdDesc(search);
+            if (invoiceOpt.isEmpty() && search.matches("\\d+")) {
+                invoiceOpt = invoiceRepository.findById(Long.parseLong(search));
+            }
         }
 
         if (invoiceOpt.isEmpty()) {
@@ -216,7 +283,6 @@ public class InvoiceHubAiToolService {
         }
 
         Invoice invoice = invoiceOpt.get();
-        boolean staff = isStaff(currentUser);
 
         // Security Check: Non-staff can ONLY see invoices they own or linked to their ticket
         if (!staff) {
@@ -255,12 +321,17 @@ public class InvoiceHubAiToolService {
         if (currentUser == null) {
             return Map.of("found", false, "message", "Authentication required to view vendor details.");
         }
-        if (nameOrCode == null || nameOrCode.isBlank()) {
-            return Map.of("found", false, "message", "Vendor name or code is required.");
-        }
 
-        String search = nameOrCode.trim();
         boolean staff = isStaff(currentUser);
+        String search = (nameOrCode != null) ? nameOrCode.trim() : "";
+
+        if (search.isBlank()) {
+            if (!staff) {
+                // Smart default: current vendor's profile
+                return sanitizeVendorInfo(currentUser, false);
+            }
+            return Map.of("found", false, "message", "Please specify a vendor name or vendor code.");
+        }
 
         if (!staff) {
             // Non-staff vendors may ONLY query their own company

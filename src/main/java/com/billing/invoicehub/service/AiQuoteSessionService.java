@@ -191,27 +191,29 @@ public class AiQuoteSessionService {
             }
         }
 
-        // Perform deterministic financial calculations in Java
+        // Only run quotation pipeline and show quotation preview when actually creating a quote AND there is real data
         AiQuotationEditDto updatedQuote = analysis.updatedQuoteData;
-        recalculateTotals(updatedQuote);
+        boolean isQuoteIntent = (analysis.intent == AiQuoteChatService.MessageIntent.QUOTATION)
+                && updatedQuote != null
+                && updatedQuote.hasRealQuoteData();
 
-        // Backend Customer Completeness Validation
-        processCustomerState(textContent, updatedQuote, analysis);
+        if (isQuoteIntent) {
+            recalculateTotals(updatedQuote);
+            processCustomerState(textContent, updatedQuote, analysis);
 
-        // Update session title dynamically if supplier or product is detected
-        if (updatedQuote.getSupplierName() != null && !updatedQuote.getSupplierName().isBlank()) {
-            session.setTitle(updatedQuote.getSupplierName() + " Quote");
-        } else if (updatedQuote.getMachineName() != null && !updatedQuote.getMachineName().isBlank()) {
-            session.setTitle(updatedQuote.getMachineName());
+            if (updatedQuote.getSupplierName() != null && !updatedQuote.getSupplierName().isBlank()) {
+                session.setTitle(updatedQuote.getSupplierName() + " Quote");
+            } else if (updatedQuote.getMachineName() != null && !updatedQuote.getMachineName().isBlank()) {
+                session.setTitle(updatedQuote.getMachineName());
+            }
+
+            if (analysis.quoteComplete) {
+                session.setStatus("READY");
+            } else {
+                session.setStatus("ANALYZING");
+            }
+            session.setStructuredQuoteJson(gson.toJson(updatedQuote));
         }
-
-        // Update session status & state
-        if (analysis.quoteComplete) {
-            session.setStatus("READY");
-        } else {
-            session.setStatus("ANALYZING");
-        }
-        session.setStructuredQuoteJson(gson.toJson(updatedQuote));
 
         // Save Assistant Message
         AiQuoteMessage assistantMsg = new AiQuoteMessage();
@@ -228,9 +230,15 @@ public class AiQuoteSessionService {
         // Build Response DTO
         AiChatMessageDto responseDto = toMessageDto(assistantMsg);
         responseDto.setCards(analysis.cards);
-        responseDto.setQuoteData(updatedQuote);
-        responseDto.setMissingFields(analysis.missingFields);
-        responseDto.setQuoteComplete(analysis.quoteComplete);
+        if (isQuoteIntent) {
+            responseDto.setQuoteData(updatedQuote);
+            responseDto.setMissingFields(analysis.missingFields);
+            responseDto.setQuoteComplete(analysis.quoteComplete);
+        } else {
+            responseDto.setQuoteData(null);
+            responseDto.setMissingFields(Collections.emptyList());
+            responseDto.setQuoteComplete(false);
+        }
         return responseDto;
     }
 
@@ -383,7 +391,7 @@ public class AiQuoteSessionService {
         }
 
         if (analysis.missingFields != null && analysis.missingFields.isEmpty()) {
-            analysis.quoteComplete = true;
+            analysis.quoteComplete = dto.hasRealQuoteData();
         }
     }
 

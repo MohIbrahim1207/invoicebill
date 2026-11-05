@@ -393,7 +393,7 @@
                             <button type="button" class="btn btn-light btn-sm rounded-circle" onclick="document.getElementById('fileInput').click()" title="Attach Document">
                                 <i class="bi bi-paperclip fs-5 text-secondary"></i>
                             </button>
-                            <textarea id="chatInput" rows="1" placeholder="Describe the quotation, paste details, or ask questions..." onkeydown="handleKeyDown(event)"></textarea>
+                            <textarea id="chatInput" rows="1" th:placeholder="#{ai.assistant.input.placeholder}" placeholder="Ask about tickets, invoices, vendors, or create a quote…" onkeydown="handleKeyDown(event)"></textarea>
                             <button type="button" id="btnSend" class="btn btn-primary rounded-3 px-3" onclick="sendChatMessage()">
                                 <i class="bi bi-send-fill"></i>
                             </button>
@@ -567,6 +567,15 @@
             }
         }
 
+        function hasRealQuoteData(data) {
+            if (!data) return false;
+            const hasSupplier = !!(data.supplierName && data.supplierName.trim() && data.supplierName !== 'N/A' && data.supplierName !== 'PT. Flow Force Indonesia');
+            const hasCustomer = !!(data.customerName && data.customerName.trim() && data.customerName !== 'Not Specified');
+            const hasItems = Array.isArray(data.lineItems) && data.lineItems.length > 0;
+            const hasAmount = (parseFloat(data.totalAmount) || 0) > 0 || (parseFloat(data.subtotal) || 0) > 0;
+            return (hasSupplier && hasCustomer) || hasItems || hasAmount;
+        }
+
         function reloadActiveSession() {
             if (currentSessionId) selectSession(currentSessionId);
             else loadSessions();
@@ -583,17 +592,20 @@
                 emptyClone.className = 'empty-state';
                 emptyClone.innerHTML = `
                     <div class="empty-state-icon"><i class="bi bi-robot"></i></div>
-                    <h4 class="fw-bold">AI Quote Assistant</h4>
-                    <p class="text-muted">Turn supplier quotations into Flow Force quotations through natural conversation.</p>
+                    <h4 class="fw-bold">[[#{ai.converter.title}]]</h4>
+                    <p class="text-muted">[[#{ai.assistant.subtitle}]]</p>
                     <div class="mt-4">
-                        <div class="prompt-card" onclick="usePrompt('Convert a rotary valve quote from DMN for ABC Industries')">
-                            <i class="bi bi-chat-quote text-primary me-2"></i> Convert a rotary valve quote from DMN
+                        <div class="prompt-card" onclick="usePrompt('tickets?')">
+                            <i class="bi bi-ticket-perforated text-primary me-2"></i> [[#{ai.assistant.prompt.tickets}]]
                         </div>
-                        <div class="prompt-card" onclick="usePrompt('Not specified')">
-                            <i class="bi bi-person-x text-primary me-2"></i> Set customer as &quot;Not Specified&quot;
+                        <div class="prompt-card" onclick="usePrompt('summary')">
+                            <i class="bi bi-speedometer2 text-primary me-2"></i> [[#{ai.assistant.prompt.summary}]]
+                        </div>
+                        <div class="prompt-card" onclick="usePrompt('make a quote for PT ABC, 2 pumps at Rp 5.000.000')">
+                            <i class="bi bi-chat-quote text-primary me-2"></i> [[#{ai.assistant.prompt.quote}]]
                         </div>
                         <div class="prompt-card" onclick="document.getElementById('fileInput').click()">
-                            <i class="bi bi-paperclip text-primary me-2"></i> Upload a supplier PDF quotation
+                            <i class="bi bi-paperclip text-primary me-2"></i> [[#{ai.assistant.prompt.upload}]]
                         </div>
                     </div>
                 `;
@@ -603,8 +615,8 @@
 
             session.messages.forEach(msg => appendMessage(msg));
 
-            // If structured quote exists and is ready, render review card at the bottom
-            if (session.structuredQuoteData && (session.status === 'READY' || session.status === 'GENERATED')) {
+            // If structured quote exists and is ready, render review card at the bottom ONLY if it has real quote data
+            if (session.structuredQuoteData && (session.status === 'READY' || session.status === 'GENERATED') && hasRealQuoteData(session.structuredQuoteData)) {
                 renderReviewCard(session.structuredQuoteData, session.status, session.generatedPdfUrl, session.generatedPdfFilename, session.generatedDocxUrl, session.generatedDocxFilename);
             }
 
@@ -730,13 +742,13 @@
                     <span class="badge bg-primary">${status}</span>
                 </div>
                 <div class="row g-2 small">
-                    <div class="col-md-6"><strong>Supplier:</strong> ${escapeHtml(data.supplierName || 'N/A')}</div>
+                    <div class="col-md-6"><strong>Supplier:</strong> ${escapeHtml(data.supplierName || 'PT. Flow Force Indonesia')}</div>
                     <div class="col-md-6"><strong>Customer:</strong> ${escapeHtml(data.customerName || 'Not Specified')}</div>
                     <div class="col-md-6"><strong>Quotation #:</strong> ${escapeHtml(data.quotationNumber || 'Auto-generated')}</div>
-                    <div class="col-md-6"><strong>Currency:</strong> ${escapeHtml(data.currency || 'USD')}</div>
+                    <div class="col-md-6"><strong>Currency:</strong> ${escapeHtml(data.currency || 'IDR')}</div>
                     <div class="col-12 mt-2"><strong>Line Items:</strong><ul>${lineItemsMarkup}</ul></div>
-                    <div class="col-md-6"><strong>Subtotal:</strong> ${data.currency || '$'} ${data.subtotal || '0.00'}</div>
-                    <div class="col-md-6"><strong>Total Amount:</strong> <strong>${data.currency || '$'} ${data.totalAmount || '0.00'}</strong></div>
+                    <div class="col-md-6"><strong>Subtotal:</strong> ${data.currency || 'Rp'} ${data.subtotal || '0'}</div>
+                    <div class="col-md-6"><strong>Total Amount:</strong> <strong>${data.currency || 'Rp'} ${data.totalAmount || '0'}</strong></div>
                     <div class="col-md-6"><strong>Delivery:</strong> ${escapeHtml(data.deliveryTime || 'N/A')}</div>
                     <div class="col-md-6"><strong>Payment Terms:</strong> ${escapeHtml(data.paymentTerms || 'N/A')}</div>
                 </div>
@@ -800,7 +812,7 @@
                 if (res.ok) {
                     const aiMsg = await res.json();
                     appendMessage(aiMsg);
-                    if (aiMsg.quoteData) {
+                    if (aiMsg.quoteData && hasRealQuoteData(aiMsg.quoteData)) {
                         selectSession(currentSessionId); // refresh state and review card
                     }
                 } else {
