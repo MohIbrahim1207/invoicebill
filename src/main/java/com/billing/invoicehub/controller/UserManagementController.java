@@ -61,12 +61,14 @@ public class UserManagementController {
 
         long accountsCount = allUsers.stream().filter(u -> u.getRoles().stream().anyMatch(r -> "ROLE_ACCOUNTS".equalsIgnoreCase(r.getName()))).count();
         long adminCount = allUsers.stream().filter(u -> u.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equalsIgnoreCase(r.getName()) || "ROLE_SUPER_ADMIN".equalsIgnoreCase(r.getName()))).count();
+        long superAdminCount = allUsers.stream().filter(u -> u.getRoles().stream().anyMatch(r -> "ROLE_SUPER_ADMIN".equalsIgnoreCase(r.getName()))).count();
 
         model.addAttribute("isSuperAdmin", isSuperAdmin);
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("allUsers", allUsers);
         model.addAttribute("accountsCount", accountsCount);
         model.addAttribute("adminCount", adminCount);
+        model.addAttribute("superAdminCount", superAdminCount);
         return "admin/users-add";
     }
 

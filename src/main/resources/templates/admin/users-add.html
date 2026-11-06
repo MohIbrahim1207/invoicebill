@@ -276,7 +276,6 @@
                                     <span class="input-group-text"><i class="bi bi-shield-check text-muted"></i></span>
                                     <select name="role" class="form-select" required>
                                         <option value="ROLE_ACCOUNTS" selected>Accounts</option>
-                                        <option value="ROLE_VENDOR">Vendor</option>
                                         <option th:if="${isSuperAdmin}" value="ROLE_ADMIN">Admin</option>
                                         <option th:if="${isSuperAdmin}" value="ROLE_SUPER_ADMIN">Super Admin</option>
                                     </select>
@@ -465,7 +464,6 @@
                         <label class="form-label fw-semibold small text-secondary">Role Assignment <span class="text-danger">*</span></label>
                         <select id="editRole" class="form-select form-select-sm" required>
                             <option value="ROLE_ACCOUNTS">Accounts</option>
-                            <option value="ROLE_VENDOR">Vendor</option>
                             <option th:if="${isSuperAdmin}" value="ROLE_ADMIN">Admin</option>
                             <option th:if="${isSuperAdmin}" value="ROLE_SUPER_ADMIN">Super Admin</option>
                         </select>

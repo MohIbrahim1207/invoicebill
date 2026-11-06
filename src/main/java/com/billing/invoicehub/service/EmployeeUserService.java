@@ -74,16 +74,14 @@ public class EmployeeUserService {
                 .anyMatch(r -> "ROLE_SUPER_ADMIN".equalsIgnoreCase(r.getName()));
 
         String normalizedRole = requestedRole.startsWith("ROLE_") ? requestedRole : "ROLE_" + requestedRole;
+        if (!Set.of("ROLE_ADMIN", "ROLE_ACCOUNTS", "ROLE_SUPER_ADMIN").contains(normalizedRole)) {
+            throw new IllegalArgumentException("Invalid role for internal user: " + requestedRole);
+        }
 
         if (!isCreatorSuperAdmin && ("ROLE_ADMIN".equalsIgnoreCase(normalizedRole) || "ROLE_SUPER_ADMIN".equalsIgnoreCase(normalizedRole))) {
             log.warn("Unauthorized attempt by user {} to assign restricted role {}", creator != null ? creator.getUsername() : "UNKNOWN", normalizedRole);
             throw new AccessDeniedException("Only Super Admins can assign ADMIN or SUPER_ADMIN roles.");
         }
-
-        if (rawPassword == null || rawPassword.isBlank()) {
-            throw new IllegalArgumentException("Password is required.");
-        }
-        passwordStrengthService.validatePassword(rawPassword, cleanEmail, cleanEmail);
 
         AppRole roleEntity = roleRepository.findFirstByName(normalizedRole)
                 .orElseGet(() -> {
@@ -168,15 +166,25 @@ public class EmployeeUserService {
         }
 
         if (enabled != null) {
+            if (Boolean.FALSE.equals(enabled) && target.isEnabled() && isSuperAdmin(target)) {
+                checkLastActiveSuperAdminProtection(target);
+            }
             target.setEnabled(enabled);
         }
 
         if (requestedRole != null && !requestedRole.isBlank()) {
             String normalizedRole = requestedRole.startsWith("ROLE_") ? requestedRole : "ROLE_" + requestedRole;
+            if (!Set.of("ROLE_ADMIN", "ROLE_ACCOUNTS", "ROLE_SUPER_ADMIN").contains(normalizedRole)) {
+                throw new IllegalArgumentException("Invalid role for internal user: " + requestedRole);
+            }
             boolean alreadyHasRole = target.getRoles().stream()
                     .anyMatch(r -> normalizedRole.equalsIgnoreCase(r.getName()));
 
             if (!alreadyHasRole) {
+                if (isSuperAdmin(target) && !"ROLE_SUPER_ADMIN".equalsIgnoreCase(normalizedRole)) {
+                    checkLastSuperAdminProtection(target, "remove the Super Admin role from this account");
+                }
+
                 boolean isSuperAdmin = actor != null && actor.getRoles().stream()
                         .anyMatch(r -> "ROLE_SUPER_ADMIN".equalsIgnoreCase(r.getName()));
 
@@ -234,6 +242,9 @@ public class EmployeeUserService {
         checkSuperAdminProtection(target, actor, "modify");
 
         boolean newStatus = !target.isEnabled();
+        if (!newStatus && isSuperAdmin(target)) {
+            checkLastActiveSuperAdminProtection(target);
+        }
         target.setEnabled(newStatus);
         userRepository.save(target);
 
@@ -248,6 +259,7 @@ public class EmployeeUserService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
         checkSuperAdminProtection(target, actor, "delete");
+        checkLastSuperAdminProtection(target, "delete this account");
 
         if (actor != null && actor.getId().equals(userId)) {
             throw new IllegalArgumentException("You cannot delete your own account.");
@@ -256,6 +268,33 @@ public class EmployeeUserService {
         userRepository.delete(target);
         String actorUsername = actor != null ? actor.getUsername() : "SYSTEM";
         auditLogService.log(actorUsername, "ADMIN", "USER_DELETED", "AppUser", userId, "DELETED", target.getEmail());
+    }
+
+    private boolean isSuperAdmin(AppUser user) {
+        return user != null && user.getRoles() != null && user.getRoles().stream()
+                .anyMatch(r -> "ROLE_SUPER_ADMIN".equalsIgnoreCase(r.getName()));
+    }
+
+    private void checkLastSuperAdminProtection(AppUser target, String actionDescription) {
+        if (isSuperAdmin(target)) {
+            List<AppUser> superAdmins = userRepository.findByRoles_NameOrderByIdDesc("ROLE_SUPER_ADMIN");
+            long otherSuperAdmins = superAdmins.stream()
+                    .filter(u -> !u.getId().equals(target.getId()))
+                    .count();
+            if (otherSuperAdmins == 0) {
+                throw new IllegalStateException("Cannot " + actionDescription + ": the system must have at least one Super Admin.");
+            }
+        }
+    }
+
+    private void checkLastActiveSuperAdminProtection(AppUser target) {
+        List<AppUser> activeSuperAdmins = userRepository.findByRoleNameAndEnabledTrue("ROLE_SUPER_ADMIN");
+        long otherActive = activeSuperAdmins.stream()
+                .filter(u -> !u.getId().equals(target.getId()))
+                .count();
+        if (otherActive == 0) {
+            throw new IllegalStateException("Cannot disable this account: the system must have at least one active Super Admin.");
+        }
     }
 
     private void checkSuperAdminProtection(AppUser target, AppUser actor, String actionDescription) {
