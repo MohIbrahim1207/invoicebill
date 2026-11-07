@@ -165,6 +165,7 @@ public class InvoiceHubAiToolService {
             item.put("amount", formatCurrency(t.getAmount() != null ? t.getAmount() : t.getTotal(), t.getCurrency()));
             item.put("date", t.getCreatedAt() != null ? t.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) : "N/A");
             item.put("url", staff ? ("/admin/tickets/detail?id=" + t.getId()) : "/vendor-tickets");
+            item.put("documentUrl", "/documents/ticket/" + t.getId() + "/invoice");
             item.put("actionLabel", "Open ticket");
             sanitizedList.add(item);
         }
@@ -243,6 +244,7 @@ public class InvoiceHubAiToolService {
         data.put("date", ticket.getCreatedAt() != null ? ticket.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) : "N/A");
         data.put("notes", ticket.getVendorRemarks() != null ? sanitizeNote(ticket.getVendorRemarks()) : "No notes provided");
         data.put("url", staff ? ("/admin/tickets/detail?id=" + ticket.getId()) : "/vendor-tickets");
+        data.put("documentUrl", "/documents/ticket/" + ticket.getId() + "/invoice");
         data.put("actionLabel", "Open ticket");
         return data;
     }
@@ -310,6 +312,7 @@ public class InvoiceHubAiToolService {
                 : (invoice.getInvoiceDateRaw() != null ? invoice.getInvoiceDateRaw() : "N/A");
         data.put("invoiceDate", dateStr);
         data.put("url", staff ? ("/invoices/" + invoice.getId()) : ("/invoice/view/" + invoice.getId()));
+        data.put("documentUrl", "/documents/invoice/" + invoice.getId());
         data.put("actionLabel", "View invoice");
         return data;
     }

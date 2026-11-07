@@ -25,6 +25,9 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     @Query("SELECT i FROM Invoice i LEFT JOIN FETCH i.client c LEFT JOIN FETCH c.owner WHERE c.owner.id = :ownerId ORDER BY i.id DESC")
     List<Invoice> findByClientOwnerIdWithClientOrderByIdDesc(@Param("ownerId") Long ownerId);
 
+    @Query("SELECT i FROM Invoice i LEFT JOIN FETCH i.client c WHERE LOWER(TRIM(i.invoiceNumber)) = LOWER(TRIM(:invoiceNumber)) AND ((:ownerId IS NOT NULL AND c.owner.id = :ownerId) OR (:clientId IS NOT NULL AND c.id = :clientId)) ORDER BY i.id DESC")
+    List<Invoice> findCandidateInvoicesForVendor(@Param("invoiceNumber") String invoiceNumber, @Param("ownerId") Long ownerId, @Param("clientId") Long clientId);
+
     long countByStatusIgnoreCase(String status);
 
     long countByStatusIgnoreCaseAndClient_Owner_Id(String status, Long ownerId);

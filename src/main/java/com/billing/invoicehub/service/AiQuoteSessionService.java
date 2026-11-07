@@ -80,7 +80,7 @@ public class AiQuoteSessionService {
     @Transactional(readOnly = true)
     public List<AiQuoteSessionDto> getUserSessions(AppUser user) {
         List<AiQuoteSession> sessions;
-        if (user != null && user.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equals(r.getName()) || "ROLE_SUPER_ADMIN".equals(r.getName()))) {
+        if (user != null && isStaff(user)) {
             sessions = sessionRepository.findAllByOrderByUpdatedAtDesc();
         } else if (user != null) {
             sessions = sessionRepository.findByCreatedByIdOrderByUpdatedAtDesc(user.getId());
@@ -191,9 +191,10 @@ public class AiQuoteSessionService {
             }
         }
 
-        // Only run quotation pipeline and show quotation preview when actually creating a quote AND there is real data
+        // Quotation pipeline is strictly staff-only (ADMIN, SUPER_ADMIN, ACCOUNTS), never vendors
         AiQuotationEditDto updatedQuote = analysis.updatedQuoteData;
-        boolean isQuoteIntent = (analysis.intent == AiQuoteChatService.MessageIntent.QUOTATION)
+        boolean isQuoteIntent = isStaff(user)
+                && (analysis.intent == AiQuoteChatService.MessageIntent.QUOTATION)
                 && updatedQuote != null
                 && updatedQuote.hasRealQuoteData();
 
@@ -244,6 +245,9 @@ public class AiQuoteSessionService {
 
     @Transactional
     public AiQuoteSessionDto updateStructuredQuote(Long sessionId, AiQuotationEditDto updatedQuote, AppUser user) {
+        if (!isStaff(user)) {
+            throw new org.springframework.security.access.AccessDeniedException("Access denied: Quotation tools are restricted to internal staff.");
+        }
         AiQuoteSession session = findSessionForUser(sessionId, user)
                 .orElseThrow(() -> new IllegalArgumentException("Quote session not found or access denied."));
 
@@ -268,6 +272,9 @@ public class AiQuoteSessionService {
 
     @Transactional
     public AiQuoteSessionDto generateFlowForceQuote(Long sessionId, com.billing.invoicehub.enums.OutputFormat outputFormat, AppUser user) throws Exception {
+        if (!isStaff(user)) {
+            throw new org.springframework.security.access.AccessDeniedException("Access denied: Quotation generation is restricted to internal staff.");
+        }
         AiQuoteSession session = findSessionForUser(sessionId, user)
                 .orElseThrow(() -> new IllegalArgumentException("Quote session not found or access denied."));
 
@@ -328,7 +335,7 @@ public class AiQuoteSessionService {
         String formatLabel = outputFormat == com.billing.invoicehub.enums.OutputFormat.BOTH ? "PDF & Word (.docx)" : (outputFormat == com.billing.invoicehub.enums.OutputFormat.DOCX ? "Word (.docx)" : "PDF");
         confirmMsg.setContent("✓ Your Flow Force quotation " + formatLabel + " has been generated successfully! You can download your file(s) below.");
         confirmMsg.setAttachmentFilename(pdfFilename != null ? pdfFilename : docxFilename);
-        confirmMsg.setAttachmentUrl(pdfUrl != null ? pdfUrl : docxUrl);
+        confirmMsg.setAttachmentUrl("/documents/session/" + session.getId() + "/" + (pdfFilename != null ? "pdf" : "docx"));
         session.getMessages().add(confirmMsg);
 
         AiQuoteSession saved = sessionRepository.save(session);
@@ -345,14 +352,26 @@ public class AiQuoteSessionService {
         return false;
     }
 
+    public boolean isStaff(AppUser user) {
+        if (user == null) return false;
+        if ("INTERNAL".equalsIgnoreCase(user.getUserDomain())) return true;
+        if (user.getRoles() != null) {
+            return user.getRoles().stream().anyMatch(r ->
+                    "ROLE_ADMIN".equals(r.getName())
+                            || "ROLE_SUPER_ADMIN".equals(r.getName())
+                            || "ROLE_ACCOUNTS".equals(r.getName()));
+        }
+        return false;
+    }
+
     private Optional<AiQuoteSession> findSessionForUser(Long sessionId, AppUser user) {
         Optional<AiQuoteSession> sessionOpt = sessionRepository.findByIdWithMessages(sessionId);
         if (sessionOpt.isEmpty()) {
             return Optional.empty();
         }
         AiQuoteSession session = sessionOpt.get();
-        // Permission check
-        if (user != null && user.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equals(r.getName()) || "ROLE_SUPER_ADMIN".equals(r.getName()))) {
+        // Permission check: internal staff can manage sessions; vendors can only access their own
+        if (user != null && isStaff(user)) {
             return Optional.of(session);
         }
         if (session.getCreatedBy() != null && user != null && session.getCreatedBy().getId().equals(user.getId())) {
@@ -423,9 +442,13 @@ public class AiQuoteSessionService {
         dto.setId(session.getId());
         dto.setTitle(session.getTitle());
         dto.setStatus(session.getStatus());
-        dto.setGeneratedPdfUrl(session.getGeneratedPdfUrl());
+        dto.setGeneratedPdfUrl(session.getGeneratedPdfUrl() != null && !session.getGeneratedPdfUrl().isBlank()
+                ? ("/documents/session/" + session.getId() + "/pdf")
+                : null);
         dto.setGeneratedPdfFilename(session.getGeneratedPdfFilename());
-        dto.setGeneratedDocxUrl(session.getGeneratedDocxUrl());
+        dto.setGeneratedDocxUrl(session.getGeneratedDocxUrl() != null && !session.getGeneratedDocxUrl().isBlank()
+                ? ("/documents/session/" + session.getId() + "/docx")
+                : null);
         dto.setGeneratedDocxFilename(session.getGeneratedDocxFilename());
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm");

@@ -161,7 +161,7 @@ public class FileValidationUtil {
             throw new FileValidationException(fieldName, msg);
         }
 
-        // 4. If DOCX or XLSX, verify that the file is genuine OOXML and does not contain VBA macros
+        // 4. If DOCX or XLSX, verify that the file is genuine OOXML and does not contain VBA macros or XXE entities
         if ("docx".equals(extension) || "xlsx".equals(extension)) {
             validateOpenXmlStructure(file, fieldName, extension, isId);
         }
@@ -190,6 +190,31 @@ public class FileValidationUtil {
                             ? "File dengan makro (.xlsm/.docm) tidak diizinkan demi alasan keamanan."
                             : "Macro-enabled files (.xlsm/.docm) are blocked for security reasons.";
                     throw new FileValidationException(fieldName, msg);
+                }
+
+                // Security check for any XML entry: ensure external entities and DOCTYPE are disabled (XXE defense)
+                if (entryName.toLowerCase().endsWith(".xml")) {
+                    byte[] entryBytes = zis.readAllBytes();
+                    try {
+                        XmlSecurityUtil.validateXmlSecurity(entryBytes);
+                    } catch (Exception xxeEx) {
+                        log.warn("XML security violation (XXE/DOCTYPE) in OOXML entry {} of file {}: {}",
+                                entryName, file.getOriginalFilename(), xxeEx.getMessage());
+                        String msg = isId
+                                ? "File mengandung deklarasi XML yang tidak aman atau entitas eksternal (XXE dilarang)."
+                                : "File contains unsafe XML declarations or external entities (XXE blocked).";
+                        throw new FileValidationException(fieldName, msg);
+                    }
+
+                    if ("[Content_Types].xml".equalsIgnoreCase(entryName)) {
+                        String xmlContent = new String(entryBytes, java.nio.charset.StandardCharsets.UTF_8).toLowerCase();
+                        if (xmlContent.contains("macroenabled") || xmlContent.contains("vba")) {
+                            String msg = isId
+                                    ? "File dengan makro (.xlsm/.docm) tidak diizinkan demi alasan keamanan."
+                                    : "Macro-enabled files (.xlsm/.docm) are blocked for security reasons.";
+                            throw new FileValidationException(fieldName, msg);
+                        }
+                    }
                 }
                 zis.closeEntry();
             }

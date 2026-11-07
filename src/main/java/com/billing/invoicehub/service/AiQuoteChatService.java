@@ -109,6 +109,19 @@ public class AiQuoteChatService {
 
         // 3. Intent Routing: QUESTION vs QUOTATION
         MessageIntent intent = determineIntent(trimmedMessage, attachedText, currentQuoteState);
+
+        // 4. Quotation tools restriction: Staff only (ADMIN, SUPER_ADMIN, ACCOUNTS), NEVER vendors
+        boolean isStaffUser = toolService == null || currentUser == null || toolService.isStaff(currentUser);
+        if (!isStaffUser && intent == MessageIntent.QUOTATION) {
+            result.intent = MessageIntent.QUESTION;
+            result.updatedQuoteData = null;
+            result.quoteComplete = false;
+            result.missingFields = Collections.emptyList();
+            result.replyMessage = isIndonesian
+                    ? "Fitur pembuatan dan konversi penawaran harga (Quotation) hanya dapat diakses oleh staf internal (ADMIN, SUPER_ADMIN, ACCOUNTS). Sebagai vendor, Anda dapat menanyakan informasi terkait tiket, faktur, dan profil Anda."
+                    : "Quotation creation and conversion tools are restricted to internal staff (ADMIN, SUPER_ADMIN, ACCOUNTS). As a vendor, you can ask about your tickets, invoices, and profile.";
+            return result;
+        }
         result.intent = intent;
 
         // 4. If Gemini API key is configured, execute via Gemini
@@ -860,6 +873,7 @@ public class AiQuoteChatService {
                 card.put("status", result.get("status"));
                 card.put("badgeClass", "OPEN".equalsIgnoreCase(String.valueOf(result.get("status"))) ? "bg-primary" : "bg-success");
                 card.put("url", result.get("url"));
+                card.put("documentUrl", result.get("documentUrl"));
                 card.put("actionLabel", result.get("actionLabel"));
 
                 List<Map<String, String>> details = new ArrayList<>();
@@ -876,6 +890,7 @@ public class AiQuoteChatService {
                 card.put("status", result.get("status"));
                 card.put("badgeClass", "Approved".equalsIgnoreCase(String.valueOf(result.get("status"))) ? "bg-success" : "bg-warning text-dark");
                 card.put("url", result.get("url"));
+                card.put("documentUrl", result.get("documentUrl"));
                 card.put("actionLabel", result.get("actionLabel"));
 
                 List<Map<String, String>> details = new ArrayList<>();

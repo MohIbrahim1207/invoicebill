@@ -5,6 +5,7 @@ import com.billing.invoicehub.entity.AppRole;
 import com.billing.invoicehub.entity.AppUser;
 import com.billing.invoicehub.repository.AppUserRepository;
 import com.billing.invoicehub.repository.SystemSettingRepository;
+import com.billing.invoicehub.util.XmlSecurityUtil;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -152,8 +153,8 @@ class ReleaseNotesAndBannerTest {
         java.io.File pomFile = new java.io.File("pom.xml");
         assertTrue(pomFile.exists(), "pom.xml must exist");
 
-        javax.xml.parsers.DocumentBuilderFactory factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
-        factory.setNamespaceAware(true);
+        // Secure DocumentBuilderFactory with DOCTYPE and external entities disabled
+        javax.xml.parsers.DocumentBuilderFactory factory = XmlSecurityUtil.createSafeDocumentBuilderFactory();
         org.w3c.dom.Document doc = factory.newDocumentBuilder().parse(pomFile);
         org.w3c.dom.Element root = doc.getDocumentElement();
 

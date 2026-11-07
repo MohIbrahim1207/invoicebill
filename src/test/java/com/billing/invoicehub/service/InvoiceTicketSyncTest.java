@@ -1,5 +1,6 @@
 package com.billing.invoicehub.service;
 
+import com.billing.invoicehub.dto.VendorTicketWizardState;
 import com.billing.invoicehub.entity.AppRole;
 import com.billing.invoicehub.entity.AppUser;
 import com.billing.invoicehub.entity.Client;
@@ -19,14 +20,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.TestPropertySource;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest
 @TestPropertySource(properties = {
@@ -46,7 +51,7 @@ class InvoiceTicketSyncTest {
     @Autowired
     private VendorTicketHistoryRepository vendorTicketHistoryRepository;
 
-    @Autowired
+    @SpyBean
     private InvoiceRepository invoiceRepository;
 
     @Autowired
@@ -213,5 +218,186 @@ class InvoiceTicketSyncTest {
         VendorTicket refreshedTicket = vendorTicketRepository.findById(ticket.getId()).orElseThrow();
         assertNotNull(refreshedTicket.getInvoice(), "Ticket should now have foreign key linked to invoice");
         assertEquals(invoice.getId(), refreshedTicket.getInvoice().getId());
+    }
+
+    @Test
+    @DisplayName("Admin can create and link invoice from unsynced ticket (like Ticket 45)")
+    void testCreateAndLinkInvoiceFromTicket() {
+        String invNum = "INV-UNSYNC-45-" + System.currentTimeMillis();
+
+        VendorTicket ticket = new VendorTicket();
+        ticket.setTicketNo("TCK-45-" + System.currentTimeMillis());
+        ticket.setInvoiceNo(invNum);
+        ticket.setVendor(vendor);
+        ticket.setOwner(vendor);
+        ticket.setClient(client);
+        ticket.setSubtotal(new BigDecimal("1600000.00"));
+        ticket.setTax(new BigDecimal("17600.00"));
+        ticket.setTotal(new BigDecimal("1617600.00"));
+        ticket.setInvoiceDate(LocalDate.of(2026, 10, 7));
+        ticket.setInvoiceFileUrl("https://example.com/inv45.pdf");
+        ticket.setInvoiceFileName("inv45.pdf");
+        ticket.setStatusRequest(TicketStatus.IN_PROGRESS);
+        ticket.setCreatedAt(LocalDateTime.now());
+        ticket = vendorTicketRepository.save(ticket);
+
+        assertNull(ticket.getInvoice(), "Initially unsynced ticket has null invoice");
+
+        // Admin invokes createAndLinkInvoiceFromTicket
+        Invoice created = vendorTicketService.createAndLinkInvoiceFromTicket(ticket.getId(), "super_admin");
+        assertNotNull(created);
+        assertNotNull(created.getId());
+        assertEquals(invNum, created.getInvoiceNumber());
+        assertEquals(new BigDecimal("1617600.00"), created.getAmount());
+        assertEquals("In Progress", created.getStatus(), "Invoice status must be mapped from ticket's IN_PROGRESS status");
+
+        // Refresh ticket
+        VendorTicket refreshed = vendorTicketRepository.findById(ticket.getId()).orElseThrow();
+        assertNotNull(refreshed.getInvoice(), "Ticket must now be linked to the newly created invoice");
+        assertEquals(created.getId(), refreshed.getInvoice().getId());
+    }
+
+    @Test
+    @DisplayName("Admin can link unsynced ticket to an existing invoice")
+    void testLinkTicketToExistingInvoice() {
+        String invNum = "INV-EXISTING-" + System.currentTimeMillis();
+
+        Invoice invoice = new Invoice();
+        invoice.setInvoiceNumber(invNum);
+        invoice.setInvoiceDate(LocalDate.of(2026, 10, 10));
+        invoice.setAmount(new BigDecimal("2500000"));
+        invoice.setClient(client);
+        invoice.setStatus("Pending");
+        invoice = invoiceRepository.save(invoice);
+
+        VendorTicket ticket = new VendorTicket();
+        ticket.setTicketNo("TCK-EXISTING-" + System.currentTimeMillis());
+        ticket.setInvoiceNo(invNum);
+        ticket.setVendor(vendor);
+        ticket.setOwner(vendor);
+        ticket.setClient(client);
+        ticket.setAmount(new BigDecimal("2500000"));
+        ticket.setStatusRequest(TicketStatus.OPEN);
+        ticket.setCreatedAt(LocalDateTime.now());
+        ticket = vendorTicketRepository.save(ticket);
+
+        // Find candidate invoices
+        List<Invoice> candidates = vendorTicketService.findCandidateInvoicesForTicket(ticket);
+        assertFalse(candidates.isEmpty(), "Should find candidate invoice matching invoice number");
+        assertEquals(invoice.getId(), candidates.get(0).getId());
+
+        // Link ticket to invoice
+        vendorTicketService.linkTicketToInvoice(ticket.getId(), invoice.getId(), "accounts_admin");
+
+        VendorTicket refreshed = vendorTicketRepository.findById(ticket.getId()).orElseThrow();
+        assertNotNull(refreshed.getInvoice());
+        assertEquals(invoice.getId(), refreshed.getInvoice().getId());
+    }
+
+    @Test
+    @DisplayName("Tax warning hint checks Indonesian PPN rates accurately")
+    void testCalculateTaxWarningHint() {
+        // Ticket 45 scenario: 1.1% deemed PPN on logistics (17,600 on 1,600,000) -> Valid, no warning
+        VendorTicket ticket45 = new VendorTicket();
+        ticket45.setSubtotal(new BigDecimal("1600000.00"));
+        ticket45.setTax(new BigDecimal("17600.00"));
+        assertNull(vendorTicketService.calculateTaxWarningHint(ticket45), "1.1% rate should not trigger warning hint");
+
+        // 11% standard PPN (110,000 on 1,000,000) -> Valid, no warning
+        VendorTicket ticket11 = new VendorTicket();
+        ticket11.setSubtotal(new BigDecimal("1000000.00"));
+        ticket11.setTax(new BigDecimal("110000.00"));
+        assertNull(vendorTicketService.calculateTaxWarningHint(ticket11), "11% rate should not trigger warning hint");
+
+        // 12% standard PPN (120,000 on 1,000,000) -> Valid, no warning
+        VendorTicket ticket12 = new VendorTicket();
+        ticket12.setSubtotal(new BigDecimal("1000000.00"));
+        ticket12.setTax(new BigDecimal("120000.00"));
+        assertNull(vendorTicketService.calculateTaxWarningHint(ticket12), "12% rate should not trigger warning hint");
+
+        // Non-standard rate: 5% (50,000 on 1,000,000) -> Should return warning hint
+        VendorTicket ticket5 = new VendorTicket();
+        ticket5.setSubtotal(new BigDecimal("1000000.00"));
+        ticket5.setTax(new BigDecimal("50000.00"));
+        String hint = vendorTicketService.calculateTaxWarningHint(ticket5);
+        assertNotNull(hint, "5% rate should trigger a tax notice hint");
+        assertTrue(hint.contains("5.00%") || hint.contains("5,00%"));
+
+        // Zero or null tax -> No warning
+        VendorTicket ticketZero = new VendorTicket();
+        ticketZero.setSubtotal(new BigDecimal("1000000.00"));
+        ticketZero.setTax(BigDecimal.ZERO);
+        assertNull(vendorTicketService.calculateTaxWarningHint(ticketZero));
+    }
+
+    @Test
+    @DisplayName("Save wizard ticket rolls back atomically if invoice creation fails")
+    void testAtomicTicketAndInvoiceCreationRollback() {
+        VendorTicketWizardState state = new VendorTicketWizardState();
+        state.setClientId(client.getId());
+        state.setClientName(client.getCompanyName());
+        state.setInvoiceNo("INV-FAIL-" + System.currentTimeMillis());
+        state.setAmount(new BigDecimal("1500000"));
+        state.setSubtotal(new BigDecimal("1500000"));
+        state.setTax(BigDecimal.ZERO);
+        state.setTotal(new BigDecimal("1500000"));
+        state.setInvoiceDate(LocalDate.now());
+        state.setInvoiceFileUrl("https://cloudinary.com/test-invoice.pdf");
+        state.setInvoiceFileName("test-invoice.pdf");
+
+        // Force invoiceRepository.save to throw an exception when saving Invoice
+        doThrow(new RuntimeException("Simulated invoice database error"))
+                .when(invoiceRepository).save(any(Invoice.class));
+
+        try {
+            assertThrows(IllegalStateException.class, () -> {
+                vendorTicketService.saveWizardTicket(state, vendor.getUsername());
+            });
+
+            // Verify that ticket was NOT saved into database (rolled back)
+            assertTrue(vendorTicketRepository.findAll().stream()
+                    .noneMatch(t -> state.getInvoiceNo().equals(t.getInvoiceNo())),
+                    "Ticket must not exist in DB due to atomic rollback");
+        } finally {
+            reset(invoiceRepository);
+        }
+    }
+
+    @Test
+    @DisplayName("Creating invoice from existing ticket sets invoice status using mapTicketStatusToInvoiceStatus")
+    void testCreateInvoiceInheritsCurrentTicketStatus() {
+        for (TicketStatus status : TicketStatus.values()) {
+            VendorTicket ticket = new VendorTicket();
+            ticket.setTicketNo("TCK-STATUS-" + status.name() + "-" + System.currentTimeMillis());
+            ticket.setInvoiceNo("INV-STATUS-" + status.name() + "-" + System.currentTimeMillis());
+            ticket.setVendor(vendor);
+            ticket.setOwner(vendor);
+            ticket.setClient(client);
+            ticket.setAmount(new BigDecimal("1000000.00"));
+            ticket.setStatusRequest(status);
+            ticket.setCreatedAt(LocalDateTime.now());
+            ticket = vendorTicketRepository.save(ticket);
+
+            Invoice created = vendorTicketService.createAndLinkInvoiceFromTicket(ticket.getId(), "admin");
+            String expectedInvoiceStatus = vendorTicketService.mapTicketStatusToInvoiceStatus(status);
+            assertEquals(expectedInvoiceStatus, created.getStatus(),
+                    "Invoice status must match mapped ticket status for " + status);
+        }
+
+        // Test with null statusRequest -> defaults to "Pending"
+        VendorTicket nullStatusTicket = new VendorTicket();
+        nullStatusTicket.setTicketNo("TCK-STATUS-NULL-" + System.currentTimeMillis());
+        nullStatusTicket.setInvoiceNo("INV-STATUS-NULL-" + System.currentTimeMillis());
+        nullStatusTicket.setVendor(vendor);
+        nullStatusTicket.setOwner(vendor);
+        nullStatusTicket.setClient(client);
+        nullStatusTicket.setAmount(new BigDecimal("1000000.00"));
+        nullStatusTicket.setStatusRequest(null);
+        nullStatusTicket.setCreatedAt(LocalDateTime.now());
+        nullStatusTicket = vendorTicketRepository.save(nullStatusTicket);
+
+        Invoice nullStatusInvoice = vendorTicketService.createAndLinkInvoiceFromTicket(nullStatusTicket.getId(), "admin");
+        assertEquals("Pending", nullStatusInvoice.getStatus(),
+                "Invoice status must default to Pending when ticket status is null");
     }
 }

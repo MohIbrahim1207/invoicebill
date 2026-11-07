@@ -18,6 +18,7 @@
  */
 package com.billing.invoicehub.controller;
 
+import com.billing.invoicehub.entity.Invoice;
 import com.billing.invoicehub.entity.TicketStatus;
 import com.billing.invoicehub.entity.VendorTicket;
 import com.billing.invoicehub.entity.VendorTicketHistory;
@@ -28,6 +29,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -84,7 +87,49 @@ public class AdminTicketController {
         model.addAttribute("history", (Object) history);
         model.addAttribute("documents", documents);
         model.addAttribute("statusOptions", (Object) TicketStatus.values());
+
+        if (vendorTicket.getInvoice() == null) {
+            List<Invoice> candidateInvoices = this.vendorTicketService.findCandidateInvoicesForTicket(vendorTicket);
+            model.addAttribute("candidateInvoices", candidateInvoices);
+        }
+        String taxWarningHint = this.vendorTicketService.calculateTaxWarningHint(vendorTicket);
+        if (taxWarningHint != null) {
+            model.addAttribute("taxWarningHint", taxWarningHint);
+        }
         return "admin-ticket-manage";
+    }
+
+    @PostMapping(value = { "/{id}/create-invoice" })
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ACCOUNTS')")
+    public String createInvoiceFromTicket(@PathVariable Long id,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
+        try {
+            String username = authentication != null ? authentication.getName() : "ADMIN";
+            Invoice inv = this.vendorTicketService.createAndLinkInvoiceFromTicket(id, username);
+            redirectAttributes.addFlashAttribute("message", "Created and linked invoice #" + inv.getInvoiceNumber() + " successfully.");
+        } catch (Exception e) {
+            log.error("Failed to create invoice from ticket {}: {}", id, e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("error", "Failed to create invoice: " + e.getMessage());
+        }
+        return "redirect:/admin/tickets/" + id + "/manage";
+    }
+
+    @PostMapping(value = { "/{id}/link-invoice" })
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ACCOUNTS')")
+    public String linkInvoiceToTicket(@PathVariable Long id,
+            @RequestParam Long invoiceId,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
+        try {
+            String username = authentication != null ? authentication.getName() : "ADMIN";
+            this.vendorTicketService.linkTicketToInvoice(id, invoiceId, username);
+            redirectAttributes.addFlashAttribute("message", "Linked ticket to invoice successfully.");
+        } catch (Exception e) {
+            log.error("Failed to link ticket {} to invoice {}: {}", id, invoiceId, e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("error", "Failed to link invoice: " + e.getMessage());
+        }
+        return "redirect:/admin/tickets/" + id + "/manage";
     }
 
     @PostMapping(value = { "/{id}/update-status" })

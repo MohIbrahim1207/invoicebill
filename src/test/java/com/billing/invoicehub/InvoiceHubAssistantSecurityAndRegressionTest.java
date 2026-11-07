@@ -77,9 +77,14 @@ class InvoiceHubAssistantSecurityAndRegressionTest {
     private AiQuoteSessionService sessionService;
 
     @Autowired
+    private com.billing.invoicehub.service.AssistantSettingService assistantSettingService;
+
+    @Autowired
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     private AppUser adminUser;
+    private AppUser superAdminUser;
+    private AppUser accountsUser;
     private AppUser vendorA;
     private AppUser vendorB;
     private VendorTicket ticketA;
@@ -92,9 +97,23 @@ class InvoiceHubAssistantSecurityAndRegressionTest {
 
     @BeforeEach
     void setUp() {
+        assistantSettingService.setAssistantForVendorsEnabled(false, "system");
+
         AppRole roleAdmin = roleRepository.findByName("ROLE_ADMIN").orElseGet(() -> {
             AppRole r = new AppRole();
             r.setName("ROLE_ADMIN");
+            return roleRepository.save(r);
+        });
+
+        AppRole roleSuperAdmin = roleRepository.findByName("ROLE_SUPER_ADMIN").orElseGet(() -> {
+            AppRole r = new AppRole();
+            r.setName("ROLE_SUPER_ADMIN");
+            return roleRepository.save(r);
+        });
+
+        AppRole roleAccounts = roleRepository.findByName("ROLE_ACCOUNTS").orElseGet(() -> {
+            AppRole r = new AppRole();
+            r.setName("ROLE_ACCOUNTS");
             return roleRepository.save(r);
         });
 
@@ -111,6 +130,26 @@ class InvoiceHubAssistantSecurityAndRegressionTest {
             u.setPassword("ValidPass123!@#");
             u.setUserDomain("INTERNAL");
             u.setRoles(Set.of(roleAdmin));
+            return userRepository.save(u);
+        });
+
+        superAdminUser = userRepository.findByUsername("asst_super_admin").orElseGet(() -> {
+            AppUser u = new AppUser();
+            u.setUsername("asst_super_admin");
+            u.setEmail("asst_super@flowforce.id");
+            u.setPassword("ValidPass123!@#");
+            u.setUserDomain("INTERNAL");
+            u.setRoles(Set.of(roleSuperAdmin));
+            return userRepository.save(u);
+        });
+
+        accountsUser = userRepository.findByUsername("asst_accounts_user").orElseGet(() -> {
+            AppUser u = new AppUser();
+            u.setUsername("asst_accounts_user");
+            u.setEmail("asst_accounts@flowforce.id");
+            u.setPassword("ValidPass123!@#");
+            u.setUserDomain("INTERNAL");
+            u.setRoles(Set.of(roleAccounts));
             return userRepository.save(u);
         });
 
@@ -188,6 +227,10 @@ class InvoiceHubAssistantSecurityAndRegressionTest {
         testSession.setTitle("QD-20260714-113-R5-Nugraha Indah");
         testSession.setStatus("READY");
         testSession.setCreatedBy(adminUser);
+        testSession.setGeneratedPdfUrl("https://res.cloudinary.com/test/image/authenticated/s--abc--/v1/session_quote.pdf");
+        testSession.setGeneratedPdfFilename("FlowForce_Quotation_QD-20260714-113-R5.pdf");
+        testSession.setGeneratedDocxUrl("https://res.cloudinary.com/test/raw/authenticated/s--def--/v1/session_quote.docx");
+        testSession.setGeneratedDocxFilename("FlowForce_Quotation_QD-20260714-113-R5.docx");
         AiQuotationEditDto quoteDto = new AiQuotationEditDto();
         quoteDto.setSupplierName("PT Nugraha Indah");
         quoteDto.setCustomerName("PT Flow Force Indonesia");
@@ -200,6 +243,8 @@ class InvoiceHubAssistantSecurityAndRegressionTest {
         testConversion = new AiQuoteConversion();
         testConversion.setOriginalFileName("QD-20260714-113-R5-Nugraha Indah.pdf");
         testConversion.setOriginalFileUrl("https://res.cloudinary.com/test/image/upload/v1/qd113.pdf");
+        testConversion.setGeneratedQuoteFileUrl("https://res.cloudinary.com/test/image/upload/v1/qd113_gen.pdf");
+        testConversion.setGeneratedDocxFileUrl("https://res.cloudinary.com/test/raw/upload/v1/qd113_gen.docx");
         testConversion.setStatus("COMPLETED");
         testConversion.setUser(adminUser);
         testConversion.setExtractedJson(gson.toJson(quoteDto));
@@ -209,6 +254,8 @@ class InvoiceHubAssistantSecurityAndRegressionTest {
 
     @AfterEach
     void tearDown() {
+        jdbcTemplate.execute("DELETE FROM system_settings WHERE setting_key = 'assistant_vendors_enabled'");
+        assistantSettingService.refreshFromDatabase();
         jdbcTemplate.execute("DELETE FROM ai_quote_message");
         jdbcTemplate.execute("DELETE FROM ai_quote_session");
         jdbcTemplate.execute("DELETE FROM ai_quote_conversion");
@@ -495,5 +542,129 @@ class InvoiceHubAssistantSecurityAndRegressionTest {
         // Session status is set to READY
         AiQuoteSession sessionInDb = sessionRepository.findById(sessionDto.getId()).orElseThrow();
         assertEquals("READY", sessionInDb.getStatus(), "Session status must be READY when quote data is extracted");
+    }
+
+    @Test
+    @DisplayName("10. Admin setting 'Assistant for vendors: on/off' (SUPER_ADMIN only, default OFF)")
+    @WithMockUser(username = "asst_vendor_a", roles = {"VENDOR"})
+    void vendorAssistantSettingEnforcement() throws Exception {
+        // 1. Default OFF: vendor access to /assistant redirects to /vendor-tickets
+        mockMvc.perform(get("/assistant"))
+                .andExpect(status().is3xxRedirection());
+
+        // Vendor access to REST sessions returns 403 Forbidden
+        mockMvc.perform(get("/assistant/api/sessions"))
+                .andExpect(status().isForbidden());
+
+        // 2. Vendor attempting to change the setting gets 403 Forbidden
+        mockMvc.perform(post("/api/settings/assistant-vendors")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\": true}"))
+                .andExpect(status().isForbidden());
+
+        // 3. Regular ADMIN attempting to change the setting gets 403 Forbidden (SUPER_ADMIN only)
+        mockMvc.perform(post("/api/settings/assistant-vendors")
+                        .with(csrf())
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("asst_admin_user").roles("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\": true}"))
+                .andExpect(status().isForbidden());
+
+        // 4. SUPER_ADMIN updates setting to ON
+        mockMvc.perform(post("/api/settings/assistant-vendors")
+                        .with(csrf())
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("asst_super_admin").roles("SUPER_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\": true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(true));
+
+        assertTrue(assistantSettingService.isAssistantForVendorsEnabled());
+
+        // 5. When ON, vendor can access /assistant and sessions API
+        mockMvc.perform(get("/assistant"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/assistant/api/sessions"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("11. Quotation tools in the assistant: staff only (ADMIN, SUPER_ADMIN, ACCOUNTS), never vendors")
+    @WithMockUser(username = "asst_vendor_a", roles = {"VENDOR"})
+    void quotationToolsRestrictedToStaffNeverVendors() throws Exception {
+        // 1. Vendor in chat asks to create a quote -> politely refused, no quote data generated
+        AiQuoteSessionDto vendorSession = sessionService.createSession(vendorA, "Vendor Quote Attempt");
+        AiChatMessageDto reply = sessionService.sendMessage(
+                vendorSession.getId(),
+                "make a quote for PT ABC, 2 pumps at Rp 5.000.000",
+                null,
+                vendorA);
+
+        assertNotNull(reply);
+        assertNull(reply.getQuoteData(), "Vendor must NEVER receive quotation structured data");
+        assertFalse(reply.isQuoteComplete(), "Vendor quoteComplete must be false");
+        String content = reply.getContent().toLowerCase();
+        assertTrue(content.contains("internal") || content.contains("staf") || content.contains("restricted"),
+                "Reply must state quotation creation is restricted to internal staff: " + reply.getContent());
+
+        // 2. Vendor cannot update structured quote via REST endpoint (403 Forbidden)
+        mockMvc.perform(post("/admin/ai-quote-converter/api/sessions/" + testSession.getId() + "/update-quote")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"customerName\": \"Malicious Customer\"}"))
+                .andExpect(status().isForbidden());
+
+        // 3. Vendor cannot trigger quotation generation via REST endpoint (403 Forbidden)
+        mockMvc.perform(post("/admin/ai-quote-converter/api/sessions/" + testSession.getId() + "/generate")
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+
+        // 4. Vendor cannot upload quotes via legacy endpoint (403 Forbidden)
+        org.springframework.mock.web.MockMultipartFile mockFile =
+                new org.springframework.mock.web.MockMultipartFile("quoteFile", "quote.pdf", "application/pdf", "%PDF-1.4 test".getBytes());
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/admin/ai-quote-converter/upload")
+                        .file(mockFile)
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+
+        // 5. Vendor cannot access quotation document endpoints (403 Forbidden)
+        mockMvc.perform(get("/documents/session/" + testSession.getId() + "/pdf"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/documents/ai-quote/" + testConversion.getId() + "/generated-pdf"))
+                .andExpect(status().isForbidden());
+
+        // 6. Staff roles (ADMIN, SUPER_ADMIN, ACCOUNTS) CAN access quotation documents
+        mockMvc.perform(get("/documents/session/" + testSession.getId() + "/pdf")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("asst_admin_user").roles("ADMIN")))
+                .andExpect(status().is3xxRedirection());
+
+        mockMvc.perform(get("/documents/session/" + testSession.getId() + "/pdf")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("asst_super_admin").roles("SUPER_ADMIN")))
+                .andExpect(status().is3xxRedirection());
+
+        mockMvc.perform(get("/documents/session/" + testSession.getId() + "/pdf")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("asst_accounts_user").roles("ACCOUNTS")))
+                .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    @DisplayName("12. Assistant document links use the /documents/... endpoints")
+    void assistantDocumentLinksUseDocumentsEndpoints() {
+        // Ticket tool sanitized item
+        Map<String, Object> ticketResult = toolService.getTicket(adminUser, ticketA.getTicketNo());
+        assertTrue((Boolean) ticketResult.get("found"));
+        assertEquals("/documents/ticket/" + ticketA.getId() + "/invoice", ticketResult.get("documentUrl"));
+
+        // Invoice tool sanitized item
+        Map<String, Object> invoiceResult = toolService.getInvoiceStatus(adminUser, invoiceA.getInvoiceNumber());
+        assertTrue((Boolean) invoiceResult.get("found"));
+        assertEquals("/documents/invoice/" + invoiceA.getId(), invoiceResult.get("documentUrl"));
+
+        // Session DTO links
+        AiQuoteSessionDto sessionDto = sessionService.getSessionDto(testSession.getId(), adminUser).orElseThrow();
+        assertEquals("/documents/session/" + testSession.getId() + "/pdf", sessionDto.getGeneratedPdfUrl());
+        assertEquals("/documents/session/" + testSession.getId() + "/docx", sessionDto.getGeneratedDocxUrl());
     }
 }

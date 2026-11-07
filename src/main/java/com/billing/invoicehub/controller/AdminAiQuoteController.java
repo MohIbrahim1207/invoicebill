@@ -35,16 +35,43 @@ public class AdminAiQuoteController {
     private final AiQuoteConversionService aiQuoteConversionService;
     private final AiQuoteSessionService aiQuoteSessionService;
     private final UserService userService;
+    private final com.billing.invoicehub.service.AssistantSettingService assistantSettingService;
     private final Gson gson;
 
     public AdminAiQuoteController(
             AiQuoteConversionService aiQuoteConversionService,
             AiQuoteSessionService aiQuoteSessionService,
-            UserService userService) {
+            UserService userService,
+            com.billing.invoicehub.service.AssistantSettingService assistantSettingService) {
         this.aiQuoteConversionService = aiQuoteConversionService;
         this.aiQuoteSessionService = aiQuoteSessionService;
         this.userService = userService;
+        this.assistantSettingService = assistantSettingService;
         this.gson = new Gson();
+    }
+
+    private boolean isStaff(AppUser user) {
+        if (user == null) return false;
+        if ("INTERNAL".equalsIgnoreCase(user.getUserDomain())) return true;
+        if (user.getRoles() != null) {
+            return user.getRoles().stream().anyMatch(r ->
+                    "ROLE_ADMIN".equals(r.getName())
+                            || "ROLE_SUPER_ADMIN".equals(r.getName())
+                            || "ROLE_ACCOUNTS".equals(r.getName()));
+        }
+        return false;
+    }
+
+    private boolean isSuperAdmin(AppUser user) {
+        if (user == null || user.getRoles() == null) return false;
+        return user.getRoles().stream().anyMatch(r -> "ROLE_SUPER_ADMIN".equals(r.getName()));
+    }
+
+    private boolean checkVendorAssistantAllowed(AppUser user) {
+        if (isStaff(user)) {
+            return true;
+        }
+        return assistantSettingService.isAssistantForVendorsEnabled();
     }
 
     // ─── GET /admin/ai-quote-converter or /assistant (Main AI Assistant UI) ──
@@ -60,20 +87,27 @@ public class AdminAiQuoteController {
             return uri.startsWith("/admin") ? "redirect:/admin/login" : "redirect:/vendor/login";
         }
 
-        List<AiQuoteSessionDto> sessions = aiQuoteSessionService.getUserSessions(currentUser.get());
+        AppUser user = currentUser.get();
+        if (!checkVendorAssistantAllowed(user)) {
+            redirectAttributes.addFlashAttribute("error", "The AI Assistant is currently disabled for vendor accounts. / Asisten AI saat ini dinonaktifkan untuk akun vendor.");
+            return "redirect:/vendor-tickets";
+        }
+
+        List<AiQuoteSessionDto> sessions = aiQuoteSessionService.getUserSessions(user);
         model.addAttribute("sessions", sessions);
 
-        boolean isStaff = currentUser.get().getRoles().stream().anyMatch(r ->
-                "ROLE_ADMIN".equals(r.getName()) || "ROLE_SUPER_ADMIN".equals(r.getName()) || "ROLE_ACCOUNTS".equals(r.getName()));
-        model.addAttribute("isStaff", isStaff);
+        boolean staff = isStaff(user);
+        model.addAttribute("isStaff", staff);
+        model.addAttribute("isSuperAdmin", isSuperAdmin(user));
+        model.addAttribute("assistantVendorsEnabled", assistantSettingService.isAssistantForVendorsEnabled());
 
         // Include legacy conversion history as fallback/audit reference for staff only
-        List<AiQuoteConversion> conversions = isStaff ? aiQuoteConversionService.getAllConversions() : Collections.emptyList();
+        List<AiQuoteConversion> conversions = staff ? aiQuoteConversionService.getAllConversions() : Collections.emptyList();
         model.addAttribute("conversions", conversions);
 
         AiQuoteSessionDto activeSession = null;
         if (activeSessionId != null) {
-            Optional<AiQuoteSessionDto> sOpt = aiQuoteSessionService.getSessionDto(activeSessionId, currentUser.get());
+            Optional<AiQuoteSessionDto> sOpt = aiQuoteSessionService.getSessionDto(activeSessionId, user);
             if (sOpt.isPresent()) {
                 activeSession = sOpt.get();
             }
@@ -92,6 +126,10 @@ public class AdminAiQuoteController {
         if (currentUser.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
+        if (!checkVendorAssistantAllowed(currentUser.get())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Assistant for vendors is currently disabled."));
+        }
         String title = payload != null ? payload.get("title") : "New Quotation Assistant";
         AiQuoteSessionDto sessionDto = aiQuoteSessionService.createSession(currentUser.get(), title);
         return ResponseEntity.ok(sessionDto);
@@ -104,6 +142,10 @@ public class AdminAiQuoteController {
         if (currentUser.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
+        if (!checkVendorAssistantAllowed(currentUser.get())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Assistant for vendors is currently disabled."));
+        }
         List<AiQuoteSessionDto> sessions = aiQuoteSessionService.getUserSessions(currentUser.get());
         return ResponseEntity.ok(sessions);
     }
@@ -114,6 +156,10 @@ public class AdminAiQuoteController {
         Optional<AppUser> currentUser = currentAppUser();
         if (currentUser.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
+        }
+        if (!checkVendorAssistantAllowed(currentUser.get())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Assistant for vendors is currently disabled."));
         }
         Optional<AiQuoteSessionDto> sessionOpt = aiQuoteSessionService.getSessionDto(id, currentUser.get());
         if (sessionOpt.isEmpty()) {
@@ -132,6 +178,10 @@ public class AdminAiQuoteController {
         Optional<AppUser> currentUser = currentAppUser();
         if (currentUser.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
+        }
+        if (!checkVendorAssistantAllowed(currentUser.get())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Assistant for vendors is currently disabled."));
         }
 
         try {
@@ -154,6 +204,10 @@ public class AdminAiQuoteController {
         if (currentUser.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
+        if (!isStaff(currentUser.get())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access denied: Quotation tools are restricted to internal staff."));
+        }
 
         try {
             AiQuoteSessionDto updatedSession = aiQuoteSessionService.updateStructuredQuote(id, updatedQuote, currentUser.get());
@@ -172,6 +226,10 @@ public class AdminAiQuoteController {
         Optional<AppUser> currentUser = currentAppUser();
         if (currentUser.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
+        }
+        if (!isStaff(currentUser.get())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access denied: Quotation tools are restricted to internal staff."));
         }
 
         try {
@@ -192,6 +250,10 @@ public class AdminAiQuoteController {
         if (currentUser.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
+        if (!checkVendorAssistantAllowed(currentUser.get())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Assistant for vendors is currently disabled."));
+        }
 
         boolean deleted = aiQuoteSessionService.deleteSession(id, currentUser.get());
         if (deleted) {
@@ -210,6 +272,9 @@ public class AdminAiQuoteController {
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
             return "redirect:/admin/login";
+        }
+        if (!isStaff(currentUser.get())) {
+            throw new AccessDeniedException("Access denied: Quotation tools are restricted to internal staff.");
         }
 
         if (file == null || file.isEmpty()) {
@@ -238,6 +303,9 @@ public class AdminAiQuoteController {
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
             return "redirect:/admin/login";
+        }
+        if (!isStaff(currentUser.get())) {
+            throw new AccessDeniedException("Access denied: Quotation tools are restricted to internal staff.");
         }
 
         Optional<AiQuoteConversion> conversionOpt = aiQuoteConversionService.getConversionById(id);
@@ -268,6 +336,9 @@ public class AdminAiQuoteController {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
             return "redirect:/admin/login";
         }
+        if (!isStaff(currentUser.get())) {
+            throw new AccessDeniedException("Access denied: Quotation tools are restricted to internal staff.");
+        }
 
         try {
             aiQuoteConversionService.saveDraft(id, formDto, currentUser.get());
@@ -290,6 +361,9 @@ public class AdminAiQuoteController {
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
             return "redirect:/admin/login";
+        }
+        if (!isStaff(currentUser.get())) {
+            throw new AccessDeniedException("Access denied: Quotation tools are restricted to internal staff.");
         }
 
         try {
@@ -317,6 +391,9 @@ public class AdminAiQuoteController {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
             return "redirect:/admin/login";
         }
+        if (!isStaff(currentUser.get())) {
+            throw new AccessDeniedException("Access denied: Quotation tools are restricted to internal staff.");
+        }
 
         Optional<AiQuoteConversion> conversionOpt = aiQuoteConversionService.getConversionById(id);
         if (conversionOpt.isEmpty()) {
@@ -341,6 +418,9 @@ public class AdminAiQuoteController {
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
             return "redirect:/admin/login";
+        }
+        if (!isStaff(currentUser.get())) {
+            throw new AccessDeniedException("Access denied: Quotation tools are restricted to internal staff.");
         }
 
         try {

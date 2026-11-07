@@ -4,8 +4,10 @@ import com.billing.invoicehub.entity.AppUser;
 import com.billing.invoicehub.entity.Invoice;
 import com.billing.invoicehub.entity.VendorTicket;
 import com.billing.invoicehub.entity.AiQuoteConversion;
+import com.billing.invoicehub.entity.AiQuoteSession;
 import com.billing.invoicehub.exception.ResourceNotFoundException;
 import com.billing.invoicehub.repository.AiQuoteConversionRepository;
+import com.billing.invoicehub.repository.AiQuoteSessionRepository;
 import com.billing.invoicehub.repository.AppUserRepository;
 import com.billing.invoicehub.repository.InvoiceRepository;
 import com.billing.invoicehub.repository.VendorTicketRepository;
@@ -35,17 +37,20 @@ public class DocumentAccessController {
     private final VendorTicketRepository vendorTicketRepository;
     private final InvoiceRepository invoiceRepository;
     private final ObjectProvider<AiQuoteConversionRepository> aiQuoteConversionRepositoryProvider;
+    private final ObjectProvider<AiQuoteSessionRepository> aiQuoteSessionRepositoryProvider;
 
     public DocumentAccessController(ObjectProvider<CloudinaryService> cloudinaryServiceProvider,
                                     AppUserRepository appUserRepository,
                                     VendorTicketRepository vendorTicketRepository,
                                     InvoiceRepository invoiceRepository,
-                                    ObjectProvider<AiQuoteConversionRepository> aiQuoteConversionRepositoryProvider) {
+                                    ObjectProvider<AiQuoteConversionRepository> aiQuoteConversionRepositoryProvider,
+                                    ObjectProvider<AiQuoteSessionRepository> aiQuoteSessionRepositoryProvider) {
         this.cloudinaryServiceProvider = cloudinaryServiceProvider;
         this.appUserRepository = appUserRepository;
         this.vendorTicketRepository = vendorTicketRepository;
         this.invoiceRepository = invoiceRepository;
         this.aiQuoteConversionRepositoryProvider = aiQuoteConversionRepositoryProvider;
+        this.aiQuoteSessionRepositoryProvider = aiQuoteSessionRepositoryProvider;
     }
 
     /**
@@ -72,7 +77,7 @@ public class DocumentAccessController {
 
         String rawUrl = resolveTicketDocumentUrl(ticket, field);
         if (rawUrl == null || rawUrl.isBlank()) {
-            throw new ResourceNotFoundException("No document attached for field '" + field + "' on ticket id: " + id);
+            return "document-not-available";
         }
 
         return redirectToSecuredUrl(rawUrl);
@@ -100,7 +105,7 @@ public class DocumentAccessController {
 
         String rawUrl = resolveVendorDocumentUrl(vendor, field);
         if (rawUrl == null || rawUrl.isBlank()) {
-            throw new ResourceNotFoundException("No document found for field '" + field + "' on vendor id: " + id);
+            return "document-not-available";
         }
 
         return redirectToSecuredUrl(rawUrl);
@@ -135,7 +140,7 @@ public class DocumentAccessController {
 
         String rawUrl = invoice.getFileUrl();
         if (rawUrl == null || rawUrl.isBlank()) {
-            throw new ResourceNotFoundException("No document attached to invoice id: " + id);
+            return "document-not-available";
         }
 
         return redirectToSecuredUrl(rawUrl);
@@ -155,7 +160,7 @@ public class DocumentAccessController {
 
         AiQuoteConversionRepository repo = aiQuoteConversionRepositoryProvider.getIfAvailable();
         if (repo == null) {
-            throw new ResourceNotFoundException("AI quote conversion repository not available.");
+            return "document-not-available";
         }
 
         AiQuoteConversion conversion = repo.findById(id)
@@ -165,14 +170,52 @@ public class DocumentAccessController {
             case "original" -> conversion.getOriginalFileUrl();
             case "generated-pdf", "pdf" -> conversion.getGeneratedQuoteFileUrl();
             case "generated-docx", "docx" -> conversion.getGeneratedDocxFileUrl();
-            default -> throw new ResourceNotFoundException("Unknown AI quote document field: " + field);
+            default -> null;
         };
 
         if (rawUrl == null || rawUrl.isBlank()) {
-            throw new ResourceNotFoundException("Document for field '" + field + "' is not generated or available.");
+            return "document-not-available";
         }
 
         return redirectToSecuredUrl(rawUrl);
+    }
+
+    /**
+     * ID-based AI quote session document access: /documents/session/{id}/{field}
+     */
+    @GetMapping({"/session/{id}/{field}", "/ai-quote-session/{id}/{field}"})
+    public String viewSessionDocument(@PathVariable("id") Long id,
+                                      @PathVariable("field") String field,
+                                      Authentication authentication) {
+        checkAuthenticated(authentication);
+        if (!isStaff(authentication)) {
+            throw new AccessDeniedException("Access denied: Only internal staff may access AI quotation session documents.");
+        }
+
+        AiQuoteSessionRepository repo = aiQuoteSessionRepositoryProvider.getIfAvailable();
+        if (repo == null) {
+            return "document-not-available";
+        }
+
+        AiQuoteSession session = repo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("AI quote session not found with id: " + id));
+
+        String rawUrl = switch (field.toLowerCase()) {
+            case "generated-pdf", "pdf" -> session.getGeneratedPdfUrl();
+            case "generated-docx", "docx" -> session.getGeneratedDocxUrl();
+            default -> null;
+        };
+
+        if (rawUrl == null || rawUrl.isBlank()) {
+            return "document-not-available";
+        }
+
+        return redirectToSecuredUrl(rawUrl);
+    }
+
+    @GetMapping("/not-available")
+    public String documentNotAvailable() {
+        return "document-not-available";
     }
 
     // ─── Private Helpers ─────────────────────────────────────────────────────────
@@ -225,11 +268,8 @@ public class DocumentAccessController {
     }
 
     private String redirectToSecuredUrl(String targetUrl) {
-        CloudinaryService cloudinaryService = cloudinaryServiceProvider.getIfAvailable();
-        if (cloudinaryService != null) {
-            String signedUrl = cloudinaryService.generateSignedDownloadUrl(targetUrl.trim(), 900);
-            return "redirect:" + signedUrl;
-        }
+        // v1.6.3: Simply redirect to the stored URL from the database for ALL files.
+        // Cloudinary authenticated URLs already contain embedded signature segments.
         return "redirect:" + targetUrl.trim();
     }
 }

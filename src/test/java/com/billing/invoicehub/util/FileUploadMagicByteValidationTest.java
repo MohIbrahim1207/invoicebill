@@ -228,6 +228,42 @@ class FileUploadMagicByteValidationTest {
         assertThrows(IllegalArgumentException.class, () -> FileValidationUtil.validateFile(file));
     }
 
+    @Test
+    @DisplayName("A DOCX containing an XXE payload inside document.xml is rejected")
+    void xxeInDocxIsRejected() throws Exception {
+        byte[] content = createXxeDocx();
+        MockMultipartFile file = new MockMultipartFile(
+                "invoiceFile",
+                "xxe_attack.docx",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                content
+        );
+        FileValidationUtil.FileValidationException ex = assertThrows(
+                FileValidationUtil.FileValidationException.class,
+                () -> FileValidationUtil.validateFile(file)
+        );
+        assertTrue(ex.getMessage().contains("XXE") || ex.getMessage().contains("XML"),
+                "Expected XXE rejection message, got: " + ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("An XLSX containing an XXE payload inside workbook.xml is rejected")
+    void xxeInXlsxIsRejected() throws Exception {
+        byte[] content = createXxeXlsx();
+        MockMultipartFile file = new MockMultipartFile(
+                "invoiceFile",
+                "xxe_attack.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                content
+        );
+        FileValidationUtil.FileValidationException ex = assertThrows(
+                FileValidationUtil.FileValidationException.class,
+                () -> FileValidationUtil.validateFile(file)
+        );
+        assertTrue(ex.getMessage().contains("XXE") || ex.getMessage().contains("XML"),
+                "Expected XXE rejection message, got: " + ex.getMessage());
+    }
+
     private byte[] createRealXlsx() throws Exception {
         try (org.apache.poi.xssf.usermodel.XSSFWorkbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
              java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream()) {
@@ -291,5 +327,31 @@ class FileUploadMagicByteValidationTest {
                 (byte) 0xd5, (byte) 0x00, (byte) 0x00, (byte) 0x9d, 0x01, 0x2a,
                 0x01, 0x00, 0x01, 0x00, 0x00, 0x00
         };
+    }
+
+    private byte[] createXxeDocx() throws Exception {
+        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(baos)) {
+            zos.putNextEntry(new java.util.zip.ZipEntry("[Content_Types].xml"));
+            zos.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"xml\" ContentType=\"application/xml\"/></Types>".getBytes());
+            zos.closeEntry();
+            zos.putNextEntry(new java.util.zip.ZipEntry("word/document.xml"));
+            zos.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE test [ <!ENTITY xxe SYSTEM \"http://127.0.0.1:9999/leak\"> ]><w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body><w:p><w:r><w:t>&xxe;</w:t></w:r></w:p></w:body></w:document>".getBytes());
+            zos.closeEntry();
+        }
+        return baos.toByteArray();
+    }
+
+    private byte[] createXxeXlsx() throws Exception {
+        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(baos)) {
+            zos.putNextEntry(new java.util.zip.ZipEntry("[Content_Types].xml"));
+            zos.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"xml\" ContentType=\"application/xml\"/></Types>".getBytes());
+            zos.closeEntry();
+            zos.putNextEntry(new java.util.zip.ZipEntry("xl/workbook.xml"));
+            zos.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE test [ <!ENTITY xxe SYSTEM \"http://127.0.0.1:9999/leak\"> ]><workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"/>".getBytes());
+            zos.closeEntry();
+        }
+        return baos.toByteArray();
     }
 }

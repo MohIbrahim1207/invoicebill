@@ -353,7 +353,14 @@
                             <h5 class="m-0 fw-bold text-dark" id="chatTitle">InvoiceHub Assistant</h5>
                             <small class="text-muted">Ask about tickets, invoices, summaries, or create Flow Force quotes</small>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-3">
+                            <div th:if="${isSuperAdmin}" class="form-check form-switch m-0 d-flex align-items-center gap-2 border px-2 py-1 rounded bg-light">
+                                <input class="form-check-input ms-0" type="checkbox" role="switch" id="switchAssistantVendors"
+                                       th:checked="${assistantVendorsEnabled}" onchange="toggleAssistantVendors(this.checked)">
+                                <label class="form-check-label small fw-semibold text-secondary" for="switchAssistantVendors">
+                                    Assistant for vendors: <span id="assistantVendorsStatus" th:text="${assistantVendorsEnabled ? 'ON' : 'OFF'}" th:class="${assistantVendorsEnabled ? 'text-success fw-bold' : 'text-danger fw-bold'}">OFF</span>
+                                </label>
+                            </div>
                             <button class="btn btn-sm btn-outline-secondary" onclick="reloadActiveSession()" title="Refresh Session">
                                 <i class="bi bi-arrow-repeat"></i>
                             </button>
@@ -416,6 +423,31 @@
         console.log("AI QUOTE ASSISTANT JS INITIALIZED");
         let currentSessionId = null;
         let selectedFile = null;
+        const isStaffUser = /*[[${isStaff}]]*/ false;
+
+        async function toggleAssistantVendors(enabled) {
+            try {
+                const res = await fetch('/api/settings/assistant-vendors', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
+                    body: JSON.stringify({ enabled: enabled })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const statusEl = document.getElementById('assistantVendorsStatus');
+                    if (statusEl) {
+                        statusEl.innerText = data.enabled ? 'ON' : 'OFF';
+                        statusEl.className = data.enabled ? 'text-success fw-bold' : 'text-danger fw-bold';
+                    }
+                } else {
+                    alert('Failed to update setting. (SUPER_ADMIN role required)');
+                    location.reload();
+                }
+            } catch (e) {
+                alert('Error updating setting: ' + e.message);
+                location.reload();
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             loadSessions();
@@ -615,8 +647,8 @@
 
             session.messages.forEach(msg => appendMessage(msg));
 
-            // If structured quote exists and is ready, render review card at the bottom ONLY if it has real quote data
-            if (session.structuredQuoteData && (session.status === 'READY' || session.status === 'GENERATED') && hasRealQuoteData(session.structuredQuoteData)) {
+            // If structured quote exists and is ready, render review card at the bottom ONLY if it has real quote data AND user is staff
+            if (isStaffUser && session.structuredQuoteData && (session.status === 'READY' || session.status === 'GENERATED') && hasRealQuoteData(session.structuredQuoteData)) {
                 renderReviewCard(session.structuredQuoteData, session.status, session.generatedPdfUrl, session.generatedPdfFilename, session.generatedDocxUrl, session.generatedDocxFilename);
             }
 
@@ -812,7 +844,7 @@
                 if (res.ok) {
                     const aiMsg = await res.json();
                     appendMessage(aiMsg);
-                    if (aiMsg.quoteData && hasRealQuoteData(aiMsg.quoteData)) {
+                    if (isStaffUser && aiMsg.quoteData && hasRealQuoteData(aiMsg.quoteData)) {
                         selectSession(currentSessionId); // refresh state and review card
                     }
                 } else {

@@ -1,15 +1,25 @@
 package com.billing.invoicehub.service;
 
+import com.billing.invoicehub.entity.AppRole;
+import com.billing.invoicehub.entity.AppUser;
+import com.billing.invoicehub.repository.AppRoleRepository;
+import com.billing.invoicehub.repository.AppUserRepository;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 
@@ -17,10 +27,27 @@ import org.springframework.boot.ApplicationRunner;
 @Order(0)
 public class StartupRoleMigration implements ApplicationRunner {
     private final JdbcTemplate jdbc;
+    private final AppRoleRepository roleRepository;
+    private final AppUserRepository userRepository;
+    private final AuditLogService auditLogService;
     private final Logger log = LoggerFactory.getLogger(StartupRoleMigration.class);
 
+    @Value("${app.security.super-admin-usernames:${APP_SUPER_ADMIN_USERNAMES:}}")
+    private String superAdminUsernames;
+
     public StartupRoleMigration(JdbcTemplate jdbc) {
+        this(jdbc, null, null, null);
+    }
+
+    @Autowired
+    public StartupRoleMigration(JdbcTemplate jdbc,
+                                @Autowired(required = false) AppRoleRepository roleRepository,
+                                @Autowired(required = false) AppUserRepository userRepository,
+                                @Autowired(required = false) AuditLogService auditLogService) {
         this.jdbc = jdbc;
+        this.roleRepository = roleRepository;
+        this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -334,6 +361,14 @@ public class StartupRoleMigration implements ApplicationRunner {
             dropColumnIfExists("invoice", "vendor_ticket_id");
             migrateInvoiceDateColumn();
             backfillVendorTicketsAndInvoices();
+
+            // Version 1.6.2: Ensure required roles exist via JPA and promote configured super admins
+            try {
+                ensureRequiredRolesExist();
+                promoteConfiguredSuperAdmins();
+            } catch (Exception ex) {
+                log.error("Failed executing ensureRequiredRolesExist or promoteConfiguredSuperAdmins: {}", ex.getMessage(), ex);
+            }
 
             log.info("Startup role migration completed.");
         } catch (Exception ex) {
@@ -678,5 +713,119 @@ public class StartupRoleMigration implements ApplicationRunner {
         } catch (Exception ex) {
             log.warn("Error during backfillVendorTicketsAndInvoices: {}. Continuing startup safely.", ex.getMessage());
         }
+    }
+
+    /**
+     * Requirement 1: Ensure core roles exist in app_roles via JPA normal identity generation (idempotent).
+     */
+    @Transactional
+    public void ensureRequiredRolesExist() {
+        if (roleRepository == null) {
+            log.debug("AppRoleRepository is not available; skipping JPA role check.");
+            return;
+        }
+        ensureJpaRole("ROLE_SUPER_ADMIN");
+        ensureJpaRole("ROLE_ACCOUNTS");
+        ensureJpaRole("ROLE_ADMIN");
+        ensureJpaRole("ROLE_VENDOR");
+    }
+
+    public AppRole ensureJpaRole(String roleName) {
+        if (roleRepository == null) {
+            return null;
+        }
+        return roleRepository.findFirstByName(roleName).orElseGet(() -> {
+            AppRole r = new AppRole();
+            r.setName(roleName);
+            AppRole saved = roleRepository.save(r);
+            log.info("Created missing role '{}' through JPA with generated ID {}", roleName, saved.getId());
+            return saved;
+        });
+    }
+
+    /**
+     * Requirement 2: Promote internal users in APP_SUPER_ADMIN_USERNAMES to ROLE_SUPER_ADMIN without removing existing roles.
+     */
+    @Transactional
+    public void promoteConfiguredSuperAdmins() {
+        String usernames = this.superAdminUsernames;
+        if (usernames == null || usernames.isBlank()) {
+            usernames = System.getenv("APP_SUPER_ADMIN_USERNAMES");
+        }
+        promoteConfiguredSuperAdmins(usernames);
+    }
+
+    @Transactional
+    public void promoteConfiguredSuperAdmins(String rawUsernames) {
+        if (rawUsernames == null || rawUsernames.isBlank()) {
+            log.debug("No APP_SUPER_ADMIN_USERNAMES configured; skipping promotion.");
+            return;
+        }
+        if (userRepository == null || roleRepository == null) {
+            log.warn("Cannot promote super admins: repositories not available.");
+            return;
+        }
+
+        AppRole superAdminRole = ensureJpaRole("ROLE_SUPER_ADMIN");
+        if (superAdminRole == null) {
+            log.error("Could not obtain ROLE_SUPER_ADMIN entity for promotion.");
+            return;
+        }
+
+        String[] usernames = rawUsernames.split(",");
+        for (String u : usernames) {
+            String username = u.trim();
+            if (username.isEmpty()) {
+                continue;
+            }
+
+            Optional<AppUser> userOpt = userRepository.findFirstByUsernameAndUserDomain(username, "INTERNAL");
+            if (userOpt.isEmpty()) {
+                userOpt = userRepository.findByUsername(username)
+                        .filter(usr -> "INTERNAL".equalsIgnoreCase(usr.getUserDomain()));
+            }
+
+            if (userOpt.isEmpty()) {
+                log.warn("APP_SUPER_ADMIN_USERNAMES: Existing INTERNAL user '{}' not found. Skipping.", username);
+                continue;
+            }
+
+            AppUser user = userOpt.get();
+            boolean alreadySuperAdmin = user.getRoles() != null && user.getRoles().stream()
+                    .anyMatch(r -> "ROLE_SUPER_ADMIN".equalsIgnoreCase(r.getName()));
+
+            if (alreadySuperAdmin) {
+                log.debug("User '{}' already has ROLE_SUPER_ADMIN. No action needed.", username);
+                continue;
+            }
+
+            // Keep existing roles, add ROLE_SUPER_ADMIN
+            if (user.getRoles() == null) {
+                user.setRoles(new HashSet<>());
+            }
+            user.getRoles().add(superAdminRole);
+            userRepository.save(user);
+
+            // Log each grant once
+            log.info("Granted ROLE_SUPER_ADMIN to internal user '{}' (ID {}) via APP_SUPER_ADMIN_USERNAMES.",
+                    user.getUsername(), user.getId());
+
+            // Write to Audit Log
+            if (auditLogService != null) {
+                auditLogService.log(
+                        "SYSTEM",
+                        "SYSTEM",
+                        "ROLE_GRANTED",
+                        "AppUser",
+                        user.getId(),
+                        null,
+                        "Granted ROLE_SUPER_ADMIN to internal user " + user.getUsername() + " via APP_SUPER_ADMIN_USERNAMES"
+                );
+            }
+        }
+    }
+
+    public void setSuperAdminUsernames(String superAdminUsernames) {
+        this.superAdminUsernames = superAdminUsernames;
     }
 }

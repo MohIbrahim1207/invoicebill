@@ -1,7 +1,7 @@
 [
   {
     "version": "1.7.0",
-    "date": "2026-11-05",
+    "date": "2026-11-07",
     "audience": "ALL",
     "title": {
       "en": "InvoiceHub Assistant (AI)",
@@ -17,6 +17,63 @@
         "Asisten InvoiceHub: asisten AI percakapan dengan pencarian instan untuk tiket, status faktur, dan ringkasan portal.",
         "Integrasi alat cerdas: cari tiket, periksa faktur, dan buat penawaran harga dengan Gemini function calling.",
         "Keamanan enterprise: isolasi data berbasis peran yang ketat, perlindungan prompt injection, batas harian, dan log audit."
+      ]
+    }
+  },
+  {
+    "version": "1.6.3",
+    "date": "2026-11-07",
+    "audience": "ALL",
+    "title": {
+      "en": "Document access fix",
+      "id": "Perbaikan akses dokumen"
+    },
+    "notes": {
+      "en": [
+        "Document access fix: direct redirection to Cloudinary authenticated URLs so uploaded PDF and image attachments open reliably without 'Resource not found' errors.",
+        "Document not available page: user-friendly bilingual error page when a requested document has not been uploaded yet."
+      ],
+      "id": [
+        "Perbaikan akses dokumen: pengalihan langsung ke URL terotentikasi Cloudinary sehingga lampiran PDF dan gambar yang diunggah dapat dibuka tanpa galat 'Resource not found'.",
+        "Halaman dokumen tidak tersedia: halaman galat dwibahasa yang ramah pengguna ketika dokumen yang diminta belum diunggah."
+      ]
+    }
+  },
+  {
+    "version": "1.6.2",
+    "date": "2026-11-05",
+    "audience": "ALL",
+    "title": {
+      "en": "Invoice fixes",
+      "id": "Perbaikan tagihan"
+    },
+    "notes": {
+      "en": [
+        "Atomic invoice and ticket creation: ensures vendor tickets and billing records are always created together without desynchronization.",
+        "Admin invoice sync tools: SUPER_ADMIN and ACCOUNTS can now generate missing invoices or manually link tickets to existing invoices.",
+        "Indonesian tax validation: visual tax rate hints on ticket review to verify standard PPN rates (1.1%, 11%, 12%)."
+      ],
+      "id": [
+        "Pembuatan tiket dan tagihan atomik: memastikan tiket vendor dan tagihan billing selalu dibuat bersama tanpa risiko gagal sebagian.",
+        "Alat sinkronisasi tagihan admin: SUPER_ADMIN dan ACCOUNTS kini dapat membuat tagihan yang belum tersimpan atau menautkannya ke tagihan yang ada.",
+        "Pemberitahuan pajak Indonesia: panduan visual tarif pajak saat peninjauan tiket untuk memverifikasi tarif PPN standar (1,1%, 11%, 12%)."
+      ]
+    }
+  },
+  {
+    "version": "1.6.1",
+    "date": "2026-11-05",
+    "audience": "ALL",
+    "title": {
+      "en": "InvoiceHub Security Update",
+      "id": "Pembaruan Keamanan InvoiceHub"
+    },
+    "notes": {
+      "en": [
+        "Security update: upgraded document parsing libraries (Apache Tika & Apache POI) and strengthened upload security."
+      ],
+      "id": [
+        "Pembaruan keamanan: memperbarui pustaka pemrosesan dokumen (Apache Tika & Apache POI) dan memperkuat keamanan unggahan."
       ]
     }
   },
