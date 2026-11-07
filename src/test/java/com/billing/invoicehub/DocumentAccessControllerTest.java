@@ -27,9 +27,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -240,5 +243,101 @@ class DocumentAccessControllerTest {
         mockMvc.perform(get("/documents/invoice/" + invoice1.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("/vendor/login")));
+    }
+
+    @Test
+    @DisplayName("Authenticated PDF redirects to exact stored URL without privateDownload munging")
+    @WithMockUser(username = "doc_vendor_one", roles = {"VENDOR"})
+    void authenticatedPdfRedirectsToStoredUrl() throws Exception {
+        String authPdfUrl = "https://res.cloudinary.com/dfqu9rzeo/image/authenticated/s--XmtoUnds--/v1793960570/invoicehub/vendor-documents/035be1cf-3d7a-4e0e-9716-76e2fd949a62.pdf";
+        ticket1.setInvoiceFileUrl(authPdfUrl);
+        ticketRepository.save(ticket1);
+
+        mockMvc.perform(get("/documents/ticket/" + ticket1.getId() + "/invoice"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", authPdfUrl));
+    }
+
+    @Test
+    @DisplayName("Authenticated JPG redirects to exact stored URL")
+    @WithMockUser(username = "doc_vendor_one", roles = {"VENDOR"})
+    void authenticatedJpgRedirectsToStoredUrl() throws Exception {
+        String authJpgUrl = "https://res.cloudinary.com/dfqu9rzeo/image/authenticated/s--Yabc123--/v1793960570/invoicehub/vendor-documents/sample-authenticated.jpg";
+        vendor1.setGstDocumentUrl(authJpgUrl);
+        userRepository.save(vendor1);
+
+        mockMvc.perform(get("/documents/vendor/" + vendor1.getId() + "/gst"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", authJpgUrl));
+    }
+
+    @Test
+    @DisplayName("Legacy upload PDF redirects to exact stored URL")
+    @WithMockUser(username = "doc_vendor_one", roles = {"VENDOR"})
+    void legacyUploadPdfRedirectsToStoredUrl() throws Exception {
+        String legacyPdfUrl = "https://res.cloudinary.com/test/image/upload/v1/legacy_invoice.pdf";
+        invoice1.setFileUrl(legacyPdfUrl);
+        invoiceRepository.save(invoice1);
+
+        mockMvc.perform(get("/documents/invoice/" + invoice1.getId()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", legacyPdfUrl));
+    }
+
+    @Test
+    @DisplayName("Legacy upload JPG redirects to exact stored URL")
+    @WithMockUser(username = "doc_vendor_one", roles = {"VENDOR"})
+    void legacyUploadJpgRedirectsToStoredUrl() throws Exception {
+        String legacyJpgUrl = "https://res.cloudinary.com/test/image/upload/v1/legacy_photo.jpg";
+        ticket1.setTaxDocumentUrl(legacyJpgUrl);
+        ticketRepository.save(ticket1);
+
+        mockMvc.perform(get("/documents/ticket/" + ticket1.getId() + "/tax"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", legacyJpgUrl));
+    }
+
+    @Test
+    @DisplayName("Vendor B gets 403 Forbidden when accessing Vendor A's ticket, invoice, and vendor documents")
+    @WithMockUser(username = "doc_vendor_two", roles = {"VENDOR"})
+    void vendorBCannotAccessVendorADocuments() throws Exception {
+        // Vendor 2 accessing Vendor 1's ticket document
+        mockMvc.perform(get("/documents/ticket/" + ticket1.getId() + "/invoice"))
+                .andExpect(status().isForbidden());
+
+        // Vendor 2 accessing Vendor 1's invoice document
+        mockMvc.perform(get("/documents/invoice/" + invoice1.getId()))
+                .andExpect(status().isForbidden());
+
+        // Vendor 2 accessing Vendor 1's profile document
+        mockMvc.perform(get("/documents/vendor/" + vendor1.getId() + "/gst"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Empty stored URL shows friendly bilingual Document Not Available page, never raw JSON")
+    @WithMockUser(username = "doc_vendor_one", roles = {"VENDOR"})
+    void emptyStoredUrlShowsFriendlyBilingualPageNeverRawJson() throws Exception {
+        ticket1.setInvoiceFileUrl(null);
+        ticketRepository.save(ticket1);
+
+        invoice1.setFileUrl("");
+        invoiceRepository.save(invoice1);
+
+        // Ticket document with null URL
+        mockMvc.perform(get("/documents/ticket/" + ticket1.getId() + "/invoice"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("document-not-available"))
+                .andExpect(content().contentTypeCompatibleWith("text/html"))
+                .andExpect(content().string(containsString("Document Not Available")))
+                .andExpect(content().string(containsString("Dokumen yang diminta tidak tersedia")));
+
+        // Invoice document with empty URL
+        mockMvc.perform(get("/documents/invoice/" + invoice1.getId()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("document-not-available"))
+                .andExpect(content().contentTypeCompatibleWith("text/html"))
+                .andExpect(content().string(containsString("Document Not Available")))
+                .andExpect(content().string(containsString("Dokumen yang diminta tidak tersedia")));
     }
 }

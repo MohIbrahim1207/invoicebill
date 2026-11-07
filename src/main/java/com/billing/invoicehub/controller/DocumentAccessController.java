@@ -72,7 +72,7 @@ public class DocumentAccessController {
 
         String rawUrl = resolveTicketDocumentUrl(ticket, field);
         if (rawUrl == null || rawUrl.isBlank()) {
-            throw new ResourceNotFoundException("No document attached for field '" + field + "' on ticket id: " + id);
+            return "document-not-available";
         }
 
         return redirectToSecuredUrl(rawUrl);
@@ -100,7 +100,7 @@ public class DocumentAccessController {
 
         String rawUrl = resolveVendorDocumentUrl(vendor, field);
         if (rawUrl == null || rawUrl.isBlank()) {
-            throw new ResourceNotFoundException("No document found for field '" + field + "' on vendor id: " + id);
+            return "document-not-available";
         }
 
         return redirectToSecuredUrl(rawUrl);
@@ -135,7 +135,7 @@ public class DocumentAccessController {
 
         String rawUrl = invoice.getFileUrl();
         if (rawUrl == null || rawUrl.isBlank()) {
-            throw new ResourceNotFoundException("No document attached to invoice id: " + id);
+            return "document-not-available";
         }
 
         return redirectToSecuredUrl(rawUrl);
@@ -155,7 +155,7 @@ public class DocumentAccessController {
 
         AiQuoteConversionRepository repo = aiQuoteConversionRepositoryProvider.getIfAvailable();
         if (repo == null) {
-            throw new ResourceNotFoundException("AI quote conversion repository not available.");
+            return "document-not-available";
         }
 
         AiQuoteConversion conversion = repo.findById(id)
@@ -165,14 +165,19 @@ public class DocumentAccessController {
             case "original" -> conversion.getOriginalFileUrl();
             case "generated-pdf", "pdf" -> conversion.getGeneratedQuoteFileUrl();
             case "generated-docx", "docx" -> conversion.getGeneratedDocxFileUrl();
-            default -> throw new ResourceNotFoundException("Unknown AI quote document field: " + field);
+            default -> null;
         };
 
         if (rawUrl == null || rawUrl.isBlank()) {
-            throw new ResourceNotFoundException("Document for field '" + field + "' is not generated or available.");
+            return "document-not-available";
         }
 
         return redirectToSecuredUrl(rawUrl);
+    }
+
+    @GetMapping("/not-available")
+    public String documentNotAvailable() {
+        return "document-not-available";
     }
 
     // ─── Private Helpers ─────────────────────────────────────────────────────────
@@ -225,11 +230,8 @@ public class DocumentAccessController {
     }
 
     private String redirectToSecuredUrl(String targetUrl) {
-        CloudinaryService cloudinaryService = cloudinaryServiceProvider.getIfAvailable();
-        if (cloudinaryService != null) {
-            String signedUrl = cloudinaryService.generateSignedDownloadUrl(targetUrl.trim(), 900);
-            return "redirect:" + signedUrl;
-        }
+        // v1.6.3: Simply redirect to the stored URL from the database for ALL files.
+        // Cloudinary authenticated URLs already contain embedded signature segments.
         return "redirect:" + targetUrl.trim();
     }
 }

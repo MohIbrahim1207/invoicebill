@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.6.3",
+    "date": "2026-11-07",
+    "audience": "ALL",
+    "title": {
+      "en": "Document access fix",
+      "id": "Perbaikan akses dokumen"
+    },
+    "notes": {
+      "en": [
+        "Document access fix: direct redirection to Cloudinary authenticated URLs so uploaded PDF and image attachments open reliably without 'Resource not found' errors.",
+        "Document not available page: user-friendly bilingual error page when a requested document has not been uploaded yet."
+      ],
+      "id": [
+        "Perbaikan akses dokumen: pengalihan langsung ke URL terotentikasi Cloudinary sehingga lampiran PDF dan gambar yang diunggah dapat dibuka tanpa galat 'Resource not found'.",
+        "Halaman dokumen tidak tersedia: halaman galat dwibahasa yang ramah pengguna ketika dokumen yang diminta belum diunggah."
+      ]
+    }
+  },
+  {
     "version": "1.6.2",
     "date": "2026-11-05",
     "audience": "ALL",
