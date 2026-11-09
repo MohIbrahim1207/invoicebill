@@ -49,15 +49,18 @@ public class AiQuoteChatService {
     private final Gson gson;
     private final InvoiceHubAiToolService toolService;
     private final Environment environment;
+    private final AiUsageService aiUsageService;
 
     public AiQuoteChatService(@Autowired(required = false) InvoiceHubAiToolService toolService,
-                              @Autowired(required = false) Environment environment) {
+                              @Autowired(required = false) Environment environment,
+                              @Autowired(required = false) AiUsageService aiUsageService) {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(30))
                 .build();
         this.gson = new Gson();
         this.toolService = toolService;
         this.environment = environment;
+        this.aiUsageService = aiUsageService;
     }
 
     public static class ChatAnalysisResult {
@@ -135,7 +138,7 @@ public class AiQuoteChatService {
                     }
                 } else {
                     ChatAnalysisResult geminiQuoteResult = executeWithGeminiQuotation(
-                            trimmedMessage, attachedText, currentQuoteState, historyMessages, isIndonesian);
+                            trimmedMessage, attachedText, currentQuoteState, historyMessages, isIndonesian, currentUser);
                     if (geminiQuoteResult != null && geminiQuoteResult.replyMessage != null && !geminiQuoteResult.replyMessage.isBlank()) {
                         return geminiQuoteResult;
                     }
@@ -259,12 +262,32 @@ public class AiQuoteChatService {
                     .timeout(Duration.ofSeconds(60))
                     .build();
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            long callStart = System.currentTimeMillis();
+            HttpResponse<String> response;
+            try {
+                response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            } catch (Exception ex) {
+                long duration = System.currentTimeMillis() - callStart;
+                if (aiUsageService != null) {
+                    aiUsageService.logUsage(userName(currentUser), userRole(currentUser), "ASSISTANT_CHAT", actualModel, 0, 0, duration, false, ex.getClass().getSimpleName());
+                }
+                throw ex;
+            }
+
+            long duration = System.currentTimeMillis() - callStart;
             if (response.statusCode() != 200) {
+                if (aiUsageService != null) {
+                    aiUsageService.logUsage(userName(currentUser), userRole(currentUser), "ASSISTANT_CHAT", actualModel, 0, 0, duration, false, "HTTP_" + response.statusCode());
+                }
                 throw new IOException("Gemini API call failed with status " + response.statusCode() + ": " + response.body());
             }
 
             JsonObject responseJson = JsonParser.parseString(response.body()).getAsJsonObject();
+            int inTokens = extractUsageTokens(responseJson, "promptTokenCount");
+            int outTokens = extractUsageTokens(responseJson, "candidatesTokenCount");
+            if (aiUsageService != null) {
+                aiUsageService.logUsage(userName(currentUser), userRole(currentUser), "ASSISTANT_CHAT", actualModel, inTokens, outTokens, duration, true, null);
+            }
             JsonArray candidates = responseJson.getAsJsonArray("candidates");
             if (candidates == null || candidates.isEmpty()) {
                 break;
@@ -374,7 +397,8 @@ public class AiQuoteChatService {
             String attachedText,
             AiQuotationEditDto currentQuoteState,
             List<Map<String, String>> historyMessages,
-            boolean isIndonesian) throws IOException, InterruptedException {
+            boolean isIndonesian,
+            AppUser currentUser) throws IOException, InterruptedException {
 
         String prompt = buildQuotationPrompt(userMessage, attachedText, currentQuoteState, historyMessages);
         String systemInstruction = """
@@ -424,12 +448,32 @@ public class AiQuoteChatService {
                 .timeout(Duration.ofSeconds(60))
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        long callStart = System.currentTimeMillis();
+        HttpResponse<String> response;
+        try {
+            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (Exception ex) {
+            long duration = System.currentTimeMillis() - callStart;
+            if (aiUsageService != null) {
+                aiUsageService.logUsage(userName(currentUser), userRole(currentUser), "QUOTE", actualModel, 0, 0, duration, false, ex.getClass().getSimpleName());
+            }
+            throw ex;
+        }
+
+        long duration = System.currentTimeMillis() - callStart;
         if (response.statusCode() != 200) {
+            if (aiUsageService != null) {
+                aiUsageService.logUsage(userName(currentUser), userRole(currentUser), "QUOTE", actualModel, 0, 0, duration, false, "HTTP_" + response.statusCode());
+            }
             throw new IOException("Gemini quotation API call failed with status " + response.statusCode() + ": " + response.body());
         }
 
         JsonObject responseJson = JsonParser.parseString(response.body()).getAsJsonObject();
+        int inTokens = extractUsageTokens(responseJson, "promptTokenCount");
+        int outTokens = extractUsageTokens(responseJson, "candidatesTokenCount");
+        if (aiUsageService != null) {
+            aiUsageService.logUsage(userName(currentUser), userRole(currentUser), "QUOTE", actualModel, inTokens, outTokens, duration, true, null);
+        }
         JsonArray candidates = responseJson.getAsJsonArray("candidates");
         if (candidates == null || candidates.isEmpty()) {
             return null;
@@ -1096,5 +1140,35 @@ public class AiQuoteChatService {
             result.updatedQuoteData = currentState != null ? currentState : new AiQuotationEditDto();
         }
         return result;
+    }
+
+    private String userName(AppUser user) {
+        if (user != null && user.getUsername() != null) return user.getUsername();
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            return auth.getName();
+        }
+        return "anonymous";
+    }
+
+    private String userRole(AppUser user) {
+        if (user != null && user.getRoles() != null && !user.getRoles().isEmpty()) {
+            return user.getRoles().stream().map(com.billing.invoicehub.entity.AppRole::getName).collect(java.util.stream.Collectors.joining(","));
+        }
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getAuthorities() != null && !auth.getAuthorities().isEmpty()) {
+            return auth.getAuthorities().stream().map(org.springframework.security.core.GrantedAuthority::getAuthority).collect(java.util.stream.Collectors.joining(","));
+        }
+        return "ROLE_USER";
+    }
+
+    private int extractUsageTokens(JsonObject responseJson, String field) {
+        if (responseJson != null && responseJson.has("usageMetadata")) {
+            JsonObject usage = responseJson.getAsJsonObject("usageMetadata");
+            if (usage.has(field)) {
+                return usage.get(field).getAsInt();
+            }
+        }
+        return 0;
     }
 }

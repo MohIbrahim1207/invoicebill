@@ -1,5 +1,30 @@
 [
   {
+    "version": "1.7.1",
+    "date": "2026-11-09",
+    "audience": "ALL",
+    "title": {
+      "en": "AI Usage Tracker & Legal Compliance",
+      "id": "Pelacak Penggunaan AI & Kepatuhan Hukum"
+    },
+    "notes": {
+      "en": [
+        "AI Usage Tracker: Super Admin dashboard with real-time token tracking, IDR cost estimation, feature/user breakdown, daily charts, failure analysis, CSV export, and monthly budget alerts (80% and 100%). Strictly metadata only — prompts and answers are never stored.",
+        "Budget Protection: Optional automated shutdown of Vendor AI upon reaching 100% of the monthly budget. Internal staff tools are never interrupted.",
+        "Comprehensive Legal Pages: Bilingual Terms of Use (/terms), Privacy Policy (/privacy) compliant with Indonesian UU PDP, and Cookie Policy (/cookies) detailing essential-only cookies.",
+        "Terms Acceptance & Cookie Notice: Mandatory terms consent upon vendor registration, re-consent prompts for existing users on policy revisions, and non-intrusive cookie consent banner.",
+        "Super Admin Legal Editor: Integrated web-based editor for Terms, Privacy, and Cookie policies with full audit history and version tracking."
+      ],
+      "id": [
+        "Pelacak Penggunaan AI: Dasbor Super Admin dengan pelacakan token waktu nyata, perkiraan biaya Rupiah, rincian per fitur/pengguna, grafik harian, analisis kegagalan, ekspor CSV, dan peringatan anggaran bulanan (80% dan 100%). Hanya mencatat metadata — teks prompt dan jawaban tidak pernah disimpan.",
+        "Perlindungan Anggaran: Penonaktifan otomatis opsional untuk AI Vendor saat anggaran bulanan mencapai 100%. Alat internal staf tidak pernah dihentikan.",
+        "Halaman Dokumen Hukum Lengkap: Syarat Penggunaan (/terms), Kebijakan Privasi (/privacy) sesuai UU PDP Indonesia, dan Kebijakan Cookie (/cookies) dwibahasa.",
+        "Persetujuan Syarat & Pemberitahuan Cookie: Persetujuan wajib saat pendaftaran vendor, permintaan persetujuan ulang untuk pengguna saat syarat diperbarui, dan bilah persetujuan cookie penting.",
+        "Editor Dokumen Hukum Super Admin: Editor terintegrasi untuk Syarat, Privasi, dan Kebijakan Cookie dengan riwayat versi lengkap."
+      ]
+    }
+  },
+  {
     "version": "1.7.0",
     "date": "2026-11-07",
     "audience": "ALL",

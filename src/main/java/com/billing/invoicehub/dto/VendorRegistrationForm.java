@@ -51,6 +51,17 @@ public class VendorRegistrationForm {
     @Size(max = 50, message = "{validation.gstNumber.size}")
     private String gstNumber;
 
+    @jakarta.validation.constraints.AssertTrue(message = "{validation.terms.required}")
+    private boolean agreeTerms;
+
+    public boolean isAgreeTerms() {
+        return this.agreeTerms;
+    }
+
+    public void setAgreeTerms(boolean agreeTerms) {
+        this.agreeTerms = agreeTerms;
+    }
+
     public String getUsername() {
         return this.username;
     }

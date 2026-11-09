@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <!-- Favicon & PWA Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=1.5.0">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=1.5.0">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=1.5.0">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=1.5.0">
+    <link rel="manifest" href="/site.webmanifest?v=1.5.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Usage Tracker - InvoiceHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/portal.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .kpi-card {
+            border-radius: 12px;
+            transition: transform 0.15s ease-in-out;
+        }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+        }
+        .kpi-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+    </style>
+</head>
+
+<body class="portal-bg">
+    <div th:replace="~{fragments/layout :: topbar(#{sidebar.ai.usage})}"></div>
+    <div th:replace="~{fragments/layout :: sidebarMobile('ai-usage')}"></div>
+    <div class="portal-shell">
+        <div th:replace="~{fragments/layout :: sidebar('ai-usage')}"></div>
+        <main class="portal-main">
+            <!-- Header -->
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-2">
+                <div>
+                    <h1 class="portal-heading mb-1" th:text="#{sidebar.ai.usage}">AI Usage</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="/admin/dashboard">Admin Panel</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">AI Usage Tracker</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                        <i class="bi bi-gear-fill me-1"></i> Pricing & Budget Settings
+                    </button>
+                    <a th:href="@{/admin/ai-usage/export-csv(startDate=${filterStart}, endDate=${filterEnd})}" class="btn btn-success btn-sm rounded-pill px-3">
+                        <i class="bi bi-download me-1"></i> Export CSV
+                    </a>
+                </div>
+            </div>
+
+            <!-- Mandatory Estimate Disclaimer -->
+            <div class="alert alert-info border-0 shadow-sm d-flex align-items-center gap-2 mb-4 py-2 px-3" role="alert">
+                <i class="bi bi-info-circle-fill text-info fs-5 flex-shrink-0"></i>
+                <div>
+                    <strong>Estimates only — check Google's billing dashboard for the real bill.</strong>
+                    <span class="text-muted d-block small">Hanya perkiraan — periksa dasbor penagihan Google untuk tagihan sebenarnya. Prompt and answer text are never recorded.</span>
+                </div>
+            </div>
+
+            <!-- Budget Alert Banners -->
+            <div th:if="${isBudgetExceeded100}" class="alert alert-danger shadow-sm d-flex align-items-center gap-2 mb-4" role="alert">
+                <i class="bi bi-exclamation-octagon-fill fs-4 flex-shrink-0"></i>
+                <div class="flex-grow-1">
+                    <div class="fw-bold">AI Monthly Budget Exceeded (100%+)</div>
+                    <div>Estimated AI spend this month has surpassed your monthly budget limit of <span class="fw-bold" th:text="'Rp ' + ${#numbers.formatDecimal(monthlyBudgetIdr, 0, 'POINT', 0, 'COMMA')}">Rp 500,000</span>.
+                        <span th:if="${autoDisableVendor}">Vendor AI has been automatically disabled. Staff features remain active.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${isBudgetWarning80 and not isBudgetExceeded100}" class="alert alert-warning shadow-sm d-flex align-items-center gap-2 mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill fs-4 flex-shrink-0"></i>
+                <div class="flex-grow-1">
+                    <div class="fw-bold">AI Monthly Budget Warning (80% Threshold)</div>
+                    <div>Estimated AI spend has reached <span class="fw-bold" th:text="${budgetUsedPercent} + '%'">80%</span> of your monthly budget.</div>
+                </div>
+            </div>
+
+            <!-- Flash Success Message -->
+            <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <span th:text="${message}">Settings saved successfully.</span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="row g-3 mb-4">
+                <!-- Today KPI -->
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card portal-card kpi-card shadow-sm h-100 p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted small fw-semibold text-uppercase">Today's Usage</span>
+                            <div class="kpi-icon bg-primary-subtle text-primary"><i class="bi bi-clock-history"></i></div>
+                        </div>
+                        <h3 class="fw-bold mb-1" th:text="${todayRequests}">0</h3>
+                        <div class="small text-muted mb-2"><span th:text="${#numbers.formatInteger(todayTokens, 0, 'POINT')}">0</span> tokens</div>
+                        <div class="text-primary fw-bold" th:text="'Rp ' + ${#numbers.formatDecimal(todayCostIdr, 0, 'POINT', 0, 'COMMA')}">Rp 0</div>
+                    </div>
+                </div>
+
+                <!-- Month KPI -->
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card portal-card kpi-card shadow-sm h-100 p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted small fw-semibold text-uppercase">This Month</span>
+                            <div class="kpi-icon bg-success-subtle text-success"><i class="bi bi-calendar-check"></i></div>
+                        </div>
+                        <h3 class="fw-bold mb-1" th:text="${monthRequests}">0</h3>
+                        <div class="small text-muted mb-2"><span th:text="${#numbers.formatInteger(monthTokens, 0, 'POINT')}">0</span> tokens</div>
+                        <div class="text-success fw-bold" th:text="'Rp ' + ${#numbers.formatDecimal(monthCostIdr, 0, 'POINT', 0, 'COMMA')}">Rp 0</div>
+                    </div>
+                </div>
+
+                <!-- Monthly Budget KPI -->
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card portal-card kpi-card shadow-sm h-100 p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted small fw-semibold text-uppercase">Monthly Budget</span>
+                            <div class="kpi-icon bg-info-subtle text-info"><i class="bi bi-wallet2"></i></div>
+                        </div>
+                        <h3 class="fw-bold mb-1" th:text="${budgetUsedPercent} + '%'">0%</h3>
+                        <div class="small text-muted mb-2">of <span th:text="'Rp ' + ${#numbers.formatDecimal(monthlyBudgetIdr, 0, 'POINT', 0, 'COMMA')}">Rp 500,000</span></div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar" role="progressbar"
+                                 th:classappend="${budgetUsedPercent >= 100 ? 'bg-danger' : (budgetUsedPercent >= 80 ? 'bg-warning' : 'bg-success')}"
+                                 th:style="'width: ' + (${budgetUsedPercent > 100 ? 100 : budgetUsedPercent}) + '%'"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reliability / Failures KPI -->
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card portal-card kpi-card shadow-sm h-100 p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted small fw-semibold text-uppercase">Failed Requests</span>
+                            <div class="kpi-icon" th:classappend="${filterFailures > 0 ? 'bg-danger-subtle text-danger' : 'bg-light text-secondary'}">
+                                <i class="bi bi-exclamation-triangle"></i>
+                            </div>
+                        </div>
+                        <h3 class="fw-bold mb-1" th:text="${filterFailures}">0</h3>
+                        <div class="small text-muted mb-2">out of <span th:text="${filterTotalRequests}">0</span> requests</div>
+                        <div class="small fw-semibold" th:classappend="${filterFailures > 0 ? 'text-danger' : 'text-success'}">
+                            <span th:text="${filterTotalRequests > 0 ? #numbers.formatDecimal((1.0 - (filterFailures * 1.0 / filterTotalRequests)) * 100.0, 1, 'POINT', 1, 'COMMA') + '% Success' : '100% Success'}">100% Success</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date Filter Panel -->
+            <div class="card portal-card shadow-sm mb-4">
+                <div class="card-body">
+                    <form method="get" action="/admin/ai-usage" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-muted">Start Date</label>
+                            <input type="date" name="startDate" th:value="${filterStart}" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-muted">End Date</label>
+                            <input type="date" name="endDate" th:value="${filterEnd}" class="form-control">
+                        </div>
+                        <div class="col-md-4 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel me-1"></i> Apply Filter</button>
+                            <a href="/admin/ai-usage" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Daily Activity Chart (30 Days) -->
+            <div class="card portal-card shadow-sm mb-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0 fw-bold"><i class="bi bi-graph-up text-primary me-2"></i>Daily AI Activity</h5>
+                    <span class="text-muted small" th:text="'Range: ' + ${filterStart} + ' to ' + ${filterEnd}">Range: 30 days</span>
+                </div>
+                <div class="card-body p-4">
+                    <canvas id="dailyAiChart" style="max-height: 280px; width: 100%;"></canvas>
+                </div>
+            </div>
+
+            <!-- Breakdown Grids: Feature & User -->
+            <div class="row g-4 mb-4">
+                <!-- Breakdown by Feature -->
+                <div class="col-lg-6">
+                    <div class="card portal-card shadow-sm h-100">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h5 class="card-title mb-0 fw-bold"><i class="bi bi-pie-chart text-primary me-2"></i>Usage by Feature</h5>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light small">
+                                    <tr>
+                                        <th>Feature</th>
+                                        <th>Requests</th>
+                                        <th>Tokens (In / Out)</th>
+                                        <th>Estimated Cost</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:if="${featureBreakdown.empty}">
+                                        <td colspan="4" class="text-center text-muted py-3">No activity in this period.</td>
+                                    </tr>
+                                    <tr th:each="f : ${featureBreakdown}">
+                                        <td>
+                                            <span class="badge bg-secondary-subtle text-secondary fw-semibold" th:text="${f.feature}">ASSISTANT_CHAT</span>
+                                        </td>
+                                        <td class="fw-semibold" th:text="${f.requests}">0</td>
+                                        <td class="small text-muted">
+                                            <span th:text="${#numbers.formatInteger(f.inputTokens, 0, 'POINT')}">0</span> /
+                                            <span th:text="${#numbers.formatInteger(f.outputTokens, 0, 'POINT')}">0</span>
+                                        </td>
+                                        <td class="text-primary fw-bold" th:text="'Rp ' + ${#numbers.formatDecimal(f.costIdr, 0, 'POINT', 0, 'COMMA')}">Rp 0</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Breakdown by User -->
+                <div class="col-lg-6">
+                    <div class="card portal-card shadow-sm h-100">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h5 class="card-title mb-0 fw-bold"><i class="bi bi-people text-primary me-2"></i>Usage by User</h5>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light small">
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Role</th>
+                                        <th>Requests</th>
+                                        <th>Total Tokens</th>
+                                        <th>Cost (Rp)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:if="${userBreakdown.empty}">
+                                        <td colspan="5" class="text-center text-muted py-3">No activity in this period.</td>
+                                    </tr>
+                                    <tr th:each="u : ${userBreakdown}">
+                                        <td class="fw-semibold" th:text="${u.username}">admin</td>
+                                        <td>
+                                            <span class="badge" th:classappend="${u.role == 'ROLE_SUPER_ADMIN' ? 'bg-dark' : (u.role == 'ROLE_ADMIN' ? 'bg-primary' : 'bg-success')}" th:text="${u.role}">ROLE_ADMIN</span>
+                                        </td>
+                                        <td th:text="${u.requests}">0</td>
+                                        <td class="small text-muted" th:text="${#numbers.formatInteger(u.tokens, 0, 'POINT')}">0</td>
+                                        <td class="text-primary fw-bold" th:text="'Rp ' + ${#numbers.formatDecimal(u.costIdr, 0, 'POINT', 0, 'COMMA')}">Rp 0</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Failures Table (if any) -->
+            <div th:if="${not failureBreakdown.empty}" class="card portal-card shadow-sm mb-4">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h6 class="card-title mb-0 fw-bold text-danger"><i class="bi bi-bug me-2"></i>Failures Breakdown</h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Error Type / Exception</th>
+                                <th>Occurrences</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="fb : ${failureBreakdown}">
+                                <td class="font-monospace small text-danger" th:text="${fb[0]}">ResourceExhaustedException</td>
+                                <td class="fw-bold" th:text="${fb[1]}">1</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow border-0 rounded-4">
+                <div class="modal-header border-bottom px-4 py-3 bg-light rounded-top-4">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-sliders me-2 text-primary"></i>AI Pricing & Budget Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" action="/admin/ai-usage/settings">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <div class="modal-body px-4 py-3">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">Price per 1M Input Tokens ($ USD)</label>
+                            <input type="number" step="0.0001" min="0" name="priceInput1M" class="form-control" th:value="${priceInput1M}" required>
+                            <div class="form-text small">e.g. 0.075 for Gemini 1.5/2.5 Flash</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">Price per 1M Output Tokens ($ USD)</label>
+                            <input type="number" step="0.0001" min="0" name="priceOutput1M" class="form-control" th:value="${priceOutput1M}" required>
+                            <div class="form-text small">e.g. 0.30 for Gemini 1.5/2.5 Flash</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">USD → IDR Exchange Rate</label>
+                            <input type="number" step="1" min="1" name="exchangeRate" class="form-control" th:value="${exchangeRate}" required>
+                            <div class="form-text small">e.g. 16000 for Rp 16,000 / USD</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">Monthly Budget (Rp IDR)</label>
+                            <input type="number" step="1000" min="0" name="monthlyBudget" class="form-control" th:value="${monthlyBudgetIdr}" required>
+                            <div class="form-text small">System notifies SUPER_ADMIN at 80% and 100% of this budget.</div>
+                        </div>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="autoDisableVendor" name="autoDisableVendor" value="true" th:checked="${autoDisableVendor}">
+                            <label class="form-check-label small fw-semibold" for="autoDisableVendor">
+                                Auto-turn-off "Vendor AI" at 100% of budget
+                            </label>
+                        </div>
+                        <div class="alert alert-light border small text-muted mb-0">
+                            <i class="bi bi-shield-check text-success me-1"></i> Staff AI features (Quotation converter, internal assistant) are <strong>never</strong> disabled automatically.
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top px-4 py-3 bg-light rounded-bottom-4">
+                        <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">Save Settings</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: footer}"></div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Chart Rendering Script -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const chartData = /*[[${chartData}]]*/ [];
+        const labels = chartData.map(d => d.date);
+        const reqData = chartData.map(d => d.requests);
+        const costData = chartData.map(d => d.costIdr);
+
+        const ctx = document.getElementById('dailyAiChart');
+        if (ctx && typeof Chart !== 'undefined') {
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Requests',
+                            data: reqData,
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                            borderColor: '#3b82f6',
+                            borderWidth: 1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Cost (Rp)',
+                            data: costData,
+                            type: 'line',
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            position: 'left',
+                            title: { display: true, text: 'Requests' }
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            title: { display: true, text: 'Estimated Cost (Rp)' }
+                        }
+                    }
+                }
+            });
+        }
+        /*]]>*/
+    </script>
+</body>
+</html>

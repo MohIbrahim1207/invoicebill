@@ -43,6 +43,12 @@ public class AppUser {
     @jakarta.persistence.Column(name = "last_seen_version", length = 50)
     private String lastSeenVersion;
 
+    @jakarta.persistence.Column(name = "terms_accepted_version", length = 50)
+    private String termsAcceptedVersion;
+
+    @jakarta.persistence.Column(name = "terms_accepted_at")
+    private LocalDateTime termsAcceptedAt;
+
     private boolean enabled;
     private boolean verified;
     private String vendorCode;
@@ -282,5 +288,21 @@ public class AppUser {
 
     public void setTwoFactorSecret(String twoFactorSecret) {
         this.twoFactorSecret = twoFactorSecret;
+    }
+
+    public String getTermsAcceptedVersion() {
+        return this.termsAcceptedVersion;
+    }
+
+    public void setTermsAcceptedVersion(String termsAcceptedVersion) {
+        this.termsAcceptedVersion = termsAcceptedVersion;
+    }
+
+    public LocalDateTime getTermsAcceptedAt() {
+        return this.termsAcceptedAt;
+    }
+
+    public void setTermsAcceptedAt(LocalDateTime termsAcceptedAt) {
+        this.termsAcceptedAt = termsAcceptedAt;
     }
 }

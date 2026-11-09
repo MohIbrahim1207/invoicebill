@@ -150,9 +150,36 @@
                     </div>
                 </div>
 
+                <!-- Footer Legal Links -->
+                <div class="text-center text-white-50 small mt-4">
+                    <span>&copy; <span th:text="${#calendars.format(#calendars.createNow(), 'yyyy')}">2026</span> InvoiceHub</span>
+                    <span class="mx-1">·</span>
+                    <a th:href="@{/terms}" class="text-decoration-none text-white-50" th:text="#{legal.terms}">Terms of Use</a>
+                    <span class="mx-1">·</span>
+                    <a th:href="@{/privacy}" class="text-decoration-none text-white-50" th:text="#{legal.privacy}">Privacy Policy</a>
+                    <span class="mx-1">·</span>
+                    <a th:href="@{/cookies}" class="text-decoration-none text-white-50" th:text="#{legal.cookies}">Cookie Policy</a>
+                </div>
+
             </div>
         </div>
     </div>
+    <!-- Cookie Notice Bar -->
+    <div id="cookieNoticeBanner" class="position-fixed bottom-0 start-0 end-0 bg-dark text-white py-3 px-4 shadow-lg" style="display: none; z-index: 9999;">
+        <div class="container-fluid d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-2 small">
+                <i class="bi bi-cookie fs-4 text-warning flex-shrink-0"></i>
+                <span>
+                    We use only <strong>essential cookies</strong> (session, CSRF security, language preference, and theme) to provide core functionality — no third-party tracking or advertising cookies.
+                    Learn more in our <a href="/cookies" target="_blank" class="text-white text-decoration-underline">Cookie Policy</a>.
+                </span>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                <button type="button" class="btn btn-primary btn-sm px-4 fw-semibold rounded-pill" onclick="acceptCookies()">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function changeLanguage(lang) {
@@ -160,6 +187,22 @@
             url.searchParams.set('lang', lang);
             window.location.assign(url.toString());
         }
+
+        function checkCookieConsent() {
+            if (!localStorage.getItem('cookie_consent')) {
+                const banner = document.getElementById('cookieNoticeBanner');
+                if (banner) banner.style.display = 'block';
+            }
+        }
+
+        function acceptCookies() {
+            localStorage.setItem('cookie_consent', 'accepted');
+            document.cookie = "cookie_consent=accepted; path=/; max-age=31536000; SameSite=Lax";
+            const banner = document.getElementById('cookieNoticeBanner');
+            if (banner) banner.style.display = 'none';
+        }
+
+        document.addEventListener('DOMContentLoaded', checkCookieConsent);
     </script>
 </body>
 

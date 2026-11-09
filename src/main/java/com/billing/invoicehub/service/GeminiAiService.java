@@ -37,13 +37,19 @@ public class GeminiAiService implements AIProvider {
 
     private final HttpClient httpClient;
     private final Gson gson;
+    private final AiUsageService aiUsageService;
 
     public GeminiAiService() {
-        // Connect Timeout: 30 seconds
+        this(null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public GeminiAiService(@org.springframework.beans.factory.annotation.Autowired(required = false) AiUsageService aiUsageService) {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(30))
                 .build();
         this.gson = new Gson();
+        this.aiUsageService = aiUsageService;
     }
 
     @Override
@@ -218,6 +224,17 @@ public class GeminiAiService implements AIProvider {
                 if (statusCode == 200) {
                     String responseBody = response.body();
                     JsonObject responseJson = JsonParser.parseString(responseBody).getAsJsonObject();
+                    int inTokens = 0;
+                    int outTokens = 0;
+                    if (responseJson.has("usageMetadata")) {
+                        JsonObject usage = responseJson.getAsJsonObject("usageMetadata");
+                        if (usage.has("promptTokenCount")) inTokens = usage.get("promptTokenCount").getAsInt();
+                        if (usage.has("candidatesTokenCount")) outTokens = usage.get("candidatesTokenCount").getAsInt();
+                    }
+                    if (aiUsageService != null) {
+                        aiUsageService.logUsage(currentUsername(), currentRole(), "QUOTE", actualModel, inTokens, outTokens, requestDurationMs, true, null);
+                    }
+
                     String extractedText = responseJson.getAsJsonArray("candidates")
                             .get(0).getAsJsonObject()
                             .getAsJsonObject("content")
@@ -231,22 +248,31 @@ public class GeminiAiService implements AIProvider {
                     }
                     return extractedText;
 
-                } else if (statusCode == 429) {
-                    logger.warn("Gemini API rate limit exceeded (HTTP 429) on attempt {}.", attempt);
-                    if (attempt == maxRetries) {
-                        throw new IOException("Gemini API rate limit exceeded. The AI service is currently busy. Please try again shortly.");
-                    }
-                } else if (statusCode == 403 || statusCode == 401) {
-                    throw new IOException("Invalid Google Gemini API key or unauthorized access (HTTP " + statusCode + "). Please verify settings.");
-                } else if (statusCode >= 500) {
-                    logger.warn("Gemini server error (HTTP {}) on attempt {}.", statusCode, attempt);
-                    if (attempt == maxRetries) {
-                        throw new IOException("Google Gemini AI service is temporarily unavailable (HTTP " + statusCode + "). Please try again later.");
-                    }
                 } else {
-                    throw new IOException("Gemini API call failed with HTTP status: " + statusCode + ". Body: " + response.body());
+                    if (aiUsageService != null) {
+                        aiUsageService.logUsage(currentUsername(), currentRole(), "QUOTE", actualModel, 0, 0, requestDurationMs, false, "HTTP_" + statusCode);
+                    }
+                    if (statusCode == 429) {
+                        logger.warn("Gemini API rate limit exceeded (HTTP 429) on attempt {}.", attempt);
+                        if (attempt == maxRetries) {
+                            throw new IOException("Gemini API rate limit exceeded. The AI service is currently busy. Please try again shortly.");
+                        }
+                    } else if (statusCode == 403 || statusCode == 401) {
+                        throw new IOException("Invalid Google Gemini API key or unauthorized access (HTTP " + statusCode + "). Please verify settings.");
+                    } else if (statusCode >= 500) {
+                        logger.warn("Gemini server error (HTTP {}) on attempt {}.", statusCode, attempt);
+                        if (attempt == maxRetries) {
+                            throw new IOException("Google Gemini AI service is temporarily unavailable (HTTP " + statusCode + "). Please try again later.");
+                        }
+                    } else {
+                        throw new IOException("Gemini API call failed with HTTP status: " + statusCode + ". Body: " + response.body());
+                    }
                 }
             } catch (IOException e) {
+                long duration = System.currentTimeMillis() - requestStartTime;
+                if (aiUsageService != null) {
+                    aiUsageService.logUsage(currentUsername(), currentRole(), "QUOTE", actualModel, 0, 0, duration, false, e.getClass().getSimpleName());
+                }
                 logger.warn("IOException occurred during Gemini request on attempt {}: {}", attempt, e.getMessage());
                 lastException = e;
             }
@@ -375,5 +401,21 @@ public class GeminiAiService implements AIProvider {
                 "  ]\n" +
                 "}\n" +
                 "Only extract actual line items or optional items present in this text. Copy all fields verbatim. If none are found, return empty arrays.";
+    }
+
+    private String currentUsername() {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            return auth.getName();
+        }
+        return "system";
+    }
+
+    private String currentRole() {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getAuthorities() != null && !auth.getAuthorities().isEmpty()) {
+            return auth.getAuthorities().stream().map(org.springframework.security.core.GrantedAuthority::getAuthority).collect(java.util.stream.Collectors.joining(","));
+        }
+        return "ROLE_ADMIN";
     }
 }

@@ -54,6 +54,9 @@ public class VendorRegistrationService {
     @org.springframework.beans.factory.annotation.Autowired
     private AuditLogService auditLogService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private LegalDocumentService legalDocumentService;
+
     public VendorRegistrationService(AppUserRepository userRepository, AppRoleRepository roleRepository,
             PasswordEncoder passwordEncoder, FileStorageService fileStorageService,
             NotificationService notificationService, EmailService emailService,
@@ -164,9 +167,17 @@ public class VendorRegistrationService {
         }
 
         user.setRoles(Set.of(userRole));
+        if (legalDocumentService != null) {
+            String activeTerms = legalDocumentService.getCurrentVersion(LegalDocumentService.SLUG_TERMS);
+            user.setTermsAcceptedVersion(activeTerms);
+            user.setTermsAcceptedAt(java.time.LocalDateTime.now());
+        }
         log.debug("Saving user to database: {}", form.getUsername());
         log.info("[DEBUG-LOG-SIGNUP] appUserRepository.save() called. Username: {}", user.getUsername());
         AppUser saved = this.userRepository.save(user);
+        if (legalDocumentService != null) {
+            legalDocumentService.recordAcceptance(saved, null);
+        }
         auditLogService.log(saved.getUsername(), "ROLE_VENDOR", "Vendor Registration", "AppUser", saved.getId(), null,
                 "Vendor registered: " + saved.getUsername());
         try {

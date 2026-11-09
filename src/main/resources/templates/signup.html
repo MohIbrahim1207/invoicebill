@@ -353,6 +353,19 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Terms & Privacy Policy Checkbox (Required) -->
+                                <div class="card border-0 bg-light p-3 mb-4 rounded-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="agreeTerms" name="agreeTerms" required>
+                                        <label class="form-check-label small text-secondary fw-semibold" for="agreeTerms">
+                                            I agree to the <a href="/terms" target="_blank" class="text-primary text-decoration-underline">Terms of Use</a> and <a href="/privacy" target="_blank" class="text-primary text-decoration-underline">Privacy Policy</a> (marked Draft).
+                                        </label>
+                                        <div class="text-danger small mt-1 fw-bold" id="agreeTermsError" style="display: none;">
+                                            <i class="bi bi-exclamation-circle me-1"></i> You must agree to the Terms of Use and Privacy Policy to register.
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                         </form>
@@ -375,6 +388,15 @@
 
                         <div class="text-center mt-4">
                             <small class="text-muted"><span th:text="#{signup.has.account}">Already have an account?</span> <a th:href="@{/login}" th:text="#{signup.signin.link}">Sign in here</a></small>
+                        </div>
+
+                        <!-- Footer Legal Links -->
+                        <div class="text-center mt-3 pt-3 border-top" style="font-size: 0.75rem;">
+                            <a href="/terms" target="_blank" class="text-muted text-decoration-none mx-2">Terms of Use</a>
+                            <span class="text-muted">•</span>
+                            <a href="/privacy" target="_blank" class="text-muted text-decoration-none mx-2">Privacy Policy</a>
+                            <span class="text-muted">•</span>
+                            <a href="/cookies" target="_blank" class="text-muted text-decoration-none mx-2">Cookie Policy</a>
                         </div>
                     </div>
                 </div>
@@ -1102,6 +1124,15 @@
                     isStep3Valid = false;
                 }
 
+                const agreeTermsCheck = document.getElementById("agreeTerms");
+                const agreeTermsErr = document.getElementById("agreeTermsError");
+                if (!agreeTermsCheck.checked) {
+                    agreeTermsErr.style.display = "block";
+                    isStep3Valid = false;
+                } else {
+                    agreeTermsErr.style.display = "none";
+                }
+
                 if (!isStep1Valid || !isStep2Valid || !isStep3Valid) {
                     isSubmitting = false;
                     submitBtn.disabled = false;
@@ -1200,7 +1231,35 @@
             });
 
             updateStepper();
+
+            if (!localStorage.getItem('cookie_consent')) {
+                const banner = document.getElementById('cookieNoticeBanner');
+                if (banner) banner.style.display = 'block';
+            }
         });
+
+        function acceptCookies() {
+            localStorage.setItem('cookie_consent', 'accepted');
+            document.cookie = "cookie_consent=accepted; path=/; max-age=31536000; SameSite=Lax";
+            const banner = document.getElementById('cookieNoticeBanner');
+            if (banner) banner.style.display = 'none';
+        }
     </script>
+
+    <!-- Cookie Notice Bar -->
+    <div id="cookieNoticeBanner" class="position-fixed bottom-0 start-0 end-0 bg-dark text-white py-3 px-4 shadow-lg" style="display: none; z-index: 9999;">
+        <div class="container-fluid d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-2 small">
+                <i class="bi bi-cookie fs-4 text-warning flex-shrink-0"></i>
+                <span>
+                    We use only <strong>essential cookies</strong> (session, CSRF security, language preference, and theme) to provide core functionality — no third-party tracking or advertising cookies.
+                    Learn more in our <a href="/cookies" target="_blank" class="text-white text-decoration-underline">Cookie Policy</a>.
+                </span>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                <button type="button" class="btn btn-primary btn-sm px-4 fw-semibold rounded-pill" onclick="acceptCookies()">OK</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

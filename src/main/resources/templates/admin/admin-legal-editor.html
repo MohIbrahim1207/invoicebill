@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <!-- Favicon & PWA Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=1.5.0">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=1.5.0">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=1.5.0">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=1.5.0">
+    <link rel="manifest" href="/site.webmanifest?v=1.5.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Legal Pages Editor - InvoiceHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/portal.css}">
+</head>
+
+<body class="portal-bg">
+    <div th:replace="~{fragments/layout :: topbar(#{sidebar.legal.pages})}"></div>
+    <div th:replace="~{fragments/layout :: sidebarMobile('legal-pages')}"></div>
+    <div class="portal-shell">
+        <div th:replace="~{fragments/layout :: sidebar('legal-pages')}"></div>
+        <main class="portal-main">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-2">
+                <div>
+                    <h1 class="portal-heading mb-1" th:text="#{sidebar.legal.pages}">Legal Pages</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="/admin/dashboard">Admin Panel</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Legal Pages Editor</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="/terms" target="_blank" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> View Terms
+                    </a>
+                    <a href="/privacy" target="_blank" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> View Privacy
+                    </a>
+                    <a href="/cookies" target="_blank" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> View Cookies
+                    </a>
+                </div>
+            </div>
+
+            <!-- Flash Alert -->
+            <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <span th:text="${message}">Document updated successfully.</span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
+            <!-- Tabs -->
+            <ul class="nav nav-tabs mb-4" id="legalTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold" th:classappend="${activeTab == 'terms' or activeTab == null} ? ' active' : ''"
+                            id="terms-tab" data-bs-toggle="tab" data-bs-target="#terms-pane" type="button" role="tab">
+                        <i class="bi bi-file-text me-1"></i> Terms of Use
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold" th:classappend="${activeTab == 'privacy'} ? ' active' : ''"
+                            id="privacy-tab" data-bs-toggle="tab" data-bs-target="#privacy-pane" type="button" role="tab">
+                        <i class="bi bi-shield-check me-1"></i> Privacy Policy
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold" th:classappend="${activeTab == 'cookies'} ? ' active' : ''"
+                            id="cookies-tab" data-bs-toggle="tab" data-bs-target="#cookies-pane" type="button" role="tab">
+                        <i class="bi bi-cookie me-1"></i> Cookie Policy
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="legalTabsContent">
+                <!-- TERMS PANE -->
+                <div class="tab-pane fade" th:classappend="${activeTab == 'terms' or activeTab == null} ? ' show active' : ''"
+                     id="terms-pane" role="tabpanel">
+                    <div class="card portal-card shadow-sm mb-4">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h5 class="card-title mb-0 fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i>Edit Terms of Use</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <form method="post" action="/admin/legal-pages/update">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <input type="hidden" name="slug" value="terms">
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-semibold">Version</label>
+                                        <input type="text" name="version" class="form-control" th:value="${termsDoc != null ? termsDoc.version : '1.0'}" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-semibold">English Title</label>
+                                        <input type="text" name="titleEn" class="form-control" th:value="${termsDoc != null ? termsDoc.titleEn : 'Terms of Use'}" required>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label fw-semibold">Indonesian Title</label>
+                                        <input type="text" name="titleId" class="form-control" th:value="${termsDoc != null ? termsDoc.titleId : 'Syarat dan Ketentuan Penggunaan'}" required>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mb-4">
+                                    <div class="col-lg-6">
+                                        <label class="form-label fw-semibold">English Content (Markdown)</label>
+                                        <textarea name="contentEn" rows="18" class="form-control font-monospace small" required th:text="${termsDoc != null ? termsDoc.contentEn : ''}"></textarea>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <label class="form-label fw-semibold">Indonesian Content (Markdown)</label>
+                                        <textarea name="contentId" rows="18" class="form-control font-monospace small" required th:text="${termsDoc != null ? termsDoc.contentId : ''}"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary px-4 fw-semibold rounded-pill">
+                                        <i class="bi bi-cloud-arrow-up me-1"></i> Save Revision
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Terms History -->
+                    <div class="card portal-card shadow-sm">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h6 class="card-title mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i>Version History</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light small">
+                                    <tr>
+                                        <th>Version</th>
+                                        <th>Updated By</th>
+                                        <th>Timestamp</th>
+                                        <th>English Title</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="h : ${termsHistory}">
+                                        <td><span class="badge bg-primary" th:text="'v' + ${h.version}">v1.0</span></td>
+                                        <td th:text="${h.createdBy}">system</td>
+                                        <td th:text="${#temporals.format(h.createdAt, 'yyyy-MM-dd HH:mm:ss')}">2026-11-09</td>
+                                        <td th:text="${h.titleEn}">Terms of Use</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PRIVACY PANE -->
+                <div class="tab-pane fade" th:classappend="${activeTab == 'privacy'} ? ' show active' : ''"
+                     id="privacy-pane" role="tabpanel">
+                    <div class="card portal-card shadow-sm mb-4">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h5 class="card-title mb-0 fw-bold"><i class="bi bi-shield-check text-primary me-2"></i>Edit Privacy Policy</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <form method="post" action="/admin/legal-pages/update">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <input type="hidden" name="slug" value="privacy">
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-semibold">Version</label>
+                                        <input type="text" name="version" class="form-control" th:value="${privacyDoc != null ? privacyDoc.version : '1.0'}" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-semibold">English Title</label>
+                                        <input type="text" name="titleEn" class="form-control" th:value="${privacyDoc != null ? privacyDoc.titleEn : 'Privacy Policy'}" required>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label fw-semibold">Indonesian Title</label>
+                                        <input type="text" name="titleId" class="form-control" th:value="${privacyDoc != null ? privacyDoc.titleId : 'Kebijakan Privasi'}" required>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mb-4">
+                                    <div class="col-lg-6">
+                                        <label class="form-label fw-semibold">English Content (Markdown)</label>
+                                        <textarea name="contentEn" rows="18" class="form-control font-monospace small" required th:text="${privacyDoc != null ? privacyDoc.contentEn : ''}"></textarea>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <label class="form-label fw-semibold">Indonesian Content (Markdown)</label>
+                                        <textarea name="contentId" rows="18" class="form-control font-monospace small" required th:text="${privacyDoc != null ? privacyDoc.contentId : ''}"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary px-4 fw-semibold rounded-pill">
+                                        <i class="bi bi-cloud-arrow-up me-1"></i> Save Revision
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Privacy History -->
+                    <div class="card portal-card shadow-sm">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h6 class="card-title mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i>Version History</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light small">
+                                    <tr>
+                                        <th>Version</th>
+                                        <th>Updated By</th>
+                                        <th>Timestamp</th>
+                                        <th>English Title</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="h : ${privacyHistory}">
+                                        <td><span class="badge bg-primary" th:text="'v' + ${h.version}">v1.0</span></td>
+                                        <td th:text="${h.createdBy}">system</td>
+                                        <td th:text="${#temporals.format(h.createdAt, 'yyyy-MM-dd HH:mm:ss')}">2026-11-09</td>
+                                        <td th:text="${h.titleEn}">Privacy Policy</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COOKIES PANE -->
+                <div class="tab-pane fade" th:classappend="${activeTab == 'cookies'} ? ' show active' : ''"
+                     id="cookies-pane" role="tabpanel">
+                    <div class="card portal-card shadow-sm mb-4">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h5 class="card-title mb-0 fw-bold"><i class="bi bi-cookie text-primary me-2"></i>Edit Cookie Policy</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <form method="post" action="/admin/legal-pages/update">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <input type="hidden" name="slug" value="cookies">
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-semibold">Version</label>
+                                        <input type="text" name="version" class="form-control" th:value="${cookiesDoc != null ? cookiesDoc.version : '1.0'}" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-semibold">English Title</label>
+                                        <input type="text" name="titleEn" class="form-control" th:value="${cookiesDoc != null ? cookiesDoc.titleEn : 'Cookie Policy'}" required>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label fw-semibold">Indonesian Title</label>
+                                        <input type="text" name="titleId" class="form-control" th:value="${cookiesDoc != null ? cookiesDoc.titleId : 'Kebijakan Cookie'}" required>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mb-4">
+                                    <div class="col-lg-6">
+                                        <label class="form-label fw-semibold">English Content (Markdown)</label>
+                                        <textarea name="contentEn" rows="18" class="form-control font-monospace small" required th:text="${cookiesDoc != null ? cookiesDoc.contentEn : ''}"></textarea>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <label class="form-label fw-semibold">Indonesian Content (Markdown)</label>
+                                        <textarea name="contentId" rows="18" class="form-control font-monospace small" required th:text="${cookiesDoc != null ? cookiesDoc.contentId : ''}"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary px-4 fw-semibold rounded-pill">
+                                        <i class="bi bi-cloud-arrow-up me-1"></i> Save Revision
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Cookies History -->
+                    <div class="card portal-card shadow-sm">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h6 class="card-title mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i>Version History</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light small">
+                                    <tr>
+                                        <th>Version</th>
+                                        <th>Updated By</th>
+                                        <th>Timestamp</th>
+                                        <th>English Title</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="h : ${cookiesHistory}">
+                                        <td><span class="badge bg-primary" th:text="'v' + ${h.version}">v1.0</span></td>
+                                        <td th:text="${h.createdBy}">system</td>
+                                        <td th:text="${#temporals.format(h.createdAt, 'yyyy-MM-dd HH:mm:ss')}">2026-11-09</td>
+                                        <td th:text="${h.titleEn}">Cookie Policy</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <div th:replace="~{fragments/layout :: footer}"></div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

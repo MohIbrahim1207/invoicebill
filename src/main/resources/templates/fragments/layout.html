@@ -548,6 +548,14 @@
             sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
             <i class="bi bi-shield-check"></i> <span th:text="#{sidebar.audit.log}">Audit Log</span>
         </a>
+        <a href="/admin/ai-usage" class="sidebar-link" th:classappend="${active == 'ai-usage'} ? ' active' : ''"
+            sec:authorize="hasRole('SUPER_ADMIN')">
+            <i class="bi bi-graph-up-arrow"></i> <span th:text="#{sidebar.ai.usage}">AI Usage</span>
+        </a>
+        <a href="/admin/legal-pages" class="sidebar-link" th:classappend="${active == 'legal-pages'} ? ' active' : ''"
+            sec:authorize="hasRole('SUPER_ADMIN')">
+            <i class="bi bi-journal-text"></i> <span th:text="#{sidebar.legal.pages}">Legal Pages</span>
+        </a>
         <a href="/help" class="sidebar-link" th:classappend="${active == 'help'} ? ' active' : ''"
             sec:authorize="hasRole('VENDOR')">
             <i class="bi bi-question-circle"></i> <span th:text="#{sidebar.help}">Help</span>
@@ -639,6 +647,14 @@
                     sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
                     <i class="bi bi-shield-check"></i> <span th:text="#{sidebar.audit.log}">Audit Log</span>
                 </a>
+                <a href="/admin/ai-usage" class="sidebar-link" th:classappend="${active == 'ai-usage'} ? ' active' : ''"
+                    sec:authorize="hasRole('SUPER_ADMIN')">
+                    <i class="bi bi-graph-up-arrow"></i> <span th:text="#{sidebar.ai.usage}">AI Usage</span>
+                </a>
+                <a href="/admin/legal-pages" class="sidebar-link" th:classappend="${active == 'legal-pages'} ? ' active' : ''"
+                    sec:authorize="hasRole('SUPER_ADMIN')">
+                    <i class="bi bi-journal-text"></i> <span th:text="#{sidebar.legal.pages}">Legal Pages</span>
+                </a>
                 <a href="/help" class="sidebar-link" th:classappend="${active == 'help'} ? ' active' : ''"
                     sec:authorize="hasRole('VENDOR')">
                     <i class="bi bi-question-circle"></i> <span th:text="#{sidebar.help}">Help</span>
@@ -657,6 +673,12 @@
         <div class="container-fluid px-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <div>
                 <span>&copy; <span th:text="${#calendars.format(#calendars.createNow(), 'yyyy')}">2026</span> InvoiceHub. All rights reserved.</span>
+                <span class="mx-1">·</span>
+                <a href="/terms" class="text-decoration-none text-muted" th:text="#{legal.terms}">Terms of Use</a>
+                <span class="mx-1">·</span>
+                <a href="/privacy" class="text-decoration-none text-muted" th:text="#{legal.privacy}">Privacy Policy</a>
+                <span class="mx-1">·</span>
+                <a href="/cookies" class="text-decoration-none text-muted" th:text="#{legal.cookies}">Cookie Policy</a>
             </div>
             <div class="d-flex align-items-center gap-2">
                 <a href="#" onclick="openWhatsNewModal(true); return false;" class="text-decoration-none text-muted d-inline-flex align-items-center gap-1">
@@ -670,6 +692,65 @@
             </div>
         </div>
     </footer>
+
+    <!-- Cookie Notice Bar -->
+    <div id="cookieNoticeBanner" class="position-fixed bottom-0 start-0 end-0 bg-dark text-white py-3 px-4 shadow-lg" style="display: none; z-index: 9999;">
+        <div class="container-fluid d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-2 small">
+                <i class="bi bi-cookie fs-4 text-warning flex-shrink-0"></i>
+                <span>
+                    We use only <strong>essential cookies</strong> (session, CSRF security, language preference, and theme) to provide core functionality — no third-party tracking or advertising cookies.
+                    Learn more in our <a href="/cookies" target="_blank" class="text-white text-decoration-underline">Cookie Policy</a>.
+                </span>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                <button type="button" class="btn btn-primary btn-sm px-4 fw-semibold rounded-pill" onclick="acceptCookies()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Terms Acceptance Modal for Existing Users -->
+    <div class="modal fade" id="termsAcceptanceModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0 rounded-4">
+                <div class="modal-header border-bottom px-4 py-3 bg-light rounded-top-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="rounded-circle bg-primary-subtle p-2 text-primary d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                            <i class="bi bi-shield-check fs-5"></i>
+                        </div>
+                        <h5 class="modal-title fw-bold mb-0">Updated Terms of Use & Privacy</h5>
+                    </div>
+                </div>
+                <div class="modal-body px-4 py-3">
+                    <p class="text-secondary small mb-3">
+                        We have updated our platform Terms of Use and Privacy Policy in compliance with Indonesian data protection regulations (UU PDP). Please review the updated terms to continue using InvoiceHub.
+                    </p>
+                    <div class="list-group mb-3">
+                        <a href="/terms" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center small">
+                            <span><i class="bi bi-file-text text-primary me-2"></i> Terms of Use (v<span id="termsModalVer">1.0</span>)</span>
+                            <i class="bi bi-box-arrow-up-right text-muted"></i>
+                        </a>
+                        <a href="/privacy" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center small">
+                            <span><i class="bi bi-shield-lock text-primary me-2"></i> Privacy Policy (v<span id="privacyModalVer">1.0</span>)</span>
+                            <i class="bi bi-box-arrow-up-right text-muted"></i>
+                        </a>
+                    </div>
+                    <div class="form-check bg-light p-3 rounded-3">
+                        <input class="form-check-input" type="checkbox" id="modalAgreeTerms" onchange="document.getElementById('modalAcceptBtn').disabled = !this.checked;">
+                        <label class="form-check-label small fw-semibold text-secondary" for="modalAgreeTerms">
+                            I have read and agree to the Terms of Use and Privacy Policy.
+                        </label>
+                    </div>
+                    <div id="modalAcceptFeedback" class="small mt-2" style="display:none;"></div>
+                </div>
+                <div class="modal-footer border-top px-4 py-3 bg-white rounded-bottom-4">
+                    <button type="button" id="modalAcceptBtn" class="btn btn-primary w-100 fw-semibold rounded-pill" disabled onclick="submitTermsAcceptance()">
+                        <i class="bi bi-check-lg me-1"></i> Accept & Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- What's New Modal -->
     <div class="modal fade" id="whatsNewModal" tabindex="-1" aria-labelledby="whatsNewModalLabel" aria-hidden="true">
@@ -1086,9 +1167,83 @@
             }
         }
 
+        function checkCookieConsent() {
+            if (!localStorage.getItem('cookie_consent')) {
+                const banner = document.getElementById('cookieNoticeBanner');
+                if (banner) banner.style.display = 'block';
+            }
+        }
+
+        function acceptCookies() {
+            localStorage.setItem('cookie_consent', 'accepted');
+            document.cookie = "cookie_consent=accepted; path=/; max-age=31536000; SameSite=Lax";
+            const banner = document.getElementById('cookieNoticeBanner');
+            if (banner) banner.style.display = 'none';
+        }
+
+        async function checkTermsAcceptance() {
+            try {
+                const res = await fetch('/api/legal/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.authenticated && data.needsAcceptance) {
+                        const tVer = document.getElementById('termsModalVer');
+                        const pVer = document.getElementById('privacyModalVer');
+                        if (tVer) tVer.innerText = data.termsVersion || '1.0';
+                        if (pVer) pVer.innerText = data.privacyVersion || '1.0';
+                        const modalEl = document.getElementById('termsAcceptanceModal');
+                        if (modalEl && typeof bootstrap !== 'undefined') {
+                            const modal = new bootstrap.Modal(modalEl);
+                            modal.show();
+                        }
+                    }
+                }
+            } catch (err) {
+                // Ignore network issues
+            }
+        }
+
+        async function submitTermsAcceptance() {
+            const feedback = document.getElementById('modalAcceptFeedback');
+            if (feedback) {
+                feedback.className = 'small mt-2 text-info';
+                feedback.innerText = 'Submitting acceptance...';
+                feedback.style.display = 'block';
+            }
+
+            const csrfInfo = getCsrfInfo();
+            try {
+                const res = await fetch('/api/legal/accept', {
+                    method: 'POST',
+                    headers: {
+                        [csrfInfo.header]: csrfInfo.token
+                    }
+                });
+                if (res.ok) {
+                    if (feedback) {
+                        feedback.className = 'small mt-2 text-success';
+                        feedback.innerText = 'Terms accepted. Reloading...';
+                    }
+                    setTimeout(() => location.reload(), 400);
+                } else {
+                    if (feedback) {
+                        feedback.className = 'small mt-2 text-danger';
+                        feedback.innerText = 'Failed to submit acceptance.';
+                    }
+                }
+            } catch (e) {
+                if (feedback) {
+                    feedback.className = 'small mt-2 text-danger';
+                    feedback.innerText = 'Error: ' + e.message;
+                }
+            }
+        }
+
         // Auto-inject footer into portal-main if not statically present
         document.addEventListener('DOMContentLoaded', function () {
             checkLatestUnreadReleaseNotes();
+            checkCookieConsent();
+            checkTermsAcceptance();
 
             const portalMain = document.querySelector('.portal-main');
             if (portalMain && !document.querySelector('.portal-footer')) {
