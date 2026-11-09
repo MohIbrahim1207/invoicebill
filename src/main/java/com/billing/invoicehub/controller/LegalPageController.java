@@ -29,7 +29,8 @@ public class LegalPageController {
     }
 
     @GetMapping("/terms")
-    public String viewTerms(Model model) {
+    public String viewTerms(Authentication authentication, Model model) {
+        checkAccess(authentication);
         Optional<LegalDocument> doc = legalDocumentService.getDocument(LegalDocumentService.SLUG_TERMS);
         model.addAttribute("doc", doc.orElse(null));
         model.addAttribute("slug", LegalDocumentService.SLUG_TERMS);
@@ -37,7 +38,8 @@ public class LegalPageController {
     }
 
     @GetMapping("/privacy")
-    public String viewPrivacy(Model model) {
+    public String viewPrivacy(Authentication authentication, Model model) {
+        checkAccess(authentication);
         Optional<LegalDocument> doc = legalDocumentService.getDocument(LegalDocumentService.SLUG_PRIVACY);
         model.addAttribute("doc", doc.orElse(null));
         model.addAttribute("slug", LegalDocumentService.SLUG_PRIVACY);
@@ -45,16 +47,39 @@ public class LegalPageController {
     }
 
     @GetMapping("/cookies")
-    public String viewCookies(Model model) {
+    public String viewCookies(Authentication authentication, Model model) {
+        checkAccess(authentication);
         Optional<LegalDocument> doc = legalDocumentService.getDocument(LegalDocumentService.SLUG_COOKIES);
         model.addAttribute("doc", doc.orElse(null));
         model.addAttribute("slug", LegalDocumentService.SLUG_COOKIES);
         return "legal/cookies";
     }
 
+    private void checkAccess(Authentication authentication) {
+        if (legalDocumentService.isShowLegalPagesPublicly()) {
+            return;
+        }
+        if (authentication != null && authentication.isAuthenticated()) {
+            boolean isSuperAdmin = authentication.getAuthorities().stream()
+                    .anyMatch(a -> "ROLE_SUPER_ADMIN".equals(a.getAuthority()));
+            if (isSuperAdmin) {
+                return; // Preview allowed for SUPER_ADMIN
+            }
+        }
+        throw new org.springframework.security.access.AccessDeniedException(
+                "Legal pages are currently in preview mode for SUPER_ADMIN only.");
+    }
+
     @GetMapping("/api/legal/status")
     @ResponseBody
     public ResponseEntity<?> getLegalStatus(Authentication authentication) {
+        if (!legalDocumentService.isRequireTermsAcceptance()) {
+            return ResponseEntity.ok(Map.of(
+                    "authenticated", authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getPrincipal()),
+                    "needsAcceptance", false
+            ));
+        }
+
         if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
             return ResponseEntity.ok(Map.of(
                     "authenticated", false,
@@ -112,3 +137,4 @@ public class LegalPageController {
         return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
     }
 }
+

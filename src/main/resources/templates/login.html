@@ -148,19 +148,21 @@
                 <!-- Footer Legal Links -->
                 <div class="text-center text-muted small mt-4">
                     <span>&copy; <span th:text="${#calendars.format(#calendars.createNow(), 'yyyy')}">2026</span> InvoiceHub</span>
-                    <span class="mx-1">·</span>
-                    <a th:href="@{/terms}" class="text-decoration-none text-muted" th:text="#{legal.terms}">Terms of Use</a>
-                    <span class="mx-1">·</span>
-                    <a th:href="@{/privacy}" class="text-decoration-none text-muted" th:text="#{legal.privacy}">Privacy Policy</a>
-                    <span class="mx-1">·</span>
-                    <a th:href="@{/cookies}" class="text-decoration-none text-muted" th:text="#{legal.cookies}">Cookie Policy</a>
+                    <span th:if="${@legalDocumentService.isShowLegalPagesPublicly()}">
+                        <span class="mx-1">·</span>
+                        <a th:href="@{/terms}" class="text-decoration-none text-muted" th:text="#{legal.terms}">Terms of Use</a>
+                        <span class="mx-1">·</span>
+                        <a th:href="@{/privacy}" class="text-decoration-none text-muted" th:text="#{legal.privacy}">Privacy Policy</a>
+                        <span class="mx-1">·</span>
+                        <a th:href="@{/cookies}" class="text-decoration-none text-muted" th:text="#{legal.cookies}">Cookie Policy</a>
+                    </span>
                 </div>
 
             </div>
         </div>
     </div>
     <!-- Cookie Notice Bar -->
-    <div id="cookieNoticeBanner" class="position-fixed bottom-0 start-0 end-0 bg-dark text-white py-3 px-4 shadow-lg" style="display: none; z-index: 9999;">
+    <div id="cookieNoticeBanner" th:if="${@legalDocumentService.isShowLegalPagesPublicly()}" class="position-fixed bottom-0 start-0 end-0 bg-dark text-white py-3 px-4 shadow-lg" style="display: none; z-index: 9999;">
         <div class="container-fluid d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
             <div class="d-flex align-items-center gap-2 small">
                 <i class="bi bi-cookie fs-4 text-warning flex-shrink-0"></i>

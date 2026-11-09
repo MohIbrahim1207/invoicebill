@@ -354,16 +354,24 @@
                                     </div>
                                 </div>
 
-                                <!-- Terms & Privacy Policy Checkbox (Required) -->
-                                <div class="card border-0 bg-light p-3 mb-4 rounded-3">
+                                <!-- Terms & Privacy Policy Checkbox (Required only if setting is ON) -->
+                                <div class="card border-0 bg-light p-3 mb-4 rounded-3" th:if="${@legalDocumentService.isRequireTermsAcceptance()}">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" id="agreeTerms" name="agreeTerms" required>
                                         <label class="form-check-label small text-secondary fw-semibold" for="agreeTerms">
-                                            I agree to the <a href="/terms" target="_blank" class="text-primary text-decoration-underline">Terms of Use</a> and <a href="/privacy" target="_blank" class="text-primary text-decoration-underline">Privacy Policy</a> (marked Draft).
+                                            I agree to the <a href="/terms" target="_blank" class="text-primary text-decoration-underline" th:if="${@legalDocumentService.isShowLegalPagesPublicly()}">Terms of Use</a><span th:unless="${@legalDocumentService.isShowLegalPagesPublicly()}">Terms of Use</span> and <a href="/privacy" target="_blank" class="text-primary text-decoration-underline" th:if="${@legalDocumentService.isShowLegalPagesPublicly()}">Privacy Policy</a><span th:unless="${@legalDocumentService.isShowLegalPagesPublicly()}">Privacy Policy</span> (marked Draft).
                                         </label>
                                         <div class="text-danger small mt-1 fw-bold" id="agreeTermsError" style="display: none;">
                                             <i class="bi bi-exclamation-circle me-1"></i> You must agree to the Terms of Use and Privacy Policy to register.
                                         </div>
+                                    </div>
+                                </div>
+                                <div class="card border-0 bg-light p-3 mb-4 rounded-3" th:unless="${@legalDocumentService.isRequireTermsAcceptance()}">
+                                    <div class="small text-muted" th:if="${@legalDocumentService.isShowLegalPagesPublicly()}">
+                                        By registering, you can review our <a href="/terms" target="_blank" class="text-decoration-underline text-primary">Terms of Use</a> and <a href="/privacy" target="_blank" class="text-decoration-underline text-primary">Privacy Policy</a>.
+                                    </div>
+                                    <div class="small text-muted" th:unless="${@legalDocumentService.isShowLegalPagesPublicly()}">
+                                        By registering, you agree to comply with standard portal usage policies.
                                     </div>
                                 </div>
                             </div>
@@ -391,7 +399,7 @@
                         </div>
 
                         <!-- Footer Legal Links -->
-                        <div class="text-center mt-3 pt-3 border-top" style="font-size: 0.75rem;">
+                        <div class="text-center mt-3 pt-3 border-top" style="font-size: 0.75rem;" th:if="${@legalDocumentService.isShowLegalPagesPublicly()}">
                             <a href="/terms" target="_blank" class="text-muted text-decoration-none mx-2">Terms of Use</a>
                             <span class="text-muted">•</span>
                             <a href="/privacy" target="_blank" class="text-muted text-decoration-none mx-2">Privacy Policy</a>
@@ -1126,11 +1134,13 @@
 
                 const agreeTermsCheck = document.getElementById("agreeTerms");
                 const agreeTermsErr = document.getElementById("agreeTermsError");
-                if (!agreeTermsCheck.checked) {
-                    agreeTermsErr.style.display = "block";
-                    isStep3Valid = false;
-                } else {
-                    agreeTermsErr.style.display = "none";
+                if (agreeTermsCheck) {
+                    if (!agreeTermsCheck.checked) {
+                        if (agreeTermsErr) agreeTermsErr.style.display = "block";
+                        isStep3Valid = false;
+                    } else if (agreeTermsErr) {
+                        agreeTermsErr.style.display = "none";
+                    }
                 }
 
                 if (!isStep1Valid || !isStep2Valid || !isStep3Valid) {
@@ -1247,7 +1257,7 @@
     </script>
 
     <!-- Cookie Notice Bar -->
-    <div id="cookieNoticeBanner" class="position-fixed bottom-0 start-0 end-0 bg-dark text-white py-3 px-4 shadow-lg" style="display: none; z-index: 9999;">
+    <div id="cookieNoticeBanner" th:if="${@legalDocumentService.isShowLegalPagesPublicly()}" class="position-fixed bottom-0 start-0 end-0 bg-dark text-white py-3 px-4 shadow-lg" style="display: none; z-index: 9999;">
         <div class="container-fluid d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
             <div class="d-flex align-items-center gap-2 small">
                 <i class="bi bi-cookie fs-4 text-warning flex-shrink-0"></i>

@@ -4,10 +4,12 @@ import com.billing.invoicehub.entity.AppUser;
 import com.billing.invoicehub.entity.LegalAcceptance;
 import com.billing.invoicehub.entity.LegalDocument;
 import com.billing.invoicehub.entity.LegalHistory;
+import com.billing.invoicehub.entity.SystemSetting;
 import com.billing.invoicehub.repository.AppUserRepository;
 import com.billing.invoicehub.repository.LegalAcceptanceRepository;
 import com.billing.invoicehub.repository.LegalDocumentRepository;
 import com.billing.invoicehub.repository.LegalHistoryRepository;
+import com.billing.invoicehub.repository.SystemSettingRepository;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,22 +30,54 @@ public class LegalDocumentService {
     public static final String SLUG_PRIVACY = "privacy";
     public static final String SLUG_COOKIES = "cookies";
 
+    public static final String KEY_REQUIRE_TERMS_ACCEPTANCE = "legal_require_terms_acceptance";
+    public static final String KEY_SHOW_LEGAL_PAGES_PUBLICLY = "legal_show_publicly";
+
     private final LegalDocumentRepository documentRepository;
     private final LegalHistoryRepository historyRepository;
     private final LegalAcceptanceRepository acceptanceRepository;
     private final AppUserRepository userRepository;
+    private final SystemSettingRepository settingRepository;
     private final AuditLogService auditLogService;
 
     public LegalDocumentService(LegalDocumentRepository documentRepository,
                                 LegalHistoryRepository historyRepository,
                                 LegalAcceptanceRepository acceptanceRepository,
                                 AppUserRepository userRepository,
+                                @Autowired(required = false) SystemSettingRepository settingRepository,
                                 @Autowired(required = false) AuditLogService auditLogService) {
         this.documentRepository = documentRepository;
         this.historyRepository = historyRepository;
         this.acceptanceRepository = acceptanceRepository;
         this.userRepository = userRepository;
+        this.settingRepository = settingRepository;
         this.auditLogService = auditLogService;
+    }
+
+    public boolean isRequireTermsAcceptance() {
+        return "true".equalsIgnoreCase(getStringSetting(KEY_REQUIRE_TERMS_ACCEPTANCE, "false"));
+    }
+
+    public boolean isShowLegalPagesPublicly() {
+        return "true".equalsIgnoreCase(getStringSetting(KEY_SHOW_LEGAL_PAGES_PUBLICLY, "false"));
+    }
+
+    @Transactional
+    public void updateSettings(boolean requireTermsAcceptance, boolean showLegalPagesPublicly, String updatedBy) {
+        saveSetting(KEY_REQUIRE_TERMS_ACCEPTANCE, String.valueOf(requireTermsAcceptance), updatedBy);
+        saveSetting(KEY_SHOW_LEGAL_PAGES_PUBLICLY, String.valueOf(showLegalPagesPublicly), updatedBy);
+        if (auditLogService != null) {
+            auditLogService.log(
+                    updatedBy != null ? updatedBy : "super_admin",
+                    "ROLE_SUPER_ADMIN",
+                    "UPDATE_LEGAL_SETTINGS",
+                    "SYSTEM_SETTING",
+                    null,
+                    null,
+                    String.format("Updated legal settings: requireTermsAcceptance=%s, showLegalPagesPublicly=%s",
+                            requireTermsAcceptance, showLegalPagesPublicly)
+            );
+        }
     }
 
     @PostConstruct
@@ -61,12 +95,20 @@ public class LegalDocumentService {
                         getDefaultTermsId());
             }
 
-            if (documentRepository.findBySlug(SLUG_PRIVACY).isEmpty()) {
+            Optional<LegalDocument> privacyOpt = documentRepository.findBySlug(SLUG_PRIVACY);
+            if (privacyOpt.isEmpty()) {
                 createInitialDocument(SLUG_PRIVACY, "1.0",
                         "Privacy Policy",
                         "Kebijakan Privasi",
                         getDefaultPrivacyEn(),
                         getDefaultPrivacyId());
+            } else {
+                LegalDocument pDoc = privacyOpt.get();
+                if (pDoc.getContentEn() != null && !pDoc.getContentEn().contains("[TO CONFIRM]")) {
+                    pDoc.setContentEn(getDefaultPrivacyEn());
+                    pDoc.setContentId(getDefaultPrivacyId());
+                    documentRepository.save(pDoc);
+                }
             }
 
             if (documentRepository.findBySlug(SLUG_COOKIES).isEmpty()) {
@@ -136,11 +178,36 @@ public class LegalDocumentService {
     }
 
     public boolean hasUserAcceptedCurrentTerms(AppUser user) {
+        if (!isRequireTermsAcceptance()) {
+            return true;
+        }
         if (user == null) return true;
-        // Staff users are exempt from the vendor acceptance blocker, but we still track it
         String activeTermsVersion = getCurrentVersion(SLUG_TERMS);
         String userVersion = user.getTermsAcceptedVersion();
         return userVersion != null && userVersion.equalsIgnoreCase(activeTermsVersion);
+    }
+
+    private String getStringSetting(String key, String defaultVal) {
+        if (settingRepository == null) return defaultVal;
+        try {
+            Optional<SystemSetting> opt = settingRepository.findById(key);
+            if (opt.isPresent() && opt.get().getValue() != null) {
+                return opt.get().getValue().trim();
+            }
+        } catch (Exception ex) {
+            log.warn("Could not read setting {}: {}", key, ex.getMessage());
+        }
+        return defaultVal;
+    }
+
+    private void saveSetting(String key, String value, String updatedBy) {
+        if (settingRepository == null) return;
+        SystemSetting s = settingRepository.findById(key)
+                .orElseGet(() -> new SystemSetting(key, value, updatedBy));
+        s.setValue(value);
+        s.setUpdatedBy(updatedBy != null ? updatedBy : "system");
+        s.setUpdatedAt(LocalDateTime.now());
+        settingRepository.save(s);
     }
 
     @Transactional
@@ -247,7 +314,7 @@ public class LegalDocumentService {
 
                 **Effective Date:** 09 November 2026 | **Version:** 1.0
 
-                **PT Flow Force Indonesia** ("Company", "we", "us", or "our") respects your privacy and is committed to protecting the personal and corporate data of all vendors, partners, and portal users in compliance with the **Indonesian Personal Data Protection Law (Undang-Undang No. 27 Tahun 2022 tentang Pelindungan Data Pribadi / UU PDP)**.
+                **PT Flow Force Indonesia** ("Company", "we", "us", or "our") respects your privacy and is committed to protecting the personal and corporate data of all vendors, partners, and portal users. [TO CONFIRM: Legal compliance statement - Compliance with the Indonesian Personal Data Protection Law (Undang-Undang No. 27 Tahun 2022 tentang Pelindungan Data Pribadi / UU PDP) and Electronic Information and Transactions Law (UU ITE)].
 
                 #### 1. Data Collected
                 We collect information necessary to facilitate invoice processing, payment verification, and vendor administration:
@@ -269,25 +336,25 @@ public class LegalDocumentService {
                 - **Document Storage:** Uploaded invoice PDFs and image files are stored in **Cloudinary** using private, authenticated URLs with signature-token validation (`/image/authenticated/s--signature--/`). Direct public access to raw files is disallowed; access is brokered through our authenticated `/documents/...` endpoint.
 
                 #### 4. Data Retention
-                We retain vendor corporate and transaction records for a minimum of **ten (10) years** following the transaction date to comply with Indonesian statutory accounting and tax retention mandates (UU Ketentuan Umum dan Tata Cara Perpajakan). Account credentials and logs are retained for the duration of the commercial relationship plus applicable statutory limitation periods.
+                [TO CONFIRM: Retention period - We retain vendor corporate and transaction records for a statutory period of ten (10) years following the transaction date to comply with Indonesian statutory accounting and tax retention mandates (UU Ketentuan Umum dan Tata Cara Perpajakan / UU KUP). Account credentials and logs are retained for the duration of the commercial relationship plus applicable statutory limitation periods.]
 
                 #### 5. AI Processing by Google Gemini
                 - **Usage Scope:** Google Gemini AI models are utilized strictly for internal staff workflows (such as optical text extraction from supplier quotations and natural-language ticket inquiry assistance).
                 - **Privacy Safeguards:** In accordance with enterprise zero-retention guidelines, we **never** store user prompts or answer text in our permanent analytics databases — only anonymized metadata (token counts, execution duration, and feature categories) is tracked.
-                - **No Model Training:** Data processed through our enterprise Gemini API endpoints is not used by Google to train or improve foundation models.
+                - [TO CONFIRM: Gemini data-use/training statement - In accordance with Google Gemini enterprise API terms, customer inputs and outputs are processed ephemerally, are not stored permanently by the AI model provider, and are not used by Google to train or fine-tune machine learning models.]
 
-                #### 6. User Rights under Indonesian UU PDP
-                Under UU PDP No. 27/2022, data subjects possess the right to:
+                #### 6. User Rights under Indonesian Law
+                [TO CONFIRM: Legal compliance statement - Under the Indonesian Personal Data Protection Law (UU PDP No. 27/2022), data subjects possess the statutory rights to:]
                 - Access, review, and request copies of their stored personal data.
                 - Request rectification of inaccurate, incomplete, or outdated data.
                 - Request cessation of processing or deletion of personal data, subject to mandatory legal and financial retention requirements.
                 - Withdraw consent where processing relies on specific consent.
 
                 #### 7. Data Protection Officer and Inquiries
-                To exercise your rights or submit privacy-related questions, contact our Data Protection and Automation team:
-                - **Email:** `automation@flow-force.com`
-                - **Company:** PT Flow Force Indonesia
-                - **Helpline:** +91-8972779588
+                [TO CONFIRM: DPO name/contact - To exercise your rights or submit privacy-related questions, contact our Data Protection and Automation team:]
+                - **DPO Contact Email:** [TO CONFIRM: `automation@flow-force.com`]
+                - **Company Legal Entity:** [TO CONFIRM: PT Flow Force Indonesia]
+                - **Helpline Phone:** [TO CONFIRM: +91-8972779588]
                 """;
     }
 
@@ -297,7 +364,7 @@ public class LegalDocumentService {
 
                 **Tanggal Berlaku:** 09 November 2026 | **Versi:** 1.0
 
-                **PT Flow Force Indonesia** ("Perusahaan", "kami") menghormati privasi Anda dan berkomitmen melindungi data pribadi serta data korporat seluruh vendor, mitra, dan pengguna portal sesuai dengan **Undang-Undang Republik Indonesia No. 27 Tahun 2022 tentang Pelindungan Data Pribadi (UU PDP)**.
+                **PT Flow Force Indonesia** ("Perusahaan", "kami") menghormati privasi Anda dan berkomitmen melindungi data pribadi serta data korporat seluruh vendor, mitra, dan pengguna portal. [TO CONFIRM: Pernyataan kepatuhan hukum - Kepatuhan terhadap Undang-Undang Republik Indonesia No. 27 Tahun 2022 tentang Pelindungan Data Pribadi (UU PDP) dan UU Informasi dan Transaksi Elektronik (UU ITE)].
 
                 #### 1. Data yang Dikumpulkan
                 Kami mengumpulkan data yang diperlukan untuk verifikasi faktur, pemrosesan pembayaran, dan administrasi vendor:
@@ -319,25 +386,25 @@ public class LegalDocumentService {
                 - **Penyimpanan Dokumen:** Berkas faktur dan dokumen pendukung disimpan di **Cloudinary** menggunakan URL pribadi terautentikasi (`authenticated storage`) dengan segmen tanda tangan digital (`s--signature--`). Dokumen hanya dapat diakses melalui endpoint resmi `/documents/...` setelah verifikasi login dan hak akses.
 
                 #### 4. Masa Retensi Data
-                Kami menyimpan dokumen transaksi keuangan selama sekurang-kurangnya **sepuluh (10) tahun** terhitung sejak berakhirnya tahun buku terkait, guna memenuhi kewajiban perundang-undangan perpajakan dan pembukuan di Indonesia (UU KUP). Data akun aktif disimpan selama hubungan bisnis berlangsung ditambah masa daluwarsa hukum yang berlaku.
+                [TO CONFIRM: Masa retensi - Kami menyimpan dokumen transaksi keuangan selama sekurang-kurangnya sepuluh (10) tahun terhitung sejak berakhirnya tahun buku terkait, guna memenuhi kewajiban perundang-undangan perpajakan dan pembukuan di Indonesia (UU KUP). Data akun aktif disimpan selama hubungan bisnis berlangsung ditambah masa daluwarsa hukum yang berlaku.]
 
                 #### 5. Pemrosesan AI oleh Google Gemini
                 - **Ruang Lingkup:** Model AI Google Gemini digunakan khusus untuk operasional staf internal (seperti ekstraksi teks penawaran harga vendor dan asisten pencarian tiket).
                 - **Perlindungan Privasi:** Sesuai prinsip pelindungan data, kami **tidak pernah menyimpan** teks prompt maupun teks jawaban di basis data pelacakan kami — hanya metadata anonim (jumlah token, waktu eksekusi, kategori fitur) yang dicatat untuk pemantauan biaya.
-                - **Bukan Pelatihan Model:** Data yang dikirimkan melalui API enterprise Google Gemini tidak digunakan oleh Google untuk melatih model kecerdasan buatan.
+                - [TO CONFIRM: Ketentuan penggunaan data/pelatihan Gemini - Sesuai ketentuan API Google Gemini enterprise, data yang dikirimkan diproses secara sementara (ephemeral), tidak disimpan secara permanen oleh penyedia layanan AI, dan tidak digunakan oleh Google untuk melatih atau menyempurnakan model kecerdasan buatan.]
 
                 #### 6. Hak Subjek Data berdasarkan UU PDP
-                Berdasarkan UU PDP No. 27/2022, Anda berhak untuk:
+                [TO CONFIRM: Pernyataan kepatuhan hukum - Berdasarkan UU PDP No. 27/2022, Anda memiliki hak hukum untuk:]
                 - Mendapatkan akses dan meminta salinan atas data pribadi yang tersimpan.
                 - Meminta perbaikan atau pembaruan atas data pribadi yang tidak akurat.
                 - Meminta penghentian pemrosesan atau penghapusan data pribadi, sejauh tidak bertentangan dengan kewajiban retensi hukum dan keuangan.
                 - Menarik kembali persetujuan yang sebelumnya telah diberikan.
 
-                #### 7. Kontak dan Petugas Pelindungan Data
-                Untuk melaksanakan hak-hak Anda atau mengajukan pertanyaan terkait privasi, hubungi tim kami:
-                - **Email:** `automation@flow-force.com`
-                - **Perusahaan:** PT Flow Force Indonesia
-                - **Bantuan Telepon:** +91-8972779588
+                #### 7. Kontak dan Petugas Pelindungan Data (DPO)
+                [TO CONFIRM: Penetapan DPO/kontak - Untuk melaksanakan hak-hak Anda atau mengajukan pertanyaan terkait privasi, hubungi tim kami:]
+                - **Email Petugas DPO:** [TO CONFIRM: `automation@flow-force.com`]
+                - **Entitas Resmi Perusahaan:** [TO CONFIRM: PT Flow Force Indonesia]
+                - **Bantuan Telepon:** [TO CONFIRM: +91-8972779588]
                 """;
     }
 
@@ -405,3 +472,4 @@ public class LegalDocumentService {
                 """;
     }
 }
+

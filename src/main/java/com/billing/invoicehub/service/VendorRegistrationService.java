@@ -166,8 +166,9 @@ public class VendorRegistrationService {
             }
         }
 
+
         user.setRoles(Set.of(userRole));
-        if (legalDocumentService != null) {
+        if (legalDocumentService != null && form.isAgreeTerms()) {
             String activeTerms = legalDocumentService.getCurrentVersion(LegalDocumentService.SLUG_TERMS);
             user.setTermsAcceptedVersion(activeTerms);
             user.setTermsAcceptedAt(java.time.LocalDateTime.now());
@@ -175,7 +176,7 @@ public class VendorRegistrationService {
         log.debug("Saving user to database: {}", form.getUsername());
         log.info("[DEBUG-LOG-SIGNUP] appUserRepository.save() called. Username: {}", user.getUsername());
         AppUser saved = this.userRepository.save(user);
-        if (legalDocumentService != null) {
+        if (legalDocumentService != null && form.isAgreeTerms()) {
             legalDocumentService.recordAcceptance(saved, null);
         }
         auditLogService.log(saved.getUsername(), "ROLE_VENDOR", "Vendor Registration", "AppUser", saved.getId(), null,
@@ -280,6 +281,11 @@ public class VendorRegistrationService {
         }
         if (companyDocument == null || companyDocument.isEmpty()) {
             throw new FileValidationUtil.FileValidationException("companyDocument", "Company registration document is required");
+        }
+        if (legalDocumentService != null && legalDocumentService.isRequireTermsAcceptance()) {
+            if (!form.isAgreeTerms()) {
+                throw new IllegalArgumentException("You must agree to the Terms of Use and Privacy Policy.");
+            }
         }
     }
 

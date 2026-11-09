@@ -7,6 +7,7 @@ import com.billing.invoicehub.service.AiUsageService;
 import com.billing.invoicehub.service.AssistantSettingService;
 import com.billing.invoicehub.service.LegalDocumentService;
 import com.billing.invoicehub.service.VendorRegistrationService;
+import org.springframework.mock.web.MockMultipartFile;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,6 +66,9 @@ public class AiUsageAndLegalPagesTest {
 
     @Autowired
     private AppUserRepository userRepository;
+
+    @Autowired
+    private VendorRegistrationService vendorRegistrationService;
 
     @Autowired
     private AssistantSettingService assistantSettingService;
@@ -159,18 +163,50 @@ public class AiUsageAndLegalPagesTest {
     }
 
     @Test
-    @DisplayName("Legal pages (/terms, /privacy, /cookies) are publicly accessible without authentication")
-    void testLegalPagesPublicAccess() throws Exception {
+    @DisplayName("Default legal settings: both requireTermsAcceptance and showLegalPagesPublicly are false")
+    void testDefaultLegalSettings() {
+        assertFalse(legalDocumentService.isRequireTermsAcceptance(),
+                "Require terms acceptance must default to OFF");
+        assertFalse(legalDocumentService.isShowLegalPagesPublicly(),
+                "Show legal pages publicly must default to OFF");
+    }
+
+    @Test
+    @DisplayName("Legal pages: when showLegalPagesPublicly is OFF, anonymous and regular users are forbidden (403), SUPER_ADMIN can preview (200)")
+    void testLegalPagesPreviewAndPublicAccess() throws Exception {
+        // By default showLegalPagesPublicly is false
+        assertFalse(legalDocumentService.isShowLegalPagesPublicly());
+
+        // Anonymous user gets 403 Forbidden
         mockMvc.perform(get("/terms"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/privacy"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/cookies"))
+                .andExpect(status().isForbidden());
+
+        // Regular admin also gets 403 Forbidden
+        mockMvc.perform(get("/terms").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").roles("ADMIN")))
+                .andExpect(status().isForbidden());
+
+        // SUPER_ADMIN gets 200 OK (Preview mode)
+        mockMvc.perform(get("/terms").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("super").roles("SUPER_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(view().name("legal/terms"))
                 .andExpect(model().attributeExists("doc"));
 
+        // When switched ON, anonymous public access is allowed (200 OK)
+        legalDocumentService.updateSettings(false, true, "super_admin");
+        assertTrue(legalDocumentService.isShowLegalPagesPublicly());
+
+        mockMvc.perform(get("/terms"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("legal/terms"))
+                .andExpect(model().attributeExists("doc"));
         mockMvc.perform(get("/privacy"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("legal/privacy"))
                 .andExpect(model().attributeExists("doc"));
-
         mockMvc.perform(get("/cookies"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("legal/cookies"))
@@ -178,7 +214,58 @@ public class AiUsageAndLegalPagesTest {
     }
 
     @Test
-    @DisplayName("Vendor registration validation: agreeTerms=false fails, agreeTerms=true succeeds")
+    @DisplayName("Require terms acceptance workflow: when OFF, no forced popup; when ON, existing user must accept")
+    void testRequireTermsAcceptanceWorkflow() throws Exception {
+        String username = "existing_vendor_" + System.currentTimeMillis();
+        AppUser user = new AppUser();
+        user.setUsername(username);
+        user.setEmail(username + "@vendor.com");
+        user.setPassword("SecretPass123!@#");
+        user.setUserDomain("VENDOR");
+        user.setEnabled(true);
+        user.setTermsAcceptedVersion(null); // Not accepted
+        userRepository.saveAndFlush(user);
+
+        // 1. While setting is OFF (default):
+        assertFalse(legalDocumentService.isRequireTermsAcceptance());
+        assertTrue(legalDocumentService.hasUserAcceptedCurrentTerms(user),
+                "While OFF: no forced acceptance for existing users");
+
+        mockMvc.perform(get("/api/legal/status").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user(username).roles("VENDOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.needsAcceptance").value(false));
+
+        // 2. When switched ON:
+        legalDocumentService.updateSettings(true, false, "super_admin");
+        assertTrue(legalDocumentService.isRequireTermsAcceptance());
+        assertFalse(legalDocumentService.hasUserAcceptedCurrentTerms(user),
+                "When ON: existing user who hasn't accepted must return false");
+
+        mockMvc.perform(get("/api/legal/status").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user(username).roles("VENDOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.needsAcceptance").value(true))
+                .andExpect(jsonPath("$.termsVersion").value("1.0"));
+
+        // 3. User accepts terms via /api/legal/accept
+        mockMvc.perform(post("/api/legal/accept")
+                        .with(csrf())
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user(username).roles("VENDOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        AppUser updated = userRepository.findByUsername(username).orElseThrow();
+        assertTrue(legalDocumentService.hasUserAcceptedCurrentTerms(updated));
+        assertEquals("1.0", updated.getTermsAcceptedVersion());
+        assertNotNull(updated.getTermsAcceptedAt());
+
+        // 4. Subsequent status check returns needsAcceptance = false
+        mockMvc.perform(get("/api/legal/status").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user(username).roles("VENDOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.needsAcceptance").value(false));
+    }
+
+    @Test
+    @DisplayName("Vendor registration validation: agreeTerms enforced only when requireTermsAcceptance is ON")
     void testVendorRegistrationTermsValidation() {
         VendorRegistrationForm form = new VendorRegistrationForm();
         form.setCompanyName("PT Test Abadi");
@@ -192,45 +279,66 @@ public class AiUsageAndLegalPagesTest {
         form.setConfirmPassword("SecretPass123!@#");
         form.setAgreeTerms(false); // Disagreed
 
+        // 1. When OFF: standard Bean Validation passes without requiring agreeTerms
+        assertFalse(legalDocumentService.isRequireTermsAcceptance());
         Set<ConstraintViolation<VendorRegistrationForm>> violations = validator.validate(form);
         boolean termsViolationFound = violations.stream()
                 .anyMatch(v -> "agreeTerms".equals(v.getPropertyPath().toString()));
-        assertTrue(termsViolationFound, "agreeTerms=false must fail validation");
+        assertFalse(termsViolationFound, "agreeTerms is not required when setting is OFF");
 
-        // When agreed
-        form.setAgreeTerms(true);
-        violations = validator.validate(form);
-        termsViolationFound = violations.stream()
-                .anyMatch(v -> "agreeTerms".equals(v.getPropertyPath().toString()));
-        assertFalse(termsViolationFound, "agreeTerms=true must pass validation");
+        // 2. When ON: registration service enforces agreement
+        legalDocumentService.updateSettings(true, false, "super_admin");
+        assertTrue(legalDocumentService.isRequireTermsAcceptance());
+
+        MockMultipartFile dummyGst = new MockMultipartFile(
+                "gstDocument", "gst.pdf", "application/pdf",
+                "%PDF-1.5 test gst".getBytes());
+        MockMultipartFile dummyComp = new MockMultipartFile(
+                "companyDocument", "comp.pdf", "application/pdf",
+                "%PDF-1.5 test comp".getBytes());
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                vendorRegistrationService.registerVendor(form, dummyGst, dummyComp, null)
+        );
+        assertTrue(ex.getMessage().contains("agree to the Terms of Use and Privacy Policy"));
     }
 
     @Test
-    @DisplayName("Existing logged-in user can accept terms via /api/legal/accept")
-    void testExistingUserTermsAcceptance() {
-        String username = "existing_vendor_" + System.currentTimeMillis();
-        AppUser user = new AppUser();
-        user.setUsername(username);
-        user.setEmail(username + "@vendor.com");
-        user.setPassword("SecretPass123!@#");
-        user.setUserDomain("VENDOR");
-        user.setEnabled(true);
-        user.setTermsAcceptedVersion(null); // Not accepted
-        userRepository.saveAndFlush(user);
+    @DisplayName("Privacy Policy contains [TO CONFIRM] tags on all required factual claims")
+    void testPrivacyPolicyDraftContainsToConfirmMarkings() {
+        LegalDocument privacy = legalDocumentService.getDocument(LegalDocumentService.SLUG_PRIVACY)
+                .orElseThrow(() -> new AssertionError("Privacy document must exist"));
 
-        assertFalse(legalDocumentService.hasUserAcceptedCurrentTerms(user));
+        String en = privacy.getContentEn();
+        assertNotNull(en);
+        assertTrue(en.contains("[TO CONFIRM: Retention period"), "English must mark retention period [TO CONFIRM]");
+        assertTrue(en.contains("[TO CONFIRM: Gemini data-use/training statement"), "English must mark Gemini AI policy [TO CONFIRM]");
+        assertTrue(en.contains("[TO CONFIRM: `automation@flow-force.com`]"), "English must mark DPO email [TO CONFIRM]");
+        assertTrue(en.contains("[TO CONFIRM: PT Flow Force Indonesia]"), "English must mark company entity [TO CONFIRM]");
+        assertTrue(en.contains("[TO CONFIRM: Legal compliance statement"), "English must mark compliance statements [TO CONFIRM]");
 
-        // User accepts
-        legalDocumentService.recordAcceptance(user, "192.168.1.100");
+        String id = privacy.getContentId();
+        assertNotNull(id);
+        assertTrue(id.contains("[TO CONFIRM: Masa retensi"), "Indonesian must mark retention period [TO CONFIRM]");
+        assertTrue(id.contains("[TO CONFIRM: Ketentuan penggunaan data/pelatihan Gemini"), "Indonesian must mark Gemini AI policy [TO CONFIRM]");
+        assertTrue(id.contains("[TO CONFIRM: `automation@flow-force.com`]"), "Indonesian must mark DPO email [TO CONFIRM]");
+        assertTrue(id.contains("[TO CONFIRM: PT Flow Force Indonesia]"), "Indonesian must mark company entity [TO CONFIRM]");
+        assertTrue(id.contains("[TO CONFIRM: Pernyataan kepatuhan hukum"), "Indonesian must mark compliance statements [TO CONFIRM]");
+    }
 
-        AppUser updated = userRepository.findByUsername(username).orElseThrow();
-        assertTrue(legalDocumentService.hasUserAcceptedCurrentTerms(updated));
-        assertEquals("1.0", updated.getTermsAcceptedVersion());
-        assertNotNull(updated.getTermsAcceptedAt());
+    @Test
+    @DisplayName("Super admin can update legal settings via POST /admin/legal-pages/settings")
+    @WithMockUser(username = "super_admin", roles = {"SUPER_ADMIN"})
+    void testSuperAdminUpdateLegalSettingsEndpoint() throws Exception {
+        mockMvc.perform(post("/admin/legal-pages/settings")
+                        .with(csrf())
+                        .param("requireTermsAcceptance", "true")
+                        .param("showLegalPagesPublicly", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/legal-pages?saved=true"));
 
-        List<LegalAcceptance> acceptances = legalAcceptanceRepository.findAllByUsernameOrderByAcceptedAtDesc(username);
-        assertFalse(acceptances.isEmpty());
-        assertEquals("192.168.1.100", acceptances.get(0).getIpAddress());
+        assertTrue(legalDocumentService.isRequireTermsAcceptance());
+        assertTrue(legalDocumentService.isShowLegalPagesPublicly());
     }
 
     @Test

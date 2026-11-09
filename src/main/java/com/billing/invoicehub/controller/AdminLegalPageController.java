@@ -49,7 +49,22 @@ public class AdminLegalPageController {
         model.addAttribute("privacyHistory", privacyHistory);
         model.addAttribute("cookiesHistory", cookiesHistory);
 
+        model.addAttribute("requireTermsAcceptance", legalDocumentService.isRequireTermsAcceptance());
+        model.addAttribute("showLegalPagesPublicly", legalDocumentService.isShowLegalPagesPublicly());
+
         return "admin/admin-legal-editor";
+    }
+
+    @PostMapping("/settings")
+    public String updateSettings(@RequestParam(value = "requireTermsAcceptance", defaultValue = "false") boolean requireTermsAcceptance,
+                                 @RequestParam(value = "showLegalPagesPublicly", defaultValue = "false") boolean showLegalPagesPublicly,
+                                 Principal principal,
+                                 RedirectAttributes redirectAttributes) {
+        String username = principal != null ? principal.getName() : "super_admin";
+        legalDocumentService.updateSettings(requireTermsAcceptance, showLegalPagesPublicly, username);
+
+        redirectAttributes.addFlashAttribute("message", "Legal settings updated successfully.");
+        return "redirect:/admin/legal-pages?saved=true";
     }
 
     @PostMapping("/update")
@@ -68,3 +83,4 @@ public class AdminLegalPageController {
         return "redirect:/admin/legal-pages?saved=true&tab=" + slug;
     }
 }
+
