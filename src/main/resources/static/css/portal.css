@@ -1,39 +1,168 @@
 :root {
-    --portal-bg: #f3f6fb;
+    /* ─── Spacing Scale (4/8/12/16/24/32) ─────────────────────────────────── */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+
+    /* ─── Radius Tokens (8px inputs, 12px cards) ─────────────────────────── */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-input: 8px;
+    --radius-card: 12px;
+    --radius-pill: 9999px;
+
+    /* ─── Font Sizes ─────────────────────────────────────────────────────── */
+    --font-xs: 0.75rem;     /* 12px */
+    --font-sm: 0.84rem;     /* ~13.5px */
+    --font-base: 0.9375rem; /* 15px */
+    --font-md: 1rem;        /* 16px */
+    --font-lg: 1.125rem;    /* 18px */
+    --font-xl: 1.25rem;     /* 20px */
+    --font-2xl: 1.5rem;     /* 24px */
+    --font-3xl: 1.875rem;   /* 30px */
+
+    /* ─── Base Theme Palette (Light Mode) ────────────────────────────────── */
+    --portal-bg: #f8fafc;
     --card-bg: #ffffff;
-    --border: #e3e8ef;
-    --text: #1f2d3d;
-    --muted: #6b7a8c;
-    --primary: #2b6ef2;
-    --primary-soft: #eaf1ff;
+    --surface-subtle: #f1f5f9;
+    --border: #e2e8f0;
+    --border-soft: #edf2f7;
+    --text: #0f172a;
+    --text-secondary: #334155;
+    --muted: #64748b;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-soft: #eff6ff;
     --topbar-bg: rgba(255, 255, 255, 0.94);
     --sidebar-bg: #ffffff;
-    --sidebar-link-color: #3e4f63;
-    --sidebar-link-hover: #f4f7fd;
-    --table-header-bg: #f7f9fd;
-    --table-row-hover: #fbfcff;
-    --table-border: #edf1f7;
+    --sidebar-link-color: #334155;
+    --sidebar-link-hover: #f1f5f9;
+    --table-header-bg: #f8fafc;
+    --table-row-hover: #f8fafc;
+    --table-border: #f1f5f9;
     --input-bg: #ffffff;
-    --input-text: #1f2d3d;
+    --input-text: #0f172a;
+    --card-shadow: none;
+
+    /* ─── One Status → One Colour System (Light Mode) ────────────────────── */
+    /* 1. Pending / Open (Amber) */
+    --status-pending: #b45309;
+    --status-pending-bg: rgba(245, 158, 11, 0.12);
+    --status-pending-border: rgba(245, 158, 11, 0.25);
+
+    /* 2. In Progress (Blue) */
+    --status-in-progress: #1d4ed8;
+    --status-in-progress-bg: rgba(37, 99, 235, 0.12);
+    --status-in-progress-border: rgba(37, 99, 235, 0.25);
+
+    /* 3. Revised (Orange / Warm Amber) */
+    --status-revised: #c2410c;
+    --status-revised-bg: rgba(234, 88, 12, 0.12);
+    --status-revised-border: rgba(234, 88, 12, 0.25);
+
+    /* 4. Approved (Emerald / Green) */
+    --status-approved: #047857;
+    --status-approved-bg: rgba(16, 185, 129, 0.12);
+    --status-approved-border: rgba(16, 185, 129, 0.25);
+
+    /* 5. Partially Paid (Cyan / Sky) */
+    --status-partially-paid: #0369a1;
+    --status-partially-paid-bg: rgba(14, 165, 233, 0.12);
+    --status-partially-paid-border: rgba(14, 165, 233, 0.25);
+
+    /* 6. Paid / Released / Resolved (Green) */
+    --status-paid: #15803d;
+    --status-paid-bg: rgba(22, 163, 74, 0.12);
+    --status-paid-border: rgba(22, 163, 74, 0.25);
+
+    /* 7. Rejected / Cancelled (Red) */
+    --status-rejected: #b91c1c;
+    --status-rejected-bg: rgba(239, 68, 68, 0.12);
+    --status-rejected-border: rgba(239, 68, 68, 0.25);
+
+    /* 8. Unsynced (Amber Warning) */
+    --status-unsynced: #b45309;
+    --status-unsynced-bg: rgba(245, 158, 11, 0.12);
+    --status-unsynced-border: rgba(245, 158, 11, 0.25);
+
+    /* 9. Unsynced (Cancelled) / Neutral (Slate) */
+    --status-neutral: #475569;
+    --status-neutral-bg: rgba(100, 116, 139, 0.12);
+    --status-neutral-border: rgba(100, 116, 139, 0.25);
 }
 
 [data-theme="dark"] {
-    --portal-bg: #0f172a;
-    --card-bg: #1e293b;
-    --border: #334155;
-    --text: #ffffff;
+    /* ─── Base Theme Palette (Dark Mode) ─────────────────────────────────── */
+    --portal-bg: #0b1329;
+    --card-bg: #111c38;
+    --surface-subtle: #182649;
+    --border: #23335a;
+    --border-soft: #1d2b4d;
+    --text: #f8fafc;
+    --text-secondary: #cbd5e1;
     --muted: #94a3b8;
     --primary: #3b82f6;
+    --primary-hover: #60a5fa;
     --primary-soft: rgba(59, 130, 246, 0.15);
-    --topbar-bg: rgba(30, 41, 59, 0.94);
-    --sidebar-bg: #1e293b;
+    --topbar-bg: rgba(17, 28, 56, 0.94);
+    --sidebar-bg: #111c38;
     --sidebar-link-color: #cbd5e1;
-    --sidebar-link-hover: #334155;
-    --table-header-bg: #1e293b;
-    --table-row-hover: #1e293b;
-    --table-border: #334155;
-    --input-bg: #0f172a;
-    --input-text: #ffffff;
+    --sidebar-link-hover: #1e2e54;
+    --table-header-bg: #0f1933;
+    --table-row-hover: #152244;
+    --table-border: #1e2e54;
+    --input-bg: #0b1329;
+    --input-text: #f8fafc;
+    --card-shadow: none;
+
+    /* ─── One Status → One Colour System (Dark Mode) ─────────────────────── */
+    /* 1. Pending / Open (Amber) */
+    --status-pending: #fbbf24;
+    --status-pending-bg: rgba(245, 158, 11, 0.18);
+    --status-pending-border: rgba(245, 158, 11, 0.35);
+
+    /* 2. In Progress (Blue) */
+    --status-in-progress: #93c5fd;
+    --status-in-progress-bg: rgba(59, 130, 246, 0.18);
+    --status-in-progress-border: rgba(59, 130, 246, 0.35);
+
+    /* 3. Revised (Orange / Warm Amber) */
+    --status-revised: #fdba74;
+    --status-revised-bg: rgba(251, 146, 60, 0.18);
+    --status-revised-border: rgba(251, 146, 60, 0.35);
+
+    /* 4. Approved (Emerald / Green) */
+    --status-approved: #6ee7b7;
+    --status-approved-bg: rgba(52, 211, 153, 0.18);
+    --status-approved-border: rgba(52, 211, 153, 0.35);
+
+    /* 5. Partially Paid (Cyan / Sky) */
+    --status-partially-paid: #7dd3fc;
+    --status-partially-paid-bg: rgba(56, 189, 248, 0.18);
+    --status-partially-paid-border: rgba(56, 189, 248, 0.35);
+
+    /* 6. Paid / Released / Resolved (Green) */
+    --status-paid: #86efac;
+    --status-paid-bg: rgba(74, 222, 128, 0.18);
+    --status-paid-border: rgba(74, 222, 128, 0.35);
+
+    /* 7. Rejected / Cancelled (Red) */
+    --status-rejected: #fca5a5;
+    --status-rejected-bg: rgba(248, 113, 113, 0.18);
+    --status-rejected-border: rgba(248, 113, 113, 0.35);
+
+    /* 8. Unsynced (Amber Warning) */
+    --status-unsynced: #fde047;
+    --status-unsynced-bg: rgba(251, 191, 36, 0.18);
+    --status-unsynced-border: rgba(251, 191, 36, 0.35);
+
+    /* 9. Unsynced (Cancelled) / Neutral (Slate) */
+    --status-neutral: #cbd5e1;
+    --status-neutral-bg: rgba(148, 163, 184, 0.18);
+    --status-neutral-border: rgba(148, 163, 184, 0.35);
 }
 
 body.portal-bg {
@@ -130,28 +259,210 @@ body.auth-bg {
 .card {
     background-color: var(--card-bg);
     color: var(--text);
-    border-color: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card); /* 12px */
+    box-shadow: none;
 }
 
 .portal-card {
     border: 1px solid var(--border);
-    border-radius: 1rem;
-    box-shadow: 0 8px 24px rgba(17, 24, 39, 0.04);
+    border-radius: var(--radius-card); /* 12px */
+    background-color: var(--card-bg);
+    box-shadow: none;
 }
 
 .stat-card {
     border: 1px solid var(--border);
-    border-radius: 0.9rem;
+    border-radius: var(--radius-card); /* 12px */
+    background-color: var(--card-bg);
+    box-shadow: none;
+    transition: border-color 0.15s ease;
+}
+
+.stat-card:hover {
+    border-color: var(--border-soft);
 }
 
 .stat-label {
     color: var(--muted);
-    font-size: 0.84rem;
+    font-size: var(--font-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--space-1);
 }
 
 .stat-value {
-    font-size: 1.6rem;
+    font-size: 1.75rem;
     font-weight: 700;
+    line-height: 1.2;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    -webkit-font-feature-settings: "tnum";
+    font-feature-settings: "tnum";
+}
+
+.form-control,
+.form-select,
+.input-group-text {
+    border-radius: var(--radius-input); /* 8px */
+    border: 1px solid var(--border);
+    background-color: var(--input-bg);
+    color: var(--input-text);
+}
+
+.btn {
+    border-radius: var(--radius-input); /* 8px */
+}
+
+/* ─── Numbers: Tabular Figures & Column Alignments ───────────────────────── */
+.tabular-nums,
+.num-tabular,
+.amount-cell,
+.ticket-cell,
+.date-cell,
+.stat-value,
+.stat-value-sub {
+    font-variant-numeric: tabular-nums;
+    -webkit-font-feature-settings: "tnum";
+    font-feature-settings: "tnum";
+}
+
+.amount-cell,
+.th-amount,
+.td-amount,
+.text-money {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-feature-settings: "tnum";
+    font-feature-settings: "tnum";
+}
+
+/* ─── Reusable Soft Status Pill Component (v1.7.2) ───────────────────────── */
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.22rem 0.65rem;
+    border-radius: var(--radius-pill);
+    font-size: var(--font-xs);
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    transition: all 0.15s ease-in-out;
+}
+
+.status-pill::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
+    flex-shrink: 0;
+}
+
+.status-pill:has(.status-pill-dot)::before {
+    display: none;
+}
+
+.status-pill-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
+    flex-shrink: 0;
+}
+
+/* Status Variants: One status -> One colour mapping */
+.status-pill-pending,
+.status-pill-open {
+    background-color: var(--status-pending-bg);
+    color: var(--status-pending);
+    border-color: var(--status-pending-border);
+}
+
+.status-pill-in-progress,
+.status-pill-progress {
+    background-color: var(--status-in-progress-bg);
+    color: var(--status-in-progress);
+    border-color: var(--status-in-progress-border);
+}
+
+.status-pill-revised,
+.status-pill-revise {
+    background-color: var(--status-revised-bg);
+    color: var(--status-revised);
+    border-color: var(--status-revised-border);
+}
+
+.status-pill-approved {
+    background-color: var(--status-approved-bg);
+    color: var(--status-approved);
+    border-color: var(--status-approved-border);
+}
+
+.status-pill-partially-paid {
+    background-color: var(--status-partially-paid-bg);
+    color: var(--status-partially-paid);
+    border-color: var(--status-partially-paid-border);
+}
+
+.status-pill-paid,
+.status-pill-released,
+.status-pill-resolved {
+    background-color: var(--status-paid-bg);
+    color: var(--status-paid);
+    border-color: var(--status-paid-border);
+}
+
+.status-pill-rejected,
+.status-pill-cancelled,
+.status-pill-cancel {
+    background-color: var(--status-rejected-bg);
+    color: var(--status-rejected);
+    border-color: var(--status-rejected-border);
+}
+
+.status-pill-unsynced {
+    background-color: var(--status-unsynced-bg);
+    color: var(--status-unsynced);
+    border-color: var(--status-unsynced-border);
+}
+
+.status-pill-unsynced-cancelled,
+.status-pill-neutral {
+    background-color: var(--status-neutral-bg);
+    color: var(--status-neutral);
+    border-color: var(--status-neutral-border);
+}
+
+/* ─── Touch-Friendly Table Row Action Button ─────────────────────────────── */
+.btn-row-action {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--muted);
+    font-size: 1.1rem;
+    line-height: 1;
+    transition: all 0.15s ease;
+}
+
+.btn-row-action:hover,
+.btn-row-action:focus,
+.btn-row-action[aria-expanded="true"] {
+    background-color: var(--surface-subtle);
+    border-color: var(--border);
+    color: var(--text);
 }
 
 .section-title {
@@ -213,7 +524,7 @@ body.auth-bg {
     color: #234eb7;
 }
 
-+.status-badge {
+.status-badge {
     display: inline-block;
     padding: 0.28rem 0.55rem;
     border-radius: 0.6rem;

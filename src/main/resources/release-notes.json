@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.7.2",
+    "date": "2026-11-10",
+    "audience": "ALL",
+    "title": {
+      "en": "UI Polish & Standardized Design Tokens",
+      "id": "Penyempurnaan UI & Standarisasi Token Desain"
+    },
+    "notes": {
+      "en": [
+        "Design Tokens: Consolidated colors, 6-step spacing scale (4/8/12/16/24/32px), 8px inputs, 12px cards, and 1px soft borders replacing heavy shadows across light and dark modes.",
+        "Reusable Status Pills: Unified soft status pill component with 6px status dot and ~12% tinted background for consistent readability across all statuses.",
+        "Tabular Numerics & Currency Formatting: Applied tabular-nums to amounts, dates, and ticket/invoice/PO numbers with right-aligned money columns and standardized Rupiah formatting ('Rp 1.617.600').",
+        "Touch-Friendly Row Actions: Promoted primary action to direct button and neatly grouped secondary actions into an accessible '⋯' dropdown per table row."
+      ],
+      "id": [
+        "Token Desain: Konsolidasi palet warna, skala spasi 6 tingkat (4/8/12/16/24/32px), radius input 8px, kartu 12px, dan border halus 1px menggantikan bayangan berat untuk mode terang dan gelap.",
+        "Status Pill Reusable: Komponen pill status terpadu dengan titik indikator 6px dan latar belakang warna lembut ~12% untuk keterbacaan konsisten di semua status.",
+        "Angka Tabular & Format Mata Uang: Penerapan tabular-nums pada nominal, tanggal, dan nomor tiket/faktur/PO dengan kolom nominal rata kanan dan format Rupiah seragam ('Rp 1.617.600').",
+        "Aksi Baris Ramah Sentuhan: Aksi utama selalu terlihat langsung dan aksi sekunder diringkas dalam menu dropdown '⋯' per baris tabel yang ramah perangkat layar sentuh."
+      ]
+    }
+  },
+  {
     "version": "1.7.1",
     "date": "2026-11-09",
     "audience": "ALL",

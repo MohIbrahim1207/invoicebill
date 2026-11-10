@@ -48,6 +48,23 @@ public class FormatUtils {
     }
 
     /**
+     * Formats a BigDecimal amount with currency, standardizing Rupiah to "Rp 1.617.600"
+     *
+     * @param amount   the amount to format
+     * @param currency the currency code (e.g., IDR, Rp, USD, EUR)
+     * @return formatted currency string
+     */
+    public static String formatAmount(BigDecimal amount, String currency) {
+        if (amount == null) {
+            return "Rp 0";
+        }
+        if (currency == null || currency.isBlank() || "IDR".equalsIgnoreCase(currency) || "Rp".equalsIgnoreCase(currency)) {
+            return formatIDRFull(amount);
+        }
+        return formatCurrency(amount, currency);
+    }
+
+    /**
      * Formats a BigDecimal amount using compact Indonesian currency units:
      * rb = ribu (thousand), jt = juta (million), M = miliar (billion), T = triliun (trillion)
      * Example: 9.8 million -> "Rp 9,8 jt" (NOT miliar)

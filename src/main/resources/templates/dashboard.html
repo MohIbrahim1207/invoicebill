@@ -31,57 +31,57 @@
             <!-- Primary Stat Cards with Tinted Icon Badges -->
             <div class="row g-3" th:if="${dashboardStats != null}">
                 <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="card stat-card h-100 shadow-sm">
+                    <div class="card stat-card h-100">
                         <div class="card-body d-flex align-items-center gap-3">
                             <div class="stat-icon-badge stat-icon-primary">
                                 <i class="bi bi-receipt"></i>
                             </div>
                             <div class="flex-grow-1 min-w-0">
                                 <div class="stat-label text-truncate" th:text="#{dashboard.stat.total_invoices}">Total invoices</div>
-                                <div class="stat-value" th:text="${#numbers.formatInteger(dashboardStats.totalInvoices, 1, 'POINT')}">0</div>
+                                <div class="stat-value tabular-nums" th:text="${#numbers.formatInteger(dashboardStats.totalInvoices, 1, 'POINT')}">0</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="card stat-card h-100 shadow-sm">
+                    <div class="card stat-card h-100">
                         <div class="card-body d-flex align-items-center gap-3">
                             <div class="stat-icon-badge stat-icon-warning">
                                 <i class="bi bi-clock-history"></i>
                             </div>
                             <div class="flex-grow-1 min-w-0">
                                 <div class="stat-label text-truncate" th:text="#{dashboard.stat.pending}">Pending</div>
-                                <div class="stat-value text-warning" th:text="${#numbers.formatInteger(dashboardStats.pendingInvoices, 1, 'POINT')}">0</div>
+                                <div class="stat-value text-warning tabular-nums" th:text="${#numbers.formatInteger(dashboardStats.pendingInvoices, 1, 'POINT')}">0</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="card stat-card h-100 shadow-sm">
+                    <div class="card stat-card h-100">
                         <div class="card-body d-flex align-items-center gap-3">
                             <div class="stat-icon-badge stat-icon-success">
                                 <i class="bi bi-check-circle"></i>
                             </div>
                             <div class="flex-grow-1 min-w-0">
                                 <div class="stat-label text-truncate" th:text="#{dashboard.stat.approved}">Approved</div>
-                                <div class="stat-value text-success" th:text="${#numbers.formatInteger(dashboardStats.approvedInvoices, 1, 'POINT')}">0</div>
+                                <div class="stat-value text-success tabular-nums" th:text="${#numbers.formatInteger(dashboardStats.approvedInvoices, 1, 'POINT')}">0</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="card stat-card h-100 shadow-sm">
+                    <div class="card stat-card h-100">
                         <div class="card-body d-flex align-items-center gap-3">
                             <div class="stat-icon-badge stat-icon-info">
                                 <i class="bi bi-cash-stack"></i>
                             </div>
                             <div class="flex-grow-1 min-w-0">
                                 <div class="stat-label text-truncate" th:text="#{dashboard.stat.total_amount}">Total amount</div>
-                                <div class="stat-value text-truncate" th:title="${dashboardStats.totalAmountFull}" th:text="${dashboardStats.totalAmountCompact}">Rp 0</div>
-                                <div class="small text-muted text-truncate" style="font-size: 0.75rem;" th:text="${dashboardStats.totalAmountFull}">Rp 0</div>
+                                <div class="stat-value text-truncate tabular-nums" th:title="${dashboardStats.totalAmountFull}" th:text="${dashboardStats.totalAmountCompact}">Rp 0</div>
+                                <div class="small text-muted text-truncate tabular-nums" style="font-size: 0.75rem;" th:text="${dashboardStats.totalAmountFull}">Rp 0</div>
                             </div>
                         </div>
                     </div>
@@ -92,7 +92,7 @@
             <div class="row g-3 mt-1" th:if="${dashboardStats != null}">
                 <!-- Bar Chart: Monthly invoice volume (last 6 months) -->
                 <div class="col-12 col-lg-8">
-                    <div class="card portal-card h-100 shadow-sm">
+                    <div class="card portal-card h-100">
                         <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex align-items-center justify-content-between flex-wrap gap-2">
                             <div>
                                 <h6 class="mb-0 fw-bold" th:text="#{dashboard.chart.monthly_volume}">Monthly invoice volume (last 6 months)</h6>
@@ -110,7 +110,7 @@
 
                 <!-- Donut Chart: Status distribution -->
                 <div class="col-12 col-lg-4">
-                    <div class="card portal-card h-100 shadow-sm">
+                    <div class="card portal-card h-100">
                         <div class="card-header bg-transparent border-0 pt-3 pb-0">
                             <h6 class="mb-0 fw-bold" th:text="#{dashboard.chart.status_distribution}">Invoice Status Distribution</h6>
                             <small class="text-muted" th:text="#{dashboard.chart.status_subtitle}">Breakdown across all invoices</small>
@@ -132,42 +132,42 @@
                 <p class="text-muted small mb-3" th:text="#{dashboard.ai.subtitle}">Real-time performance metrics of the AI conversion pipeline.</p>
                 <div class="row g-3">
                     <div class="col-6 col-md-4 col-xl-2">
-                        <div class="card stat-card shadow-sm h-100">
+                        <div class="card stat-card h-100">
                             <div class="card-body">
                                 <div class="stat-label" th:text="#{dashboard.ai.total_conversions}">Total Conversions</div>
-                                <div class="stat-value" th:text="${aiStats.totalConversions}">0</div>
+                                <div class="stat-value tabular-nums" th:text="${aiStats.totalConversions}">0</div>
                             </div>
                         </div>
                     </div>
                     <div class="col-6 col-md-4 col-xl-2">
-                        <div class="card stat-card shadow-sm h-100">
+                        <div class="card stat-card h-100">
                             <div class="card-body">
                                 <div class="stat-label" th:text="#{dashboard.ai.generated_today}">Generated Today</div>
-                                <div class="stat-value text-success" th:text="${aiStats.quotesGeneratedToday}">0</div>
+                                <div class="stat-value text-success tabular-nums" th:text="${aiStats.quotesGeneratedToday}">0</div>
                             </div>
                         </div>
                     </div>
                     <div class="col-6 col-md-4 col-xl-3">
-                        <div class="card stat-card shadow-sm h-100">
+                        <div class="card stat-card h-100">
                             <div class="card-body">
                                 <div class="stat-label" th:text="#{dashboard.ai.pending_reviews}">Pending Reviews</div>
-                                <div class="stat-value text-warning" th:text="${aiStats.pendingReviews}">0</div>
+                                <div class="stat-value text-warning tabular-nums" th:text="${aiStats.pendingReviews}">0</div>
                             </div>
                         </div>
                     </div>
                     <div class="col-6 col-md-6 col-xl-3">
-                        <div class="card stat-card shadow-sm h-100">
+                        <div class="card stat-card h-100">
                             <div class="card-body">
                                 <div class="stat-label" th:text="#{dashboard.ai.avg_speed}">Avg. Speed</div>
-                                <div class="stat-value" th:text="${#numbers.formatDecimal(aiStats.averageProcessingTimeSec, 1, 1) + 's'}">0.0s</div>
+                                <div class="stat-value tabular-nums" th:text="${#numbers.formatDecimal(aiStats.averageProcessingTimeSec, 1, 1) + 's'}">0.0s</div>
                             </div>
                         </div>
                     </div>
                     <div class="col-12 col-md-6 col-xl-2">
-                        <div class="card stat-card shadow-sm h-100">
+                        <div class="card stat-card h-100">
                             <div class="card-body">
                                 <div class="stat-label" th:text="#{dashboard.ai.success_rate}">Success Rate</div>
-                                <div class="stat-value text-info" th:text="${aiStats.successRate + '%'}">100%</div>
+                                <div class="stat-value text-info tabular-nums" th:text="${aiStats.successRate + '%'}">100%</div>
                             </div>
                         </div>
                     </div>

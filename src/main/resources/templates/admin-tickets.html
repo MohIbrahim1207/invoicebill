@@ -79,15 +79,15 @@
                         <table class="table portal-table align-middle">
                             <thead>
                                 <tr>
-                                    <th>#</th>
+                                    <th class="ps-3" style="width: 44px;">#</th>
                                     <th th:text="#{admin.tickets.table.ticket_no}">Ticket No</th>
                                     <th th:text="#{admin.tickets.table.invoice_no}">Invoice No</th>
                                     <th th:text="#{admin.tickets.table.po_number}">PO Number</th>
                                     <th th:text="#{admin.tickets.table.vendor}">Vendor</th>
-                                    <th th:text="#{admin.tickets.table.amount}">Total</th>
+                                    <th class="text-end th-amount" th:text="#{admin.tickets.table.amount}">Total</th>
                                     <th th:text="#{admin.tickets.table.date}">Date</th>
                                     <th th:text="#{admin.tickets.table.status}">Status</th>
-                                    <th th:text="#{admin.tickets.table.action}">Action</th>
+                                    <th class="text-end pe-3" style="width: 140px;" th:text="#{admin.tickets.table.action}">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -102,54 +102,65 @@
                                 <th:block th:if="${tickets != null and !#lists.isEmpty(tickets)}"
                                     th:each="ticket, row : ${tickets}">
                                     <tr>
-                                        <td th:text="${row.index + 1}"></td>
+                                        <td class="ps-3 text-muted tabular-nums" th:text="${row.index + 1}"></td>
                                         <td>
-                                            <strong th:text="${ticket.ticketNo}"></strong>
+                                            <strong class="tabular-nums" th:text="${ticket.ticketNo}"></strong>
                                             <span th:if="${ticket.invoice == null and ticket.statusRequest != null and ticket.statusRequest.name() == 'CANCEL'}"
-                                                  class="badge bg-secondary ms-1" style="font-size: 0.7rem;"
+                                                  class="status-pill status-pill-unsynced-cancelled ms-1"
                                                   th:title="#{ticket.unsynced.cancelled.tooltip}" th:text="#{ticket.unsynced.cancelled.badge}">Unsynced (cancelled)</span>
                                             <span th:if="${ticket.invoice == null and (ticket.statusRequest == null or ticket.statusRequest.name() != 'CANCEL')}"
-                                                  class="badge bg-warning text-dark ms-1" style="font-size: 0.7rem;"
+                                                  class="status-pill status-pill-unsynced ms-1"
                                                   th:title="#{ticket.unsynced.tooltip}" th:text="#{ticket.unsynced.badge}">Unsynced</span>
                                         </td>
-                                        <td th:text="${ticket.invoiceNo}"></td>
-                                        <td th:text="${ticket.poNumber != null and !ticket.poNumber.isEmpty() ? ticket.poNumber : '-'}"></td>
+                                        <td class="tabular-nums" th:text="${ticket.invoiceNo}"></td>
+                                        <td class="tabular-nums text-muted" th:text="${ticket.poNumber != null and !ticket.poNumber.isEmpty() ? ticket.poNumber : '-'}"></td>
                                         <td th:text="${ticket.vendor != null ? ticket.vendor.username : '-'}"></td>
-                                        <td th:text="${T(com.billing.invoicehub.util.FormatUtils).formatCurrency(ticket.total != null ? ticket.total : ticket.amount, ticket.currency)}"></td>
-                                        <td th:text="${ticket.invoiceDate}"></td>
+                                        <td class="text-end text-nowrap tabular-nums fw-medium" th:text="${T(com.billing.invoicehub.util.FormatUtils).formatAmount(ticket.total != null ? ticket.total : ticket.amount, ticket.currency)}"></td>
+                                        <td class="tabular-nums text-nowrap text-muted" th:text="${ticket.invoiceDate}"></td>
                                         <td th:with="statusName=${ticket.statusRequest != null ? ticket.statusRequest.name() : null}">
-                                            <span th:if="${statusName == 'OPEN'}" class="badge bg-dark">Open</span>
-                                            <span th:if="${statusName == 'IN_PROGRESS'}" class="badge bg-primary">In Progress</span>
-                                            <span th:if="${statusName == 'REVISE'}" class="badge bg-danger">Revise</span>
-                                            <span th:if="${statusName == 'PARTIALLY_PAID'}" class="badge"
-                                                style="background-color: #FFF3CD; color: #856404;">Partially Paid</span>
-                                            <span th:if="${statusName == 'RESOLVED'}" class="badge bg-success">Paid</span>
-                                            <span th:if="${statusName == 'CANCEL'}" class="badge bg-secondary">Cancel</span>
+                                            <span th:if="${statusName == 'OPEN'}" class="status-pill status-pill-open">Open</span>
+                                            <span th:if="${statusName == 'IN_PROGRESS'}" class="status-pill status-pill-in-progress">In Progress</span>
+                                            <span th:if="${statusName == 'REVISE'}" class="status-pill status-pill-revised">Revise</span>
+                                            <span th:if="${statusName == 'PARTIALLY_PAID'}" class="status-pill status-pill-partially-paid">Partially Paid</span>
+                                            <span th:if="${statusName == 'RESOLVED'}" class="status-pill status-pill-paid">Paid</span>
+                                            <span th:if="${statusName == 'CANCEL'}" class="status-pill status-pill-cancelled">Cancel</span>
                                             <span th:if="${statusName == null}" class="text-muted">-</span>
                                             <span th:if="${ticket.duplicateFlag}"
-                                                class="badge bg-warning text-dark ms-1">Possible Duplicate</span>
+                                                  class="status-pill status-pill-pending ms-1" title="Possible Duplicate">Duplicate</span>
                                         </td>
-                                        <td>
-                                            <button type="button"
-                                                class="btn btn-sm btn-outline-secondary me-1 js-ticket-history-btn"
-                                                th:attr="data-history-url=@{/admin/tickets/{id}/manage(id=${ticket.id})},data-ticket-no=${ticket.ticketNo},data-invoice-no=${ticket.invoiceNo},data-vendor=${ticket.vendor != null ? ticket.vendor.username : '-'}">
-                                                <i class="bi bi-clock-history"></i> <span th:text="#{ticket.table.history}">History</span>
-                                            </button>
-                                            <a th:href="@{/admin/tickets/{id}/manage(id=${ticket.id})}"
-                                                class="btn btn-sm btn-outline-primary me-1">
-                                                <i class="bi bi-pencil"></i> <span th:text="#{admin.tickets.table.manage}">Manage</span>
-                                            </a>
-                                            <form sec:authorize="hasAnyRole('SUPER_ADMIN', 'ACCOUNTS')"
-                                                  th:if="${ticket.invoice == null and (ticket.statusRequest == null or ticket.statusRequest.name() != 'CANCEL')}"
-                                                  th:action="@{/admin/tickets/{id}/create-invoice(id=${ticket.id})}" method="post" class="d-inline">
-                                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                                <button type="submit" class="btn btn-sm btn-outline-warning"
-                                                        th:title="#{ticket.unsynced.create_invoice}"
-                                                        th:data-confirm="#{ticket.unsynced.confirm_create}"
-                                                        onclick="return confirm(this.getAttribute('data-confirm'));">
-                                                    <i class="bi bi-file-earmark-plus"></i> <span th:text="#{ticket.unsynced.create_invoice_short}">Create Inv</span>
-                                                </button>
-                                            </form>
+                                        <td class="text-end pe-3 text-nowrap">
+                                            <div class="d-inline-flex align-items-center gap-1">
+                                                <a th:href="@{/admin/tickets/{id}/manage(id=${ticket.id})}"
+                                                    class="btn btn-sm btn-outline-primary py-1 px-2 d-inline-flex align-items-center gap-1">
+                                                    <i class="bi bi-pencil"></i> <span th:text="#{admin.tickets.table.manage}">Manage</span>
+                                                </a>
+                                                <div class="dropdown d-inline-block">
+                                                    <button class="btn btn-sm btn-row-action" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="More options">
+                                                        <i class="bi bi-three-dots"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                                        <li>
+                                                            <button type="button"
+                                                                class="dropdown-item d-flex align-items-center gap-2 js-ticket-history-btn"
+                                                                th:attr="data-history-url=@{/admin/tickets/{id}/manage(id=${ticket.id})},data-ticket-no=${ticket.ticketNo},data-invoice-no=${ticket.invoiceNo},data-vendor=${ticket.vendor != null ? ticket.vendor.username : '-'}">
+                                                                <i class="bi bi-clock-history text-muted"></i> <span th:text="#{ticket.table.history}">History</span>
+                                                            </button>
+                                                        </li>
+                                                        <li sec:authorize="hasAnyRole('SUPER_ADMIN', 'ACCOUNTS')"
+                                                            th:if="${ticket.invoice == null and (ticket.statusRequest == null or ticket.statusRequest.name() != 'CANCEL')}">
+                                                            <form th:action="@{/admin/tickets/{id}/create-invoice(id=${ticket.id})}" method="post">
+                                                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                                                <button type="submit" class="dropdown-item d-flex align-items-center gap-2 text-warning-emphasis"
+                                                                        th:title="#{ticket.unsynced.create_invoice}"
+                                                                        th:data-confirm="#{ticket.unsynced.confirm_create}"
+                                                                        onclick="return confirm(this.getAttribute('data-confirm'));">
+                                                                    <i class="bi bi-file-earmark-plus text-warning"></i> <span th:text="#{ticket.unsynced.create_invoice}">Create invoice from this ticket</span>
+                                                                </button>
+                                                            </form>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
                                 </th:block>

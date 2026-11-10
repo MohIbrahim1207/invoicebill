@@ -47,5 +47,16 @@ class FormatUtilsTest {
         assertEquals("Rp 1 T", FormatUtils.formatIDRCompact(new BigDecimal("1000000000000")));
         assertEquals("Rp 1,2 T", FormatUtils.formatIDRCompact(new BigDecimal("1200000000000")));
     }
+
+    @Test
+    @DisplayName("Format amount standardizes IDR and null currency to Rp with dot separator")
+    void testFormatAmount() {
+        assertEquals("Rp 0", FormatUtils.formatAmount(null, null));
+        assertEquals("Rp 0", FormatUtils.formatAmount(BigDecimal.ZERO, "IDR"));
+        assertEquals("Rp 1.617.600", FormatUtils.formatAmount(new BigDecimal("1617600"), "IDR"));
+        assertEquals("Rp 1.617.600", FormatUtils.formatAmount(new BigDecimal("1617600"), "Rp"));
+        assertEquals("Rp 1.617.600", FormatUtils.formatAmount(new BigDecimal("1617600"), null));
+        assertEquals("USD 1,617,600.00", FormatUtils.formatAmount(new BigDecimal("1617600"), "USD"));
+    }
 }
 
