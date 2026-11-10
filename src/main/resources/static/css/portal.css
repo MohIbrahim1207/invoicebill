@@ -53,40 +53,40 @@
     --status-pending-bg: rgba(245, 158, 11, 0.12);
     --status-pending-border: rgba(245, 158, 11, 0.25);
 
-    /* 2. In Progress (Blue) */
+    /* 2. In Progress (Royal Blue) */
     --status-in-progress: #1d4ed8;
     --status-in-progress-bg: rgba(37, 99, 235, 0.12);
     --status-in-progress-border: rgba(37, 99, 235, 0.25);
 
-    /* 3. Revised (Orange / Warm Amber) */
-    --status-revised: #c2410c;
-    --status-revised-bg: rgba(234, 88, 12, 0.12);
-    --status-revised-border: rgba(234, 88, 12, 0.25);
+    /* 3. Revised (Vibrant Pink / Magenta - clearly distinct from Amber) */
+    --status-revised: #be185d;
+    --status-revised-bg: rgba(236, 72, 153, 0.12);
+    --status-revised-border: rgba(236, 72, 153, 0.28);
 
-    /* 4. Approved (Emerald / Green) */
-    --status-approved: #047857;
-    --status-approved-bg: rgba(16, 185, 129, 0.12);
-    --status-approved-border: rgba(16, 185, 129, 0.25);
+    /* 4. Approved (Blue-Green / Cool Teal) */
+    --status-approved: #0f766e;
+    --status-approved-bg: rgba(20, 184, 166, 0.12);
+    --status-approved-border: rgba(20, 184, 166, 0.28);
 
-    /* 5. Partially Paid (Cyan / Sky) */
-    --status-partially-paid: #0369a1;
+    /* 5. Partially Paid (Sky / Cyan) */
+    --status-partially-paid: #0284c7;
     --status-partially-paid-bg: rgba(14, 165, 233, 0.12);
     --status-partially-paid-border: rgba(14, 165, 233, 0.25);
 
-    /* 6. Paid / Released / Resolved (Green) */
+    /* 6. Paid / Released / Resolved (Solid Leaf Green - distinct from Teal) */
     --status-paid: #15803d;
-    --status-paid-bg: rgba(22, 163, 74, 0.12);
-    --status-paid-border: rgba(22, 163, 74, 0.25);
+    --status-paid-bg: rgba(34, 197, 94, 0.14);
+    --status-paid-border: rgba(34, 197, 94, 0.28);
 
-    /* 7. Rejected / Cancelled (Red) */
+    /* 7. Rejected / Cancelled (Crimson Red) */
     --status-rejected: #b91c1c;
     --status-rejected-bg: rgba(239, 68, 68, 0.12);
     --status-rejected-border: rgba(239, 68, 68, 0.25);
 
-    /* 8. Unsynced (Amber Warning) */
-    --status-unsynced: #b45309;
-    --status-unsynced-bg: rgba(245, 158, 11, 0.12);
-    --status-unsynced-border: rgba(245, 158, 11, 0.25);
+    /* 8. Unsynced (Purple / Violet) */
+    --status-unsynced: #6d28d9;
+    --status-unsynced-bg: rgba(124, 58, 237, 0.12);
+    --status-unsynced-border: rgba(124, 58, 237, 0.28);
 
     /* 9. Unsynced (Cancelled) / Neutral (Slate) */
     --status-neutral: #475569;
@@ -124,40 +124,40 @@
     --status-pending-bg: rgba(245, 158, 11, 0.18);
     --status-pending-border: rgba(245, 158, 11, 0.35);
 
-    /* 2. In Progress (Blue) */
+    /* 2. In Progress (Royal Blue) */
     --status-in-progress: #93c5fd;
     --status-in-progress-bg: rgba(59, 130, 246, 0.18);
     --status-in-progress-border: rgba(59, 130, 246, 0.35);
 
-    /* 3. Revised (Orange / Warm Amber) */
-    --status-revised: #fdba74;
-    --status-revised-bg: rgba(251, 146, 60, 0.18);
-    --status-revised-border: rgba(251, 146, 60, 0.35);
+    /* 3. Revised (Vibrant Pink / Magenta - clearly distinct from Amber) */
+    --status-revised: #f472b6;
+    --status-revised-bg: rgba(244, 114, 182, 0.18);
+    --status-revised-border: rgba(244, 114, 182, 0.35);
 
-    /* 4. Approved (Emerald / Green) */
-    --status-approved: #6ee7b7;
-    --status-approved-bg: rgba(52, 211, 153, 0.18);
-    --status-approved-border: rgba(52, 211, 153, 0.35);
+    /* 4. Approved (Blue-Green / Cool Teal) */
+    --status-approved: #2dd4bf;
+    --status-approved-bg: rgba(45, 212, 191, 0.18);
+    --status-approved-border: rgba(45, 212, 191, 0.35);
 
-    /* 5. Partially Paid (Cyan / Sky) */
+    /* 5. Partially Paid (Sky / Cyan) */
     --status-partially-paid: #7dd3fc;
     --status-partially-paid-bg: rgba(56, 189, 248, 0.18);
     --status-partially-paid-border: rgba(56, 189, 248, 0.35);
 
-    /* 6. Paid / Released / Resolved (Green) */
-    --status-paid: #86efac;
+    /* 6. Paid / Released / Resolved (Solid Leaf Green - distinct from Teal) */
+    --status-paid: #4ade80;
     --status-paid-bg: rgba(74, 222, 128, 0.18);
     --status-paid-border: rgba(74, 222, 128, 0.35);
 
-    /* 7. Rejected / Cancelled (Red) */
+    /* 7. Rejected / Cancelled (Crimson Red) */
     --status-rejected: #fca5a5;
     --status-rejected-bg: rgba(248, 113, 113, 0.18);
     --status-rejected-border: rgba(248, 113, 113, 0.35);
 
-    /* 8. Unsynced (Amber Warning) */
-    --status-unsynced: #fde047;
-    --status-unsynced-bg: rgba(251, 191, 36, 0.18);
-    --status-unsynced-border: rgba(251, 191, 36, 0.35);
+    /* 8. Unsynced (Purple / Violet) */
+    --status-unsynced: #c084fc;
+    --status-unsynced-bg: rgba(167, 139, 250, 0.18);
+    --status-unsynced-border: rgba(167, 139, 250, 0.35);
 
     /* 9. Unsynced (Cancelled) / Neutral (Slate) */
     --status-neutral: #cbd5e1;
@@ -364,8 +364,19 @@ body.auth-bg {
     flex-shrink: 0;
 }
 
-.status-pill:has(.status-pill-dot)::before {
+.status-pill:has(.status-pill-dot)::before,
+.status-pill:has(i)::before,
+.status-pill:has(.bi)::before,
+.status-pill:has(.status-pill-icon)::before {
     display: none;
+}
+
+.status-pill i,
+.status-pill .bi,
+.status-pill-icon {
+    font-size: 0.72rem;
+    line-height: 1;
+    flex-shrink: 0;
 }
 
 .status-pill-dot {

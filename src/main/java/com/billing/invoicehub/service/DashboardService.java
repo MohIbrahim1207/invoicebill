@@ -103,11 +103,13 @@ public class DashboardService {
         // Populate status arrays in DTO
         Map<String, String> statusColorPalette = new HashMap<>();
         statusColorPalette.put("Pending", "#f59e0b");       // amber
-        statusColorPalette.put("Approved", "#10b981");      // green
-        statusColorPalette.put("Partially Paid", "#6366f1");// indigo
-        statusColorPalette.put("Revised", "#f97316");       // orange
-        statusColorPalette.put("Released", "#3b82f6");      // blue
-        statusColorPalette.put("Rejected", "#ef4444");      // distinct red for Rejected
+        statusColorPalette.put("Approved", "#0d9488");      // blue-green / teal
+        statusColorPalette.put("Partially Paid", "#0284c7");// sky blue
+        statusColorPalette.put("Revised", "#ec4899");       // vibrant pink / magenta
+        statusColorPalette.put("Released", "#16a34a");      // solid green
+        statusColorPalette.put("Paid", "#16a34a");          // solid green
+        statusColorPalette.put("Rejected", "#ef4444");      // red
+        statusColorPalette.put("Cancelled", "#64748b");     // slate
 
         for (Map.Entry<String, Long> entry : statusCountsMap.entrySet()) {
             if (entry.getValue() > 0 || (total == 0 && (entry.getKey().equals("Pending") || entry.getKey().equals("Approved")))) {

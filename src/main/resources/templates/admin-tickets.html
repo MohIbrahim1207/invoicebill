@@ -110,7 +110,10 @@
                                                   th:title="#{ticket.unsynced.cancelled.tooltip}" th:text="#{ticket.unsynced.cancelled.badge}">Unsynced (cancelled)</span>
                                             <span th:if="${ticket.invoice == null and (ticket.statusRequest == null or ticket.statusRequest.name() != 'CANCEL')}"
                                                   class="status-pill status-pill-unsynced ms-1"
-                                                  th:title="#{ticket.unsynced.tooltip}" th:text="#{ticket.unsynced.badge}">Unsynced</span>
+                                                  th:title="#{ticket.unsynced.tooltip}">
+                                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                                <span th:text="#{ticket.unsynced.badge}">Unsynced</span>
+                                            </span>
                                         </td>
                                         <td class="tabular-nums" th:text="${ticket.invoiceNo}"></td>
                                         <td class="tabular-nums text-muted" th:text="${ticket.poNumber != null and !ticket.poNumber.isEmpty() ? ticket.poNumber : '-'}"></td>
