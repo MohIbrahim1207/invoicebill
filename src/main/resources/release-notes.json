@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.7.3",
+    "date": "2026-11-13",
+    "audience": "ALL",
+    "title": {
+      "en": "Email Notification Enhancements & Dashboard Streamlining",
+      "id": "Penyempurnaan Notifikasi Email & Penyederhanaan Dasbor"
+    },
+    "notes": {
+      "en": [
+        "Email Notifications: Direct 'Login to InvoiceHub' button and link added to all notification emails pointing to the configured base URL.",
+        "Configurable CC Recipient List: Automated CC routing to operations and management for all operational emails (ticket submitted, status updates, revisions, vendor approvals), with strict isolation of security-sensitive emails (password reset, OTP, MFA).",
+        "Dashboard Streamlining: Removed duplicate activity table in favor of direct audit log navigation, and consolidated AI metrics exclusively onto the dedicated AI Usage page with clean zero-data state displays.",
+        "Translation Integrity: Resolved all missing i18n translation keys across templates."
+      ],
+      "id": [
+        "Notifikasi Email: Tombol dan tautan langsung 'Masuk ke InvoiceHub' ditambahkan pada semua email notifikasi mengarah ke URL dasar terkonfigurasi.",
+        "Daftar Penerima CC Dapat Dikonfigurasi: Pengiriman CC otomatis ke tim operasional dan manajemen untuk semua email alur kerja (tiket diajukan, pembaruan status, revisi, verifikasi vendor), dengan isolasi ketat untuk email keamanan (reset sandi, OTP, MFA).",
+        "Penyederhanaan Dasbor: Menghapus tabel aktivitas duplikat dan menggantikannya dengan tautan langsung ke log audit, serta memindahkan analitik AI sepenuhnya ke halaman Penggunaan AI dengan tampilan status kosong yang rapi.",
+        "Integritas Terjemahan: Memperbaiki seluruh kunci terjemahan i18n yang belum terdaftar di seluruh template antarmuka."
+      ]
+    }
+  },
+  {
     "version": "1.7.2",
     "date": "2026-11-10",
     "audience": "ALL",

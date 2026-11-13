@@ -25,10 +25,16 @@
                 <p style="margin:0 0 6px;"><strong>Tax:</strong> <span th:text="${tax}">-</span></p>
                 <p style="margin:0;"><strong>Total:</strong> <span th:text="${total}">-</span></p>
             </div>
-            <p style="margin:20px 0;">
-                <a th:href="${viewUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:11px 18px;border-radius:8px;font-weight:600;">
+            <p style="margin:20px 0;text-align:center;">
+                <a th:href="${viewUrl}" style="display:inline-block;background:#2563eb;color:#ffffff !important;text-decoration:none;padding:11px 18px;border-radius:8px;font-weight:600;margin-right:8px;">
                     View Ticket
                 </a>
+                <a th:href="${loginUrl != null ? loginUrl : 'https://invoicehub.cloud/login'}" style="display:inline-block;background:#0f172a;color:#ffffff !important;text-decoration:none;padding:11px 18px;border-radius:8px;font-weight:600;">
+                    Login to InvoiceHub / Masuk ke InvoiceHub &rarr;
+                </a>
+            </p>
+            <p style="font-size: 11px; color: #6b7280; text-align: center; margin-top: 8px;">
+                Direct link: <a th:href="${loginUrl != null ? loginUrl : 'https://invoicehub.cloud/login'}" th:text="${loginUrl != null ? loginUrl : 'https://invoicehub.cloud/login'}" style="color: #2563eb;">https://invoicehub.cloud/login</a>
             </p>
             <p style="margin-bottom:0;">Regards,<br><strong>InvoiceHub Support</strong></p>
         </div>

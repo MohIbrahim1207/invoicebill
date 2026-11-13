@@ -25,6 +25,12 @@
         <p><strong>Rejection Date:</strong> <span th:text="${date}">Jan 01, 2026</span></p>
         <p><strong>Reason for Rejection:</strong></p>
         <p th:text="${reason}">Reason</p>
+        <div style="text-align: center; margin: 24px 0;">
+            <a th:href="${loginUrl != null ? loginUrl : 'https://invoicehub.cloud/login'}"
+               style="display: inline-block; background-color: #2563eb; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">
+                Login to InvoiceHub / Masuk ke InvoiceHub &rarr;
+            </a>
+        </div>
         <p>Best regards,<br>InvoiceHub Team</p>
     </div>
     <div class="footer">

@@ -326,106 +326,12 @@
                 </div>
             </div>
 
-            <!-- Recent Activity Panel (last 10 audit events, linked) -->
-            <div class="card portal-card mt-3" th:if="${dashboardStats != null and !#lists.isEmpty(dashboardStats.recentActivities)}">
-                <div class="card-header bg-transparent border-0 pt-3 pb-2 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                    <div>
-                        <h6 class="mb-0 fw-bold d-flex align-items-center gap-2">
-                            <i class="bi bi-activity text-primary"></i>
-                            <span th:text="#{dashboard.activity.title}">Recent Activity</span>
-                        </h6>
-                        <small class="text-muted" th:text="#{dashboard.activity.subtitle}">Last 10 audit log events across the portal</small>
-                    </div>
-                    <a th:href="@{/admin/audit-log}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"
-                       sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
-                        <span th:text="#{dashboard.activity.view_all}">View all activity</span>
-                        <i class="bi bi-arrow-right"></i>
-                    </a>
-                </div>
-                <div class="card-body pt-1 pb-3">
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle portal-table mb-0">
-                            <thead>
-                                <tr>
-                                    <th th:text="#{admin.audit.col.time}">Time</th>
-                                    <th th:text="#{admin.audit.col.user}">User</th>
-                                    <th th:text="#{admin.audit.col.action}">Action</th>
-                                    <th th:text="#{admin.audit.col.details}">Details</th>
-                                    <th class="text-end">Link</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr th:each="act : ${dashboardStats.recentActivities}">
-                                    <td class="tabular-nums text-muted small text-nowrap" th:text="${act.formattedTime}">10 Nov, 14:32</td>
-                                    <td class="text-nowrap">
-                                        <span class="fw-semibold" th:text="${act.username}">admin</span>
-                                        <span class="badge bg-light text-muted border ms-1 small" th:text="${act.role}">ADMIN</span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle small" th:text="${act.action}">Update</span>
-                                    </td>
-                                    <td class="text-truncate" style="max-width: 320px;" th:text="${act.description}">Ticket details updated</td>
-                                    <td class="text-end text-nowrap">
-                                        <a th:href="@{${act.targetUrl}}" class="btn btn-sm btn-light border py-0 px-2" style="font-size: 0.78rem;">
-                                            <span th:text="#{dashboard.attention.view}">View</span>
-                                            <i class="bi bi-box-arrow-up-right ms-1"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- AI Quote Converter Analytics Section -->
-            <div class="mt-4 pt-2" th:if="${aiStats != null}">
-                <h2 class="portal-heading fs-4 mb-1">
-                    <i class="bi bi-cpu text-primary me-2"></i><span th:text="#{dashboard.ai.title}">AI Quote Converter Analytics</span>
-                </h2>
-                <p class="text-muted small mb-3" th:text="#{dashboard.ai.subtitle}">Real-time performance metrics of the AI conversion pipeline.</p>
-                <div class="row g-3">
-                    <div class="col-6 col-md-4 col-xl-2">
-                        <div class="card stat-card h-100">
-                            <div class="card-body">
-                                <div class="stat-label" th:text="#{dashboard.ai.total_conversions}">Total Conversions</div>
-                                <div class="stat-value tabular-nums" th:text="${aiStats.totalConversions}">0</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-4 col-xl-2">
-                        <div class="card stat-card h-100">
-                            <div class="card-body">
-                                <div class="stat-label" th:text="#{dashboard.ai.generated_today}">Generated Today</div>
-                                <div class="stat-value text-success tabular-nums" th:text="${aiStats.quotesGeneratedToday}">0</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-4 col-xl-3">
-                        <div class="card stat-card h-100">
-                            <div class="card-body">
-                                <div class="stat-label" th:text="#{dashboard.ai.pending_reviews}">Pending Reviews</div>
-                                <div class="stat-value text-warning tabular-nums" th:text="${aiStats.pendingReviews}">0</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-6 col-xl-3">
-                        <div class="card stat-card h-100">
-                            <div class="card-body">
-                                <div class="stat-label" th:text="#{dashboard.ai.avg_speed}">Avg. Speed</div>
-                                <div class="stat-value tabular-nums" th:text="${#numbers.formatDecimal(aiStats.averageProcessingTimeSec, 1, 1) + 's'}">0.0s</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-6 col-xl-2">
-                        <div class="card stat-card h-100">
-                            <div class="card-body">
-                                <div class="stat-label" th:text="#{dashboard.ai.success_rate}">Success Rate</div>
-                                <div class="stat-value text-info tabular-nums" th:text="${aiStats.successRate + '%'}">100%</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Link to Audit Log Page (Direct navigation, no repeated table) -->
+            <div class="d-flex justify-content-end align-items-center mt-3 pt-2 mb-2" sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
+                <a th:href="@{/admin/audit-logs}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1 rounded-pill px-3">
+                    <i class="bi bi-clock-history me-1"></i>
+                    <span th:text="#{dashboard.activity.view_log}">View activity log &rarr;</span>
+                </a>
             </div>
         </main>
     </div>

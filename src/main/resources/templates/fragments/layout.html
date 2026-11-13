@@ -556,6 +556,10 @@
             sec:authorize="hasRole('SUPER_ADMIN')">
             <i class="bi bi-journal-text"></i> <span th:text="#{sidebar.legal.pages}">Legal Pages</span>
         </a>
+        <a href="/admin/settings" class="sidebar-link" th:classappend="${active == 'settings'} ? ' active' : ''"
+            sec:authorize="hasRole('SUPER_ADMIN')">
+            <i class="bi bi-sliders"></i> <span th:text="#{sidebar.system.settings}">Settings</span>
+        </a>
         <a href="/help" class="sidebar-link" th:classappend="${active == 'help'} ? ' active' : ''"
             sec:authorize="hasRole('VENDOR')">
             <i class="bi bi-question-circle"></i> <span th:text="#{sidebar.help}">Help</span>
@@ -654,6 +658,10 @@
                 <a href="/admin/legal-pages" class="sidebar-link" th:classappend="${active == 'legal-pages'} ? ' active' : ''"
                     sec:authorize="hasRole('SUPER_ADMIN')">
                     <i class="bi bi-journal-text"></i> <span th:text="#{sidebar.legal.pages}">Legal Pages</span>
+                </a>
+                <a href="/admin/settings" class="sidebar-link" th:classappend="${active == 'settings'} ? ' active' : ''"
+                    sec:authorize="hasRole('SUPER_ADMIN')">
+                    <i class="bi bi-sliders"></i> <span th:text="#{sidebar.system.settings}">Settings</span>
                 </a>
                 <a href="/help" class="sidebar-link" th:classappend="${active == 'help'} ? ' active' : ''"
                     sec:authorize="hasRole('VENDOR')">

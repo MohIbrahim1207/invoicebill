@@ -22,6 +22,15 @@
         <p>Congratulations! Your vendor registration has been approved.</p>
         <p><strong>Vendor Code:</strong> <span th:text="${vendorCode}">VENDOR-001</span></p>
         <p>You can now submit invoices and access your vendor dashboard.</p>
+        <div style="text-align: center; margin: 24px 0;">
+            <a th:href="${loginUrl != null ? loginUrl : 'https://invoicehub.cloud/login'}"
+               style="display: inline-block; background-color: #2563eb; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">
+                Login to InvoiceHub / Masuk ke InvoiceHub &rarr;
+            </a>
+            <p style="font-size: 11px; color: #6b7280; margin-top: 8px;">
+                Direct link: <a th:href="${loginUrl != null ? loginUrl : 'https://invoicehub.cloud/login'}" th:text="${loginUrl != null ? loginUrl : 'https://invoicehub.cloud/login'}" style="color: #2563eb;">https://invoicehub.cloud/login</a>
+            </p>
+        </div>
         <p>Best regards,<br>InvoiceHub Team</p>
     </div>
     <div class="footer">

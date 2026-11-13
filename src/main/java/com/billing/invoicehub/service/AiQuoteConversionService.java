@@ -427,7 +427,7 @@ public class AiQuoteConversionService {
         stats.setQuotesGeneratedToday(repository.countQuotesGeneratedToday(LocalDate.now().atStartOfDay()));
         stats.setAverageProcessingTimeSec(repository.getAverageProcessingTimeMs() / 1000.0);
 
-        double successRate = total > 0 ? (success * 100.0 / total) : 100.0;
+        double successRate = total > 0 ? (success * 100.0 / total) : 0.0;
         stats.setSuccessRate(Math.round(successRate * 10.0) / 10.0); // round to 1 decimal place
 
         return stats;

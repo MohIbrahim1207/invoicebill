@@ -212,7 +212,14 @@ public class DashboardAndBillingIntakeTest {
                 // Amount by Status
                 .andExpect(content().string(containsString("Amount by Status")))
                 // Top 5 Vendors
-                .andExpect(content().string(containsString("Top 5 Vendors This Month")));
+                .andExpect(content().string(containsString("Top 5 Vendors This Month")))
+                // 1.7.3: Recent activity table removed, small button to Audit Logs added
+                .andExpect(content().string(containsString("/admin/audit-logs")))
+                .andExpect(content().string(containsString("View activity log")))
+                .andExpect(content().string(not(containsString("admin.audit.col.time"))))
+                // 1.7.3: AI Quote Converter Analytics removed from dashboard
+                .andExpect(content().string(not(containsString("AI Quote Converter Analytics"))))
+                .andExpect(content().string(not(containsString("Total Conversions"))));
     }
 
     @Test

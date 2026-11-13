@@ -96,7 +96,7 @@ public class SecurityConfig {
                         .requestMatchers("/admin/change-password").authenticated()
                         .requestMatchers("/admin/users/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers("/admin/api/maintenance-banner").hasRole("SUPER_ADMIN")
-                        .requestMatchers("/admin/ai-usage/**", "/admin/legal-pages/**").hasRole("SUPER_ADMIN")
+                        .requestMatchers("/admin/ai-usage/**", "/admin/legal-pages/**", "/admin/settings/**").hasRole("SUPER_ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/admin/vendors/*/verify", "/admin/vendors/*/reject").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .anyRequest().hasAnyRole("ADMIN", "ACCOUNTS", "SUPER_ADMIN"))
                 .formLogin(form -> form

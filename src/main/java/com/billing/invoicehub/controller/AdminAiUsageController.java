@@ -1,5 +1,6 @@
 package com.billing.invoicehub.controller;
 
+import com.billing.invoicehub.service.AiQuoteConversionService;
 import com.billing.invoicehub.service.AiUsageService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,9 +25,11 @@ import java.util.Map;
 public class AdminAiUsageController {
 
     private final AiUsageService aiUsageService;
+    private final AiQuoteConversionService aiQuoteConversionService;
 
-    public AdminAiUsageController(AiUsageService aiUsageService) {
+    public AdminAiUsageController(AiUsageService aiUsageService, AiQuoteConversionService aiQuoteConversionService) {
         this.aiUsageService = aiUsageService;
+        this.aiQuoteConversionService = aiQuoteConversionService;
     }
 
     @GetMapping
@@ -39,6 +42,7 @@ public class AdminAiUsageController {
         Map<String, Object> data = aiUsageService.getDashboardData(startDate, endDate);
         model.addAllAttributes(data);
         model.addAttribute("settingsSaved", settingsSaved);
+        model.addAttribute("aiStats", aiQuoteConversionService.getStatistics());
 
         return "admin/admin-ai-usage";
     }

@@ -20,6 +20,15 @@
                 <p style="margin:0 0 6px;"><strong>Invoice No:</strong> <span th:text="${invoiceNo}">-</span></p>
                 <p style="margin:0;"><strong>Reason:</strong> <span th:text="${reason}">-</span></p>
             </div>
+            <div style="text-align: center; margin: 24px 0;">
+                <a th:href="${loginUrl != null ? loginUrl : 'https://invoicehub.cloud/login'}"
+                   style="display: inline-block; background-color: #2563eb; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">
+                    Login to InvoiceHub / Masuk ke InvoiceHub &rarr;
+                </a>
+                <p style="font-size: 11px; color: #6b7280; margin-top: 8px;">
+                    Direct link: <a th:href="${loginUrl != null ? loginUrl : 'https://invoicehub.cloud/login'}" th:text="${loginUrl != null ? loginUrl : 'https://invoicehub.cloud/login'}" style="color: #2563eb;">https://invoicehub.cloud/login</a>
+                </p>
+            </div>
             <p style="margin-bottom:0;">Regards,<br><strong>InvoiceHub Support</strong></p>
         </div>
     </div>

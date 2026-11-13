@@ -154,7 +154,64 @@
                         <h3 class="fw-bold mb-1" th:text="${filterFailures}">0</h3>
                         <div class="small text-muted mb-2">out of <span th:text="${filterTotalRequests}">0</span> requests</div>
                         <div class="small fw-semibold" th:classappend="${filterFailures > 0 ? 'text-danger' : 'text-success'}">
-                            <span th:text="${filterTotalRequests > 0 ? #numbers.formatDecimal((1.0 - (filterFailures * 1.0 / filterTotalRequests)) * 100.0, 1, 'POINT', 1, 'COMMA') + '% Success' : '100% Success'}">100% Success</span>
+                            <span th:text="${filterTotalRequests > 0 ? #numbers.formatDecimal((1.0 - (filterFailures * 1.0 / filterTotalRequests)) * 100.0, 1, 'POINT', 1, 'COMMA') + '% Success' : '&mdash;'}">&mdash;</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Quote Converter Pipeline Metrics Section -->
+            <div class="card portal-card shadow-sm mb-4" th:if="${aiStats != null}">
+                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                    <div>
+                        <h5 class="card-title mb-0 fw-bold d-flex align-items-center gap-2">
+                            <i class="bi bi-cpu text-primary"></i>
+                            <span th:text="#{dashboard.ai.title}">AI Quote Converter Analytics</span>
+                        </h5>
+                        <small class="text-muted" th:text="#{dashboard.ai.subtitle}">Real-time performance metrics of the AI conversion pipeline.</small>
+                    </div>
+                </div>
+                <div class="card-body p-3">
+                    <div class="row g-3">
+                        <div class="col-6 col-md-4 col-xl-2">
+                            <div class="card stat-card h-100">
+                                <div class="card-body">
+                                    <div class="stat-label" th:text="#{dashboard.ai.total_conversions}">Total Conversions</div>
+                                    <div class="stat-value tabular-nums" th:text="${aiStats.totalConversions}">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4 col-xl-2">
+                            <div class="card stat-card h-100">
+                                <div class="card-body">
+                                    <div class="stat-label" th:text="#{dashboard.ai.generated_today}">Generated Today</div>
+                                    <div class="stat-value text-success tabular-nums" th:text="${aiStats.quotesGeneratedToday}">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4 col-xl-3">
+                            <div class="card stat-card h-100">
+                                <div class="card-body">
+                                    <div class="stat-label" th:text="#{dashboard.ai.pending_reviews}">Pending Reviews</div>
+                                    <div class="stat-value text-warning tabular-nums" th:text="${aiStats.pendingReviews}">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-6 col-xl-3">
+                            <div class="card stat-card h-100">
+                                <div class="card-body">
+                                    <div class="stat-label" th:text="#{dashboard.ai.avg_speed}">Avg. Speed</div>
+                                    <div class="stat-value tabular-nums" th:text="${aiStats.totalConversions > 0 ? (#numbers.formatDecimal(aiStats.averageProcessingTimeSec, 1, 1) + 's') : '&mdash;'}">&mdash;</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 col-xl-2">
+                            <div class="card stat-card h-100">
+                                <div class="card-body">
+                                    <div class="stat-label" th:text="#{dashboard.ai.success_rate}">Success Rate</div>
+                                    <div class="stat-value text-info tabular-nums" th:text="${aiStats.totalConversions > 0 ? (aiStats.successRate + '%') : '&mdash;'}">&mdash;</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

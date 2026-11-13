@@ -80,7 +80,13 @@
                 <p><strong>Admin Remarks</strong></p>
                 <div class="remarks">No remarks provided.</div>
             </div>
-            <a th:href="${viewUrl}" class="btn" rel="noopener noreferrer">View Invoice</a>
+            <div style="margin-top: 20px;">
+                <a th:href="${viewUrl}" class="btn" rel="noopener noreferrer" style="margin-right: 8px;">View Invoice</a>
+                <a th:href="${loginUrl != null ? loginUrl : 'https://invoicehub.cloud/login'}" class="btn" style="background: #0f172a;" rel="noopener noreferrer">Login to InvoiceHub / Masuk ke InvoiceHub &rarr;</a>
+            </div>
+            <p style="font-size: 11px; color: #6b7280; margin-top: 8px;">
+                Direct link: <a th:href="${loginUrl != null ? loginUrl : 'https://invoicehub.cloud/login'}" th:text="${loginUrl != null ? loginUrl : 'https://invoicehub.cloud/login'}" style="color: #2563eb;">https://invoicehub.cloud/login</a>
+            </p>
         </div>
         <div class="footer">
             This is an automated notification from InvoiceHub. Please do not reply to this email.
