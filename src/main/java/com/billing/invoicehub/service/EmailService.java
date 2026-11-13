@@ -219,8 +219,14 @@ public class EmailService {
                 .subject(subject)
                 .replyTo(replyToEmail);
 
+        String copyMode = (emailSettingService != null) ? emailSettingService.getNotificationCopyMode() : "BCC";
+
         if (ccList != null && !ccList.isEmpty()) {
-            optionsBuilder.cc(ccList);
+            if ("CC".equalsIgnoreCase(copyMode)) {
+                optionsBuilder.cc(ccList);
+            } else {
+                optionsBuilder.bcc(ccList);
+            }
         }
 
         if (isHtml) {
@@ -235,7 +241,7 @@ public class EmailService {
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
                 if (ccList != null && !ccList.isEmpty()) {
-                    log.info("Sending email to {} (cc: {}) with subject '{}' (Attempt {}/{})", to, ccList, subject, attempt, maxAttempts);
+                    log.info("Sending email to {} (mode: {}, copyList: {}) with subject '{}' (Attempt {}/{})", to, copyMode, ccList, subject, attempt, maxAttempts);
                 } else {
                     log.info("Sending email to {} with subject '{}' (Attempt {}/{})", to, subject, attempt, maxAttempts);
                 }

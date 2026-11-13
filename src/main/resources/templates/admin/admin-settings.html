@@ -95,13 +95,50 @@
                             </div>
                         </div>
 
+                        <!-- Copy Mode (BCC or CC) Setting -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold d-flex align-items-center gap-2 mb-2">
+                                <i class="bi bi-eye-slash text-primary"></i>
+                                <span th:text="#{admin.settings.email.copy_mode}">Copy Mode: CC or BCC</span>
+                            </label>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-check p-3 rounded-3 border bg-light h-100" th:classappend="${notificationCopyMode == null or notificationCopyMode == 'BCC' ? 'border-primary bg-primary-subtle' : ''}">
+                                        <input class="form-check-input ms-0 me-2" type="radio" name="copyMode" id="copyModeBcc" value="BCC"
+                                               th:checked="${notificationCopyMode == null or notificationCopyMode == 'BCC'}">
+                                        <label class="form-check-label w-100 cursor-pointer" for="copyModeBcc">
+                                            <strong class="d-flex align-items-center gap-1 text-dark">
+                                                <span th:text="#{admin.settings.email.copy_mode.bcc}">BCC (Blind Carbon Copy)</span>
+                                                <span class="badge bg-success-subtle text-success ms-1 small" th:text="#{admin.settings.email.copy_mode.recommended}">Recommended</span>
+                                            </strong>
+                                            <small class="text-muted d-block mt-1" th:text="#{admin.settings.email.copy_mode.bcc_desc}">
+                                                Vendors and external recipients do not see internal Flow Force email addresses. Internal team receives copies discretely.
+                                            </small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check p-3 rounded-3 border bg-light h-100" th:classappend="${notificationCopyMode == 'CC' ? 'border-primary bg-primary-subtle' : ''}">
+                                        <input class="form-check-input ms-0 me-2" type="radio" name="copyMode" id="copyModeCc" value="CC"
+                                               th:checked="${notificationCopyMode == 'CC'}">
+                                        <label class="form-check-label w-100 cursor-pointer" for="copyModeCc">
+                                            <strong class="d-block text-dark" th:text="#{admin.settings.email.copy_mode.cc}">CC (Carbon Copy)</strong>
+                                            <small class="text-muted d-block mt-1" th:text="#{admin.settings.email.copy_mode.cc_desc}">
+                                                Internal team email addresses are visible in the CC header to vendors and all recipients.
+                                            </small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Routing Isolation Notice -->
                         <div class="alert alert-info border-0 shadow-sm d-flex align-items-start gap-3 mb-4">
                             <i class="bi bi-shield-check text-info fs-4 flex-shrink-0 mt-1"></i>
                             <div>
                                 <strong class="d-block mb-1">Strict Security Isolation</strong>
                                 <span class="small text-muted">
-                                    Security emails (Password Reset OTP, Two-Factor Authentication codes, and Account Security alerts) are strictly isolated and <strong>NEVER</strong> copied to the CC recipient list. They are dispatched solely to the user's registered address.
+                                    Security emails (Password Reset OTP, Two-Factor Authentication codes, and Account Security alerts) are strictly isolated and <strong>NEVER</strong> copied to the CC or BCC recipient list. They are dispatched solely to the user's registered address.
                                 </span>
                             </div>
                         </div>

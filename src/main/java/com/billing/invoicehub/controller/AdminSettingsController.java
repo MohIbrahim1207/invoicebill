@@ -38,7 +38,9 @@ public class AdminSettingsController {
     public String viewSettings(@RequestParam(value = "saved", required = false) Boolean saved,
                                Model model) {
         model.addAttribute("notificationCc", emailSettingService.getNotificationCcSetting());
+        model.addAttribute("notificationCopyMode", emailSettingService.getNotificationCopyMode());
         model.addAttribute("defaultNotificationCc", EmailSettingService.DEFAULT_NOTIFICATION_CC);
+        model.addAttribute("defaultNotificationCopyMode", EmailSettingService.DEFAULT_NOTIFICATION_COPY_MODE);
         model.addAttribute("appBaseUrl", emailService.getLoginUrl().replace("/login", ""));
         model.addAttribute("loginUrl", emailService.getLoginUrl());
         model.addAttribute("assistantVendorsEnabled", assistantSettingService.isAssistantForVendorsEnabled());
@@ -51,11 +53,13 @@ public class AdminSettingsController {
 
     @PostMapping("/email-cc")
     public String updateEmailCc(@RequestParam("notificationCc") String notificationCc,
+                                @RequestParam(value = "copyMode", defaultValue = "BCC") String copyMode,
                                 Principal principal,
                                 RedirectAttributes redirectAttributes) {
         String username = principal != null ? principal.getName() : "super_admin";
         emailSettingService.setNotificationCcSetting(notificationCc, username);
-        redirectAttributes.addFlashAttribute("message", "Email notification CC list updated successfully.");
+        emailSettingService.setNotificationCopyMode(copyMode, username);
+        redirectAttributes.addFlashAttribute("message", "Email notification settings updated successfully.");
         return "redirect:/admin/settings?saved=true";
     }
 
@@ -64,7 +68,9 @@ public class AdminSettingsController {
     public ResponseEntity<?> getEmailCc() {
         return ResponseEntity.ok(Map.of(
                 "notificationCc", emailSettingService.getNotificationCcSetting(),
+                "notificationCopyMode", emailSettingService.getNotificationCopyMode(),
                 "defaultCc", EmailSettingService.DEFAULT_NOTIFICATION_CC,
+                "defaultCopyMode", EmailSettingService.DEFAULT_NOTIFICATION_COPY_MODE,
                 "parsedRecipients", emailSettingService.getNotificationCcRecipients("sample@example.com")
         ));
     }
@@ -74,11 +80,14 @@ public class AdminSettingsController {
     public ResponseEntity<?> updateEmailCcApi(@RequestBody Map<String, String> body,
                                              Principal principal) {
         String cc = body.getOrDefault("notificationCc", EmailSettingService.DEFAULT_NOTIFICATION_CC);
+        String copyMode = body.getOrDefault("copyMode", EmailSettingService.DEFAULT_NOTIFICATION_COPY_MODE);
         String username = principal != null ? principal.getName() : "super_admin";
         emailSettingService.setNotificationCcSetting(cc, username);
+        emailSettingService.setNotificationCopyMode(copyMode, username);
         return ResponseEntity.ok(Map.of(
                 "status", "success",
-                "notificationCc", emailSettingService.getNotificationCcSetting()
+                "notificationCc", emailSettingService.getNotificationCcSetting(),
+                "notificationCopyMode", emailSettingService.getNotificationCopyMode()
         ));
     }
 }

@@ -102,7 +102,11 @@ public class GlobalExceptionHandler {
     /**
      * Handle resource not found exceptions
      */
-    @ExceptionHandler(value = { ResourceNotFoundException.class, jakarta.persistence.EntityNotFoundException.class })
+    @ExceptionHandler(value = {
+            ResourceNotFoundException.class,
+            jakarta.persistence.EntityNotFoundException.class,
+            org.springframework.web.servlet.resource.NoResourceFoundException.class
+    })
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ResponseEntity<Map<String, Object>> handleResourceNotFoundException(
             Exception ex,

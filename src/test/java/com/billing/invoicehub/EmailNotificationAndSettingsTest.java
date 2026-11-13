@@ -63,8 +63,9 @@ public class EmailNotificationAndSettingsTest {
 
     @BeforeEach
     public void setUp() {
-        // Reset email CC setting in database and memory
+        // Reset email CC and copy mode setting in database and memory
         systemSettingRepository.deleteById(EmailSettingService.KEY_EMAIL_NOTIFICATION_CC);
+        systemSettingRepository.deleteById(EmailSettingService.KEY_EMAIL_NOTIFICATION_COPY_MODE);
         emailSettingService.refreshFromDatabase();
 
         // Ensure roles and super admin exist
@@ -87,13 +88,39 @@ public class EmailNotificationAndSettingsTest {
     }
 
     @Test
-    @DisplayName("Email Settings: Default CC list is umapathi@flow-force.com, operations@flow-force.com")
+    @DisplayName("Email Settings: Default CC list is umapathi@flow-force.com, operations@flow-force.com and default mode is BCC")
     public void testDefaultCcSetting() {
         emailSettingService.refreshFromDatabase();
         String cc = emailSettingService.getNotificationCcSetting();
         assertNotNull(cc);
         assertTrue(cc.contains("umapathi@flow-force.com"));
         assertTrue(cc.contains("operations@flow-force.com"));
+
+        String copyMode = emailSettingService.getNotificationCopyMode();
+        assertEquals("BCC", copyMode);
+        assertTrue(emailSettingService.isBccMode());
+    }
+
+    @Test
+    @DisplayName("Email Settings: Copy mode persistence, switching between BCC and CC, and normalization")
+    public void testCopyModePersistenceAndSwitching() {
+        // Switch to CC
+        emailSettingService.setNotificationCopyMode("CC", "superadmin");
+        assertEquals("CC", emailSettingService.getNotificationCopyMode());
+        assertFalse(emailSettingService.isBccMode());
+
+        SystemSetting stored = systemSettingRepository.findById(EmailSettingService.KEY_EMAIL_NOTIFICATION_COPY_MODE).orElse(null);
+        assertNotNull(stored);
+        assertEquals("CC", stored.getValue());
+
+        // Switch back to BCC
+        emailSettingService.setNotificationCopyMode("BCC", "superadmin");
+        assertEquals("BCC", emailSettingService.getNotificationCopyMode());
+        assertTrue(emailSettingService.isBccMode());
+
+        // Invalid or null mode defaults to BCC
+        emailSettingService.setNotificationCopyMode("INVALID_MODE", "superadmin");
+        assertEquals("BCC", emailSettingService.getNotificationCopyMode());
     }
 
     @Test
@@ -206,24 +233,51 @@ public class EmailNotificationAndSettingsTest {
 
     @Test
     @WithMockUser(username = "superadmin", roles = {"SUPER_ADMIN"})
-    @DisplayName("Admin Settings Page: SUPER_ADMIN can view and edit email CC settings")
+    @DisplayName("Admin Settings Page: SUPER_ADMIN can view and edit email CC and copy mode settings")
     public void testSettingsPageSuperAdmin() throws Exception {
         mockMvc.perform(get("/admin/settings"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/admin-settings"))
                 .andExpect(model().attributeExists("notificationCc"))
+                .andExpect(model().attributeExists("notificationCopyMode"))
                 .andExpect(model().attributeExists("loginUrl"))
                 .andExpect(content().string(containsString("Email Notification Settings")))
-                .andExpect(content().string(containsString("umapathi@flow-force.com")));
+                .andExpect(content().string(containsString("umapathi@flow-force.com")))
+                .andExpect(content().string(containsString("BCC (Blind Carbon Copy)")));
 
-        // Update settings via POST
+        // Update settings via POST including copyMode
         mockMvc.perform(post("/admin/settings/email-cc")
                         .with(csrf())
-                        .param("notificationCc", "audit@flow-force.com, ops@flow-force.com"))
+                        .param("notificationCc", "audit@flow-force.com, ops@flow-force.com")
+                        .param("copyMode", "CC"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/admin/settings?saved=true"));
 
         assertEquals("audit@flow-force.com, ops@flow-force.com", emailSettingService.getNotificationCcSetting());
+        assertEquals("CC", emailSettingService.getNotificationCopyMode());
+    }
+
+    @Test
+    @WithMockUser(username = "vendor1", roles = {"VENDOR"})
+    @DisplayName("Security: /dev/mail/send-test is forbidden to VENDOR")
+    public void testDevMailForbiddenToVendor() throws Exception {
+        mockMvc.perform(get("/dev/mail/send-test").param("to", "test@flow-force.com"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "admin1", roles = {"ADMIN"})
+    @DisplayName("Security: /dev/mail/send-test is forbidden to ADMIN (SUPER_ADMIN only)")
+    public void testDevMailForbiddenToAdmin() throws Exception {
+        mockMvc.perform(get("/dev/mail/send-test").param("to", "test@flow-force.com"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Security: /dev/mail/send-test is rejected when unauthenticated")
+    public void testDevMailRejectedUnauthenticated() throws Exception {
+        mockMvc.perform(get("/dev/mail/send-test").param("to", "test@flow-force.com"))
+                .andExpect(status().is3xxRedirection());
     }
 
     @Test

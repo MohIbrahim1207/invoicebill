@@ -20,10 +20,14 @@ public class EmailSettingService {
     public static final String KEY_EMAIL_NOTIFICATION_CC = "email_notification_cc";
     public static final String DEFAULT_NOTIFICATION_CC = "umapathi@flow-force.com, operations@flow-force.com";
 
+    public static final String KEY_EMAIL_NOTIFICATION_COPY_MODE = "email_notification_copy_mode";
+    public static final String DEFAULT_NOTIFICATION_COPY_MODE = "BCC";
+
     private final SystemSettingRepository settingRepository;
     private final AuditLogService auditLogService;
 
     private volatile String cachedNotificationCc = DEFAULT_NOTIFICATION_CC;
+    private volatile String cachedNotificationCopyMode = DEFAULT_NOTIFICATION_COPY_MODE;
 
     public EmailSettingService(SystemSettingRepository settingRepository,
                                @Autowired(required = false) AuditLogService auditLogService) {
@@ -44,15 +48,63 @@ public class EmailSettingService {
             } else {
                 this.cachedNotificationCc = DEFAULT_NOTIFICATION_CC;
             }
-            log.info("Initialized EmailSettingService: notificationCc='{}'", cachedNotificationCc);
+
+            Optional<SystemSetting> modeOpt = settingRepository.findById(KEY_EMAIL_NOTIFICATION_COPY_MODE);
+            if (modeOpt.isPresent() && modeOpt.get().getValue() != null && !modeOpt.get().getValue().isBlank()) {
+                String val = modeOpt.get().getValue().trim();
+                this.cachedNotificationCopyMode = "CC".equalsIgnoreCase(val) ? "CC" : "BCC";
+            } else {
+                this.cachedNotificationCopyMode = DEFAULT_NOTIFICATION_COPY_MODE;
+            }
+
+            log.info("Initialized EmailSettingService: notificationCc='{}', copyMode='{}'", cachedNotificationCc, cachedNotificationCopyMode);
         } catch (Exception ex) {
-            log.warn("Could not load email CC setting from database: {}. Using default.", ex.getMessage());
+            log.warn("Could not load email CC/copyMode setting from database: {}. Using default.", ex.getMessage());
             this.cachedNotificationCc = DEFAULT_NOTIFICATION_CC;
+            this.cachedNotificationCopyMode = DEFAULT_NOTIFICATION_COPY_MODE;
         }
     }
 
     public String getNotificationCcSetting() {
         return cachedNotificationCc;
+    }
+
+    public String getNotificationCopyMode() {
+        return cachedNotificationCopyMode;
+    }
+
+    public boolean isBccMode() {
+        return "BCC".equalsIgnoreCase(cachedNotificationCopyMode);
+    }
+
+    @Transactional
+    public synchronized void setNotificationCopyMode(String copyMode, String updatedBy) {
+        String cleanMode = "CC".equalsIgnoreCase(copyMode) ? "CC" : "BCC";
+        this.cachedNotificationCopyMode = cleanMode;
+        try {
+            SystemSetting setting = settingRepository.findById(KEY_EMAIL_NOTIFICATION_COPY_MODE)
+                    .orElseGet(() -> new SystemSetting(KEY_EMAIL_NOTIFICATION_COPY_MODE, cleanMode, updatedBy));
+            setting.setValue(cleanMode);
+            setting.setUpdatedBy(updatedBy != null ? updatedBy : "super_admin");
+            setting.setUpdatedAt(LocalDateTime.now());
+            settingRepository.save(setting);
+
+            if (auditLogService != null) {
+                auditLogService.log(
+                        updatedBy != null ? updatedBy : "super_admin",
+                        "ROLE_SUPER_ADMIN",
+                        "UPDATE_SYSTEM_SETTING",
+                        "SYSTEM_SETTING",
+                        null,
+                        null,
+                        "Updated notification email copy mode to: " + cleanMode
+                );
+            }
+            log.info("Super admin '{}' updated email notification copy mode to: {}", updatedBy, cleanMode);
+        } catch (Exception ex) {
+            log.error("Failed to persist notification copy mode setting: {}", ex.getMessage(), ex);
+            throw new RuntimeException("Failed to save email copy mode setting: " + ex.getMessage(), ex);
+        }
     }
 
     @Transactional

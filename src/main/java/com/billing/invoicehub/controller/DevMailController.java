@@ -3,6 +3,7 @@ package com.billing.invoicehub.controller;
 import com.billing.invoicehub.service.EmailService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -12,19 +13,20 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 @RestController
-@Profile(value={"dev"})
-@RequestMapping(value={"/dev/mail"})
+@Profile("!prod")
+@PreAuthorize("hasRole('SUPER_ADMIN')")
+@RequestMapping("/dev/mail")
 public class DevMailController {
     private final EmailService emailService;
     private final String mailFrom;
 
-    public DevMailController(EmailService emailService, @Value(value="${resend.from.email}") String mailFrom) {
+    public DevMailController(EmailService emailService, @Value("${resend.from.email}") String mailFrom) {
         this.emailService = emailService;
         this.mailFrom = mailFrom;
     }
 
-    @GetMapping(value={"/test"})
-    public String sendTestEmail(@RequestParam(value="to") String to) {
+    @GetMapping(value = {"/test", "/send-test"})
+    public String sendTestEmail(@RequestParam(value = "to") String to) {
         try {
             this.emailService.sendPlainEmail(to, "InvoiceHub - Test Email", "This is a test message from InvoiceHub to verify Resend settings.");
             return "OK: test email sent to " + to;
