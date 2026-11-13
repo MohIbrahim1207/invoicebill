@@ -25,7 +25,9 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -49,7 +51,8 @@ public class InvoiceController {
     // ─── GET /invoice ────────────────────────────────────────────────────────────
 
     @GetMapping("/invoice")
-    public String invoicePage(Model model, RedirectAttributes redirectAttributes) {
+    public String invoicePage(@RequestParam(value = "status", required = false) String selectedStatus,
+                              Model model, RedirectAttributes redirectAttributes) {
         Optional<AppUser> currentUser = currentAppUser();
         if (currentUser.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please log in to continue.");
@@ -63,8 +66,39 @@ public class InvoiceController {
 
         List<Invoice> invoices = invoiceService.getInvoices(currentUser.get(), isAdmin);
 
+        Map<String, Long> statusCounts = new java.util.LinkedHashMap<>();
+        statusCounts.put("ALL", (long) invoices.size());
+        statusCounts.put("Pending", 0L);
+        statusCounts.put("In Progress", 0L);
+        statusCounts.put("Revised", 0L);
+        statusCounts.put("Approved", 0L);
+        statusCounts.put("Partially Paid", 0L);
+        statusCounts.put("Released", 0L);
+        statusCounts.put("Rejected", 0L);
+
+        for (Invoice inv : invoices) {
+            String st = inv.getStatus() != null ? inv.getStatus().trim().toLowerCase() : "pending";
+            if (st.equals("pending") || st.equals("open")) {
+                statusCounts.put("Pending", statusCounts.get("Pending") + 1);
+            } else if (st.equals("in progress") || st.equals("in_progress")) {
+                statusCounts.put("In Progress", statusCounts.get("In Progress") + 1);
+            } else if (st.equals("revised") || st.equals("revise")) {
+                statusCounts.put("Revised", statusCounts.get("Revised") + 1);
+            } else if (st.equals("approved")) {
+                statusCounts.put("Approved", statusCounts.get("Approved") + 1);
+            } else if (st.equals("partially paid") || st.equals("partially_paid")) {
+                statusCounts.put("Partially Paid", statusCounts.get("Partially Paid") + 1);
+            } else if (st.equals("released") || st.equals("paid") || st.equals("resolved")) {
+                statusCounts.put("Released", statusCounts.get("Released") + 1);
+            } else if (st.equals("rejected") || st.equals("cancel") || st.equals("cancelled")) {
+                statusCounts.put("Rejected", statusCounts.get("Rejected") + 1);
+            }
+        }
+
         model.addAttribute("clients", clients);
         model.addAttribute("invoices", invoices);
+        model.addAttribute("statusCounts", statusCounts);
+        model.addAttribute("selectedStatus", selectedStatus != null && !selectedStatus.isBlank() ? selectedStatus : "ALL");
         model.addAttribute("invoice", new InvoiceDto());
         return "invoice";
     }

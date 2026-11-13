@@ -35,6 +35,11 @@ public interface VendorTicketRepository extends JpaRepository<VendorTicket, Long
 
     public long countByStatusRequest(TicketStatus status);
 
+    public long countByStatusRequestAndCreatedAtBefore(TicketStatus status, LocalDateTime cutoff);
+
+    @Query("select count(t) from VendorTicket t where t.invoice is null and (t.statusRequest is null or t.statusRequest <> com.billing.invoicehub.entity.TicketStatus.CANCEL)")
+    public long countUnsyncedTickets();
+
     public long countByStatusRequestAndOwner_Id(TicketStatus status, Long ownerId);
 
     public long countByStatusRequestIn(Collection<TicketStatus> statuses);

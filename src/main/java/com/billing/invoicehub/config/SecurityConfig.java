@@ -187,7 +187,7 @@ public class SecurityConfig {
                         .requestMatchers("/clients", "/clients/**", "/saveClient", "/updateClient", "/deleteClient/**", "/dashboard").hasRole("ADMIN")
                         .requestMatchers("/vendor-tickets", "/vendor-tickets/**").hasRole("VENDOR")
                         .requestMatchers("/invoice", "/invoice/**",
-                                "/saveInvoice", "/updateInvoice", "/deleteInvoice/**").hasRole("VENDOR")
+                                "/saveInvoice", "/updateInvoice", "/deleteInvoice/**").hasAnyRole("VENDOR", "ADMIN", "SUPER_ADMIN", "ACCOUNTS")
                         .anyRequest().authenticated())
                 .formLogin(form -> form
                         .loginPage("/vendor/login")

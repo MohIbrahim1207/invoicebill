@@ -22,4 +22,6 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     );
 
     long countByUsernameAndActionAndCreatedAtGreaterThanEqual(String username, String action, LocalDateTime startOfDay);
+
+    List<AuditLog> findTop10ByOrderByCreatedAtDesc();
 }

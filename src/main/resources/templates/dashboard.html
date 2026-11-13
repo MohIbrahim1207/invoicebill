@@ -28,61 +28,178 @@
                 <p class="text-muted mb-0" th:text="#{dashboard.subtitle}">Executive overview of billing workflow performance.</p>
             </div>
 
-            <!-- Primary Stat Cards with Tinted Icon Badges -->
+            <!-- Primary Stat Cards with Tinted Icon Badges (Clickable -> Opens Billing Intake with Matching Filter) -->
             <div class="row g-3" th:if="${dashboardStats != null}">
                 <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="card stat-card h-100">
-                        <div class="card-body d-flex align-items-center gap-3">
-                            <div class="stat-icon-badge stat-icon-primary">
-                                <i class="bi bi-receipt"></i>
-                            </div>
-                            <div class="flex-grow-1 min-w-0">
-                                <div class="stat-label text-truncate" th:text="#{dashboard.stat.total_invoices}">Total invoices</div>
-                                <div class="stat-value tabular-nums" th:text="${#numbers.formatInteger(dashboardStats.totalInvoices, 1, 'POINT')}">0</div>
+                    <a th:href="@{/invoice(status='ALL')}" class="stat-card-link" th:title="#{invoice.tabs.all}">
+                        <div class="card stat-card h-100">
+                            <div class="card-body d-flex align-items-center gap-3">
+                                <div class="stat-icon-badge stat-icon-primary">
+                                    <i class="bi bi-receipt"></i>
+                                </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="stat-label text-truncate" th:text="#{dashboard.stat.total_invoices}">Total invoices</div>
+                                    <div class="stat-value tabular-nums" th:text="${#numbers.formatInteger(dashboardStats.totalInvoices, 1, 'POINT')}">0</div>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
 
                 <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="card stat-card h-100">
-                        <div class="card-body d-flex align-items-center gap-3">
-                            <div class="stat-icon-badge stat-icon-warning">
-                                <i class="bi bi-clock-history"></i>
-                            </div>
-                            <div class="flex-grow-1 min-w-0">
-                                <div class="stat-label text-truncate" th:text="#{dashboard.stat.pending}">Pending</div>
-                                <div class="stat-value text-warning tabular-nums" th:text="${#numbers.formatInteger(dashboardStats.pendingInvoices, 1, 'POINT')}">0</div>
+                    <a th:href="@{/invoice(status='Pending')}" class="stat-card-link" th:title="#{dashboard.stat.pending}">
+                        <div class="card stat-card h-100">
+                            <div class="card-body d-flex align-items-center gap-3">
+                                <div class="stat-icon-badge stat-icon-warning">
+                                    <i class="bi bi-clock-history"></i>
+                                </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="stat-label text-truncate" th:text="#{dashboard.stat.pending}">Pending</div>
+                                    <div class="stat-value text-warning tabular-nums" th:text="${#numbers.formatInteger(dashboardStats.pendingInvoices, 1, 'POINT')}">0</div>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
 
                 <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="card stat-card h-100">
-                        <div class="card-body d-flex align-items-center gap-3">
-                            <div class="stat-icon-badge stat-icon-success">
-                                <i class="bi bi-check-circle"></i>
-                            </div>
-                            <div class="flex-grow-1 min-w-0">
-                                <div class="stat-label text-truncate" th:text="#{dashboard.stat.approved}">Approved</div>
-                                <div class="stat-value text-success tabular-nums" th:text="${#numbers.formatInteger(dashboardStats.approvedInvoices, 1, 'POINT')}">0</div>
+                    <a th:href="@{/invoice(status='Approved')}" class="stat-card-link" th:title="#{dashboard.stat.approved}">
+                        <div class="card stat-card h-100">
+                            <div class="card-body d-flex align-items-center gap-3">
+                                <div class="stat-icon-badge stat-icon-success">
+                                    <i class="bi bi-check-circle"></i>
+                                </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="stat-label text-truncate" th:text="#{dashboard.stat.approved}">Approved</div>
+                                    <div class="stat-value text-success tabular-nums" th:text="${#numbers.formatInteger(dashboardStats.approvedInvoices, 1, 'POINT')}">0</div>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
 
                 <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="card stat-card h-100">
-                        <div class="card-body d-flex align-items-center gap-3">
-                            <div class="stat-icon-badge stat-icon-info">
-                                <i class="bi bi-cash-stack"></i>
+                    <a th:href="@{/invoice}" class="stat-card-link" th:title="#{dashboard.stat.total_amount}">
+                        <div class="card stat-card h-100">
+                            <div class="card-body d-flex align-items-center gap-3">
+                                <div class="stat-icon-badge stat-icon-info">
+                                    <i class="bi bi-cash-stack"></i>
+                                </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="stat-label text-truncate" th:text="#{dashboard.stat.total_amount}">Total amount</div>
+                                    <div class="stat-value text-truncate tabular-nums" th:title="${dashboardStats.totalAmountFull}" th:text="${dashboardStats.totalAmountCompact}">Rp 0</div>
+                                    <div class="small text-muted text-truncate tabular-nums" style="font-size: 0.75rem;" th:text="${dashboardStats.totalAmountFull}">Rp 0</div>
+                                </div>
                             </div>
-                            <div class="flex-grow-1 min-w-0">
-                                <div class="stat-label text-truncate" th:text="#{dashboard.stat.total_amount}">Total amount</div>
-                                <div class="stat-value text-truncate tabular-nums" th:title="${dashboardStats.totalAmountFull}" th:text="${dashboardStats.totalAmountCompact}">Rp 0</div>
-                                <div class="small text-muted text-truncate tabular-nums" style="font-size: 0.75rem;" th:text="${dashboardStats.totalAmountFull}">Rp 0</div>
-                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Needs Attention Panel -->
+            <div class="card portal-card mt-3 mb-1" th:if="${dashboardStats != null and dashboardStats.needsAttention != null}">
+                <div class="card-header bg-transparent border-0 pt-3 pb-2 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div>
+                        <h6 class="mb-0 fw-bold d-flex align-items-center gap-2">
+                            <i class="bi bi-exclamation-octagon text-warning fs-5"></i>
+                            <span th:text="#{dashboard.attention.title}">Needs Attention</span>
+                        </h6>
+                        <small class="text-muted" th:text="#{dashboard.attention.subtitle}">Action items requiring your review or follow-up</small>
+                    </div>
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle"
+                          th:if="${dashboardStats.needsAttention.hasItems}">
+                        <i class="bi bi-bell-fill me-1"></i>Action Required
+                    </span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle"
+                          th:unless="${dashboardStats.needsAttention.hasItems}"
+                          th:text="#{dashboard.attention.all_clear}">All caught up! No urgent action items.</span>
+                </div>
+                <div class="card-body pt-1 pb-3">
+                    <div class="row g-3">
+                        <!-- 1. Pending > 7 days -->
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <a th:href="@{/admin/tickets(status='OPEN')}" class="attention-card-item">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="stat-icon-badge stat-icon-warning">
+                                        <i class="bi bi-clock-history"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold small" th:text="#{dashboard.attention.pending_overdue(${dashboardStats.needsAttention.pendingThresholdDays})}">Pending > 7 days</div>
+                                        <small class="text-muted d-block" style="font-size: 0.72rem;" th:text="#{dashboard.attention.pending_overdue_desc}">Tickets awaiting action</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="attention-badge-count"
+                                          th:classappend="${dashboardStats.needsAttention.pendingOverdueCount > 0 ? 'bg-warning text-dark' : 'bg-light text-muted'}"
+                                          th:text="${dashboardStats.needsAttention.pendingOverdueCount}">0</span>
+                                    <i class="bi bi-chevron-right text-muted small"></i>
+                                </div>
+                            </a>
+                        </div>
+
+                        <!-- 2. Unsynced tickets -->
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <a th:href="@{/admin/tickets(unsynced='true')}" class="attention-card-item">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="stat-icon-badge" style="background-color: var(--status-unsynced-bg); color: var(--status-unsynced);">
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold small" th:text="#{dashboard.attention.unsynced}">Unsynced tickets</div>
+                                        <small class="text-muted d-block" style="font-size: 0.72rem;" th:text="#{dashboard.attention.unsynced_desc}">Tickets without invoice</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="attention-badge-count"
+                                          th:style="${dashboardStats.needsAttention.unsyncedCount > 0 ? 'background-color: var(--status-unsynced); color: #fff;' : ''}"
+                                          th:classappend="${dashboardStats.needsAttention.unsyncedCount > 0 ? '' : 'bg-light text-muted'}"
+                                          th:text="${dashboardStats.needsAttention.unsyncedCount}">0</span>
+                                    <i class="bi bi-chevron-right text-muted small"></i>
+                                </div>
+                            </a>
+                        </div>
+
+                        <!-- 3. Tickets in Revised -->
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <a th:href="@{/admin/tickets(status='REVISE')}" class="attention-card-item">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="stat-icon-badge" style="background-color: var(--status-revised-bg); color: var(--status-revised);">
+                                        <i class="bi bi-arrow-repeat"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold small" th:text="#{dashboard.attention.revised}">Waiting for vendor</div>
+                                        <small class="text-muted d-block" style="font-size: 0.72rem;" th:text="#{dashboard.attention.revised_desc}">Tickets in revision</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="attention-badge-count"
+                                          th:style="${dashboardStats.needsAttention.revisedCount > 0 ? 'background-color: var(--status-revised); color: #fff;' : ''}"
+                                          th:classappend="${dashboardStats.needsAttention.revisedCount > 0 ? '' : 'bg-light text-muted'}"
+                                          th:text="${dashboardStats.needsAttention.revisedCount}">0</span>
+                                    <i class="bi bi-chevron-right text-muted small"></i>
+                                </div>
+                            </a>
+                        </div>
+
+                        <!-- 4. Unverified new vendors -->
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <a th:href="@{/admin/vendors}" class="attention-card-item">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="stat-icon-badge stat-icon-info">
+                                        <i class="bi bi-person-exclamation"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold small" th:text="#{dashboard.attention.unverified_vendors}">Unverified new vendors</div>
+                                        <small class="text-muted d-block" style="font-size: 0.72rem;" th:text="#{dashboard.attention.unverified_vendors_desc}">Pending verification</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="attention-badge-count"
+                                          th:classappend="${dashboardStats.needsAttention.unverifiedVendorsCount > 0 ? 'bg-primary text-white' : 'bg-light text-muted'}"
+                                          th:text="${dashboardStats.needsAttention.unverifiedVendorsCount}">0</span>
+                                    <i class="bi bi-chevron-right text-muted small"></i>
+                                </div>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -120,6 +237,143 @@
                                 <canvas id="statusDonutChart"></canvas>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Top 5 Vendors & Amount by Status -->
+            <div class="row g-3 mt-1" th:if="${dashboardStats != null}">
+                <!-- Top 5 vendors this month by amount -->
+                <div class="col-12 col-lg-7">
+                    <div class="card portal-card h-100">
+                        <div class="card-header bg-transparent border-0 pt-3 pb-2 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div>
+                                <h6 class="mb-0 fw-bold" th:text="#{dashboard.top_vendors.title}">Top 5 Vendors This Month</h6>
+                                <small class="text-muted" th:text="#{dashboard.top_vendors.subtitle}">By total billing amount in current month</small>
+                            </div>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                <i class="bi bi-calendar-event me-1"></i><span th:text="${#temporals.format(#temporals.createNow(), 'MMM yyyy')}">This Month</span>
+                            </span>
+                        </div>
+                        <div class="card-body pt-1 pb-3">
+                            <div th:if="${#lists.isEmpty(dashboardStats.topVendors)}" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox fs-3 d-block mb-1"></i>
+                                <span th:text="#{dashboard.top_vendors.empty}">No billings recorded this month</span>
+                            </div>
+                            <div th:unless="${#lists.isEmpty(dashboardStats.topVendors)}" class="table-responsive">
+                                <table class="table table-sm align-middle portal-table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 36px;">#</th>
+                                            <th>Vendor</th>
+                                            <th class="text-center" th:text="#{dashboard.amount_status.count}">Invoices</th>
+                                            <th class="text-end" th:text="#{dashboard.amount_status.amount}">Total Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="v : ${dashboardStats.topVendors}">
+                                            <td>
+                                                <span class="rank-badge" th:classappend="${'rank-badge-' + v.rank}" th:text="${v.rank}">1</span>
+                                            </td>
+                                            <td>
+                                                <div class="fw-semibold text-truncate" style="max-width: 260px;" th:text="${v.vendorName}">Vendor</div>
+                                                <small class="text-muted tabular-nums" th:if="${v.vendorCode != null and !v.vendorCode.isEmpty()}" th:text="${v.vendorCode}">VEND-001</small>
+                                            </td>
+                                            <td class="text-center tabular-nums" th:text="${v.invoiceCount}">0</td>
+                                            <td class="text-end tabular-nums fw-medium" th:text="${v.formattedAmount}">Rp 0</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Amount by Status Breakdown -->
+                <div class="col-12 col-lg-5">
+                    <div class="card portal-card h-100">
+                        <div class="card-header bg-transparent border-0 pt-3 pb-2 d-flex align-items-center justify-content-between">
+                            <div>
+                                <h6 class="mb-0 fw-bold" th:text="#{dashboard.amount_status.title}">Amount by Status</h6>
+                                <small class="text-muted" th:text="#{dashboard.amount_status.subtitle}">Rupiah breakdown across workflow stages</small>
+                            </div>
+                        </div>
+                        <div class="card-body pt-1 pb-3">
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle portal-table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th th:text="#{dashboard.amount_status.status}">Status</th>
+                                            <th class="text-center" th:text="#{dashboard.amount_status.count}">Count</th>
+                                            <th class="text-end" th:text="#{dashboard.amount_status.amount}">Amount</th>
+                                            <th class="text-end" th:text="#{dashboard.amount_status.pct}">Share</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="sa : ${dashboardStats.statusAmounts}">
+                                            <td>
+                                                <span class="status-pill" th:classappend="${sa.pillClass}" th:text="${sa.label}">Pending</span>
+                                            </td>
+                                            <td class="text-center tabular-nums" th:text="${sa.count}">0</td>
+                                            <td class="text-end tabular-nums fw-medium" th:text="${sa.formattedAmount}">Rp 0</td>
+                                            <td class="text-end tabular-nums text-muted small" th:text="${sa.formattedPercentage}">0.0%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity Panel (last 10 audit events, linked) -->
+            <div class="card portal-card mt-3" th:if="${dashboardStats != null and !#lists.isEmpty(dashboardStats.recentActivities)}">
+                <div class="card-header bg-transparent border-0 pt-3 pb-2 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div>
+                        <h6 class="mb-0 fw-bold d-flex align-items-center gap-2">
+                            <i class="bi bi-activity text-primary"></i>
+                            <span th:text="#{dashboard.activity.title}">Recent Activity</span>
+                        </h6>
+                        <small class="text-muted" th:text="#{dashboard.activity.subtitle}">Last 10 audit log events across the portal</small>
+                    </div>
+                    <a th:href="@{/admin/audit-log}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"
+                       sec:authorize="hasAnyRole('ADMIN', 'SUPER_ADMIN')">
+                        <span th:text="#{dashboard.activity.view_all}">View all activity</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="card-body pt-1 pb-3">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle portal-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th th:text="#{admin.audit.col.time}">Time</th>
+                                    <th th:text="#{admin.audit.col.user}">User</th>
+                                    <th th:text="#{admin.audit.col.action}">Action</th>
+                                    <th th:text="#{admin.audit.col.details}">Details</th>
+                                    <th class="text-end">Link</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="act : ${dashboardStats.recentActivities}">
+                                    <td class="tabular-nums text-muted small text-nowrap" th:text="${act.formattedTime}">10 Nov, 14:32</td>
+                                    <td class="text-nowrap">
+                                        <span class="fw-semibold" th:text="${act.username}">admin</span>
+                                        <span class="badge bg-light text-muted border ms-1 small" th:text="${act.role}">ADMIN</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle small" th:text="${act.action}">Update</span>
+                                    </td>
+                                    <td class="text-truncate" style="max-width: 320px;" th:text="${act.description}">Ticket details updated</td>
+                                    <td class="text-end text-nowrap">
+                                        <a th:href="@{${act.targetUrl}}" class="btn btn-sm btn-light border py-0 px-2" style="font-size: 0.78rem;">
+                                            <span th:text="#{dashboard.attention.view}">View</span>
+                                            <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

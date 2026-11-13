@@ -459,6 +459,277 @@ body.auth-bg {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    border-radius: var(--radius-input, 8px);
+    border: 1px solid var(--border);
+    background-color: var(--bg-card);
+    color: var(--text-muted);
+    transition: all 0.15s ease;
+}
+
+.btn-row-action:hover,
+.btn-row-action:focus-visible {
+    color: var(--text-main);
+    border-color: rgba(0, 0, 0, 0.25);
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .btn-row-action:hover,
+[data-theme="dark"] .btn-row-action:focus-visible {
+    border-color: rgba(255, 255, 255, 0.25);
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ─── 1.7.2 Clickable KPI Cards ─────────────────────────────────────────── */
+a.stat-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    height: 100%;
+}
+
+a.stat-card-link .stat-card {
+    transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease, box-shadow 0.18s ease;
+    cursor: pointer;
+}
+
+a.stat-card-link:hover .stat-card {
+    transform: translateY(-2px);
+    border-color: var(--bs-primary, #2563eb);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] a.stat-card-link:hover .stat-card {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* ─── 1.7.2 Compact Status Filter Tabs (Billing Intake) ──────────────────── */
+.status-tabs-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    align-items: center;
+}
+
+.status-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border-radius: var(--radius-pill, 9999px);
+    border: 1px solid var(--border);
+    background-color: var(--bg-card);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+    line-height: 1.2;
+}
+
+.status-tab-btn:hover {
+    color: var(--text-main);
+    border-color: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .status-tab-btn:hover {
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.status-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: var(--radius-pill, 9999px);
+    background-color: rgba(0, 0, 0, 0.06);
+    font-variant-numeric: tabular-nums;
+}
+
+[data-theme="dark"] .status-tab-count {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.status-tab-btn.active {
+    font-weight: 600;
+}
+
+/* Tab Colors matching 1.7.2 Status Tokens */
+.status-tab-btn.status-tab-all.active {
+    background-color: var(--text-main);
+    color: var(--bg-card);
+    border-color: var(--text-main);
+}
+.status-tab-btn.status-tab-all.active .status-tab-count {
+    background-color: rgba(255, 255, 255, 0.25);
+    color: inherit;
+}
+[data-theme="dark"] .status-tab-btn.status-tab-all.active .status-tab-count {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.status-tab-btn.status-tab-pending.active {
+    background-color: var(--status-pending-bg);
+    color: var(--status-pending);
+    border-color: var(--status-pending);
+}
+.status-tab-btn.status-tab-pending.active .status-tab-count {
+    background-color: var(--status-pending);
+    color: #ffffff;
+}
+
+.status-tab-btn.status-tab-in-progress.active {
+    background-color: var(--status-in-progress-bg);
+    color: var(--status-in-progress);
+    border-color: var(--status-in-progress);
+}
+.status-tab-btn.status-tab-in-progress.active .status-tab-count {
+    background-color: var(--status-in-progress);
+    color: #ffffff;
+}
+
+.status-tab-btn.status-tab-revised.active {
+    background-color: var(--status-revised-bg);
+    color: var(--status-revised);
+    border-color: var(--status-revised);
+}
+.status-tab-btn.status-tab-revised.active .status-tab-count {
+    background-color: var(--status-revised);
+    color: #ffffff;
+}
+
+.status-tab-btn.status-tab-approved.active {
+    background-color: var(--status-approved-bg);
+    color: var(--status-approved);
+    border-color: var(--status-approved);
+}
+.status-tab-btn.status-tab-approved.active .status-tab-count {
+    background-color: var(--status-approved);
+    color: #ffffff;
+}
+
+.status-tab-btn.status-tab-partially-paid.active {
+    background-color: var(--status-partially-paid-bg);
+    color: var(--status-partially-paid);
+    border-color: var(--status-partially-paid);
+}
+.status-tab-btn.status-tab-partially-paid.active .status-tab-count {
+    background-color: var(--status-partially-paid);
+    color: #ffffff;
+}
+
+.status-tab-btn.status-tab-paid.active {
+    background-color: var(--status-paid-bg);
+    color: var(--status-paid);
+    border-color: var(--status-paid);
+}
+.status-tab-btn.status-tab-paid.active .status-tab-count {
+    background-color: var(--status-paid);
+    color: #ffffff;
+}
+
+.status-tab-btn.status-tab-rejected.active {
+    background-color: var(--status-rejected-bg);
+    color: var(--status-rejected);
+    border-color: var(--status-rejected);
+}
+.status-tab-btn.status-tab-rejected.active .status-tab-count {
+    background-color: var(--status-rejected);
+    color: #ffffff;
+}
+
+/* ─── 1.7.2 Needs Attention Panel ────────────────────────────────────────── */
+.attention-card-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-radius: var(--radius-input, 8px);
+    border: 1px solid var(--border);
+    background-color: var(--bg-card);
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.attention-card-item:hover {
+    transform: translateY(-2px);
+    border-color: var(--bs-primary, #2563eb);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    color: inherit;
+}
+
+.attention-badge-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    min-width: 26px;
+    height: 26px;
+    border-radius: var(--radius-pill, 9999px);
+    padding: 0 8px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ─── 1.7.2 Top Vendors & Activity Styles ────────────────────────────────── */
+.rank-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--text-main);
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .rank-badge {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.rank-badge-1 {
+    background-color: rgba(245, 158, 11, 0.18);
+    color: #b45309;
+}
+[data-theme="dark"] .rank-badge-1 {
+    color: #fbbf24;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    background-color: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+}
+    justify-content: center;
     border-radius: var(--radius-pill);
     background: transparent;
     border: 1px solid transparent;

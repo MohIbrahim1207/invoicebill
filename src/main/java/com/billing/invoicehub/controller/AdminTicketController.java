@@ -41,7 +41,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
-@RequestMapping(value = { "/admin/tickets" })
+@RequestMapping(value = { "/admin/tickets", "/tickets" })
 public class AdminTicketController {
     private static final Logger log = LoggerFactory.getLogger(AdminTicketController.class);
     private final VendorTicketService vendorTicketService;
@@ -54,8 +54,15 @@ public class AdminTicketController {
     public String adminTickets(@RequestParam(value = "ticketNo", required = false) String ticketNo,
             @RequestParam(value = "invoiceNo", required = false) String invoiceNo,
             @RequestParam(value = "year", required = false) Integer year,
-            @RequestParam(value = "status", required = false, defaultValue = "ALL") String status, Model model) {
+            @RequestParam(value = "status", required = false, defaultValue = "ALL") String status,
+            @RequestParam(value = "unsynced", required = false) Boolean unsynced,
+            Model model) {
         List<VendorTicket> tickets = this.vendorTicketService.searchTickets(ticketNo, invoiceNo, year, status);
+        if (Boolean.TRUE.equals(unsynced)) {
+            tickets = tickets.stream()
+                    .filter(t -> t.getInvoice() == null && (t.getStatusRequest() == null || t.getStatusRequest() != TicketStatus.CANCEL))
+                    .toList();
+        }
         model.addAttribute("tickets", (Object) tickets);
         model.addAttribute("availableYears", (Object) this.vendorTicketService.availableYears());
         model.addAttribute("statusOptions", (Object) TicketStatus.values());
@@ -63,6 +70,7 @@ public class AdminTicketController {
         model.addAttribute("invoiceNo", (Object) invoiceNo);
         model.addAttribute("year", (Object) year);
         model.addAttribute("status", (Object) (status == null ? "ALL" : status));
+        model.addAttribute("unsyncedFilter", unsynced);
         return "admin-tickets";
     }
 
